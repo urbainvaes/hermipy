@@ -14,4 +14,7 @@ add_library(hermite SHARED integrator.cpp)
 target_link_libraries(hermite ${Boost_LIBRARIES})
 
 # Don't prepend library name with lib
-set_target_properties(hermite PROPERTIES PREFIX "")
+set_target_properties(hermite PROPERTIES
+    PREFIX ""
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}
+    )
