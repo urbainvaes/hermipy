@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 project(Hermite)
 set (PROJECT_VERSION_MAJOR 0)
 set (PROJECT_VERSION_MINOR 0)
+# set(CMAKE_CXX_STANDARD 17)
 
 # Find necessary packages
 find_package(PythonLibs 3 REQUIRED)
