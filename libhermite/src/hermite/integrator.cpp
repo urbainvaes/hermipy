@@ -1,7 +1,9 @@
 #include <cmath>
+#include <dlfcn.h>
 #include <functional>
 #include <numeric>
 #include <iostream>
+#include <fstream>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -16,8 +18,6 @@
 #include "hermite/helpers/combinatorics.hpp"
 #include "hermite/integrator.hpp"
 #include "hermite/quadrature.hpp"
-
-#define PI 3.141592653589793238462643383279502884
 
 typedef std::vector< std::vector< std::vector<double> > > cube;
 typedef std::vector< std::vector<double> > mat;
@@ -63,7 +63,7 @@ namespace hermite {
 
         // Scaling to get rid of factors
         for (int i = 0; i < nNodes; ++i) {
-            weights[i] /= sqrt(PI);
+            weights[i] /= sqrt(M_PI);
             nodes[i] *= sqrt(2);
         }
     }
@@ -160,6 +160,28 @@ namespace hermite {
         return result;
     }
 
+    double Quad::integrate_from_string(string const& function_body) {
+
+        // Write function to file
+        ofstream helper_file;
+        helper_file.open("/tmp/helper_function.cpp");
+        helper_file << "#include <vector>\n#include <cmath>\n";
+        helper_file << "extern \"C\" double toIntegrate(std::vector<double> v) {\n";
+        helper_file << "    return " << function_body << ";\n}";
+        helper_file.close();
+
+        // Compile file
+        system("c++ /tmp/helper_function.cpp -o /tmp/helper_function.so -shared -fPIC");
+
+        // Load function dynamically
+        typedef double (*vec_func)(vec);
+        void *function_so = dlopen("/tmp/helper_function.so", RTLD_NOW);
+        vec_func func = (vec_func) dlsym(function_so, "toIntegrate");
+        double result = integrate(func);
+        dlclose(function_so);
+        return result;
+    }
+
     // ---- PYTHON WRAPPERS ----
     double Quad::integrate_wrapper(boost::python::object const& func) {
         std::function<double(vec const&)> lambda;
@@ -187,6 +209,7 @@ namespace hermite {
 
         class_<Quad>("Quad", init<int,int>())
             .def("integrate", &Quad::integrate_wrapper)
+            .def("integrate_from_string", &Quad::integrate_from_string)
             .def_readonly("nodes", &Quad::nodes)
             .def_readonly("weights", &Quad::weights)
             ;

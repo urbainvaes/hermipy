@@ -4,8 +4,8 @@ project(Hermite)
 set (PROJECT_VERSION_MAJOR 0)
 set (PROJECT_VERSION_MINOR 0)
 set (CMAKE_BUILD_TYPE Release)
-set (CMAKE_CXX_FLAGS_RELEASE "-Wall")
-set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall") # Necessary to repeat
+# set(CMAKE_CXX_STANDARD 17)
 
 # Find necessary packages
 find_package(PythonLibs 3 REQUIRED)
@@ -18,7 +18,7 @@ include_directories("src")
 
 # Build our library
 add_library(hermite SHARED ${Sources})
-target_link_libraries(hermite ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
+target_link_libraries(hermite ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} ${CMAKE_DL_LIBS})
 
 # Don't prepend library name with lib
 set_target_properties(hermite PROPERTIES

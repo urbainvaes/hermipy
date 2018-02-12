@@ -4,6 +4,7 @@ project(Test)
 set (PROJECT_VERSION_MAJOR 0)
 set (PROJECT_VERSION_MINOR 0)
 set (CMAKE_BUILD_TYPE Release)
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-fpermissive")
 
 find_package(PythonLibs 3 REQUIRED)
 find_package(Boost COMPONENTS python3 REQUIRED)
@@ -19,4 +20,4 @@ add_executable(test.exe ${Sources})
 set_target_properties(test.exe PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}
     )
-target_link_libraries(test.exe ${Hermite} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
+target_link_libraries(test.exe ${Hermite} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} ${CMAKE_DL_LIBS})
