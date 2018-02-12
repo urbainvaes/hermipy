@@ -1,21 +1,46 @@
 import numpy as np
+import time
 from libhermite import hermite
 
-# print(hermite.integrate(64, lambda x: np.sin(x)**2))
-# print(hermite.integrate_2d(64, lambda x, y: np.sin(x)**2))
-# print(hermite.integrate_3d(64, lambda x, y, z: np.sin(x)**2))
-
 print("Assemble quadratures...")
-quad_64 = hermite.Quad(64, 3)
+
+my_quad = hermite.Quad(100, 3)
 quad_smolyak = hermite.Quad(0, 3)
 
-def function(x, y, z): return np.cos(2*x+2*y+2*z)
+# Import attributes to python
+weights = my_quad.weights
+nodes = my_quad.nodes
+np_weights=np.array(range(len(weights)))
+np_nodes=np.ndarray((len(nodes),len(nodes[0])))
+for i in range(len(weights)):
+    np_weights[i] = weights[i]
+    for j in range(len(nodes[0])):
+        np_nodes[i][j] = nodes[i][j]
+
+
+def function(x: float, y: float, z: float) -> float: return np.cos(2*x+2*y+2*z) + x*y + np.exp(-z*z) +np.cos(2*x+2*y+2*z) + x*y + np.exp(-z*z) +np.cos(2*x+2*y+2*z) + x*y + np.exp(-z*z) +np.cos(2*x+2*y+2*z) + x*y + np.exp(-z*z) +np.cos(2*x+2*y+2*z) + x*y + np.exp(-z*z)
+# def function(x, y, z): return x*x
 def poly(x, y, z): return x**2+y**3+(x+y+z)**4
 
 print("Calculate 3D integral with Gauss-Hermite...")
-result_64 = quad_64.integrate(function)
-print("-> Result = " + str(result_64))
+start = time.time()
+result_cpp = my_quad.integrate(function)
+end = time.time()
+print("-> Result = " + str(result_cpp) + ", Time = " + str(end-start))
+
+print("Calculate 3D integral with python loop...")
+start = time.time()
+result_python = 0.
+for i in range(len(weights)):
+    result_python += np_weights[i] * function(np_nodes[i][0], np_nodes[i][1], np_nodes[i][2])
+end = time.time()
+print("-> Result = " + str(result_python) + ", Time = " + str(end-start))
+
+
 
 print("Calculate 3D integral with Smolyak...")
+start = time.time()
 result_smolyak = quad_smolyak.integrate(function)
-print("-> Result = " + str(result_smolyak))
+end = time.time()
+print("-> Result = " + str(result_smolyak) + ", Time = " + str(end-start))
+

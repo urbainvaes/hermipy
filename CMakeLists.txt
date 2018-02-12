@@ -1,35 +1,22 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(Hermite)
+project(Test)
 set (PROJECT_VERSION_MAJOR 0)
 set (PROJECT_VERSION_MINOR 0)
+set (CMAKE_BUILD_TYPE Release)
 
-# Find necessary packages
-include_directories("libhermite/src/")
+find_package(PythonLibs 3 REQUIRED)
+find_package(Boost COMPONENTS python3 REQUIRED)
+include_directories(${Boost_INCLUDE_DIR} ${PYTHON_INCLUDE_DIRS})
 
-# Find sources and add include directory of sources
-file(GLOB_RECURSE Sources "*.cpp")
-include_directories("src")
+find_library (Hermite NAMES hermite.so PATHS libhermite)
+include_directories("libhermite/src")
 
-# Build our library
-add_library(hermite SHARED ${Sources})
-target_link_libraries(hermite ${Boost_LIBRARIES})
+file(GLOB_RECURSE Sources "src/*.cpp")
+include_directories("src/")
+add_executable(test.exe ${Sources})
 
-# Don't prepend library name with lib
-set_target_properties(hermite PROPERTIES
-    PREFIX ""
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}
+set_target_properties(test.exe PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}
     )
-
-# Generate documentation
-find_package(Doxygen)
-set(DOXYGEN_CALL_GRAPH YES)
-set(DOXYGEN_EXTRACT_ALL YES)
-set(DOXYGEN_GENERATE_HTML YES)
-set(DOXYGEN_GENERATE_LATEX YES)
-set(DOXYGEN_GENERATE_LATEX YES)
-set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/doc)
-set(DOXYGEN_PROJECT_NAME ${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}-${PROJECT_VERSION_MINOR})
-set(DOXYGEN_RECURSIVE YES)
-set(DOXYGEN_USE_MDFILE_AS_MAINPAGE README.md)
-doxygen_add_docs("doc")
+target_link_libraries(test.exe ${Hermite} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
