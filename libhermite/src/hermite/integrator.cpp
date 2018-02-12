@@ -9,6 +9,8 @@
 #include <boost/function.hpp>
 #include <boost/python.hpp>
 #include <boost/math/special_functions/binomial.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+
 
 #include "hermite/helpers/templates.hpp"
 #include "hermite/helpers/combinatorics.hpp"
@@ -136,15 +138,6 @@ namespace hermite {
         }
     }
 
-    class Quad {
-        public:
-            Quad(int, int);
-            double integrate(boost::function<double(vec)>);
-            double integrate_wrapper(boost::python::object);
-            mat nodes;
-            vec weights;
-    };
-
     Quad::Quad(int nNodes, int nVars) {
 
         vector<double> nodes_1d(nNodes);
@@ -158,7 +151,7 @@ namespace hermite {
         }
     }
 
-    double Quad::integrate(boost::function<double(vec)> func) {
+    double Quad::integrate(boost::function<double(vec const&)> const& func) {
 
         double result = 0.;
         for (unsigned int i = 0; i < nodes.size(); ++i) {
@@ -168,26 +161,34 @@ namespace hermite {
     }
 
     // ---- PYTHON WRAPPERS ----
-    double Quad::integrate_wrapper(boost::python::object func) {
-        std::function<double(vec)> lambda;
+    double Quad::integrate_wrapper(boost::python::object const& func) {
+        std::function<double(vec const&)> lambda;
         switch (this->nodes[0].size()) {
-            case 1: lambda = [func](vec v) -> double { return boost::python::extract<double>(func (v[0])); }; break;
-            case 2: lambda = [func](vec v) -> double { return boost::python::extract<double>(func(v[0], v[1])); }; break;
-            case 3: lambda = [func](vec v) -> double { return boost::python::extract<double>(func(v[0], v[1], v[2])); }; break;
+            case 1: lambda = [&func](vec const& v) -> double { return boost::python::extract<double>(func (v[0])); }; break;
+            case 2: lambda = [&func](vec const& v) -> double { return boost::python::extract<double>(func(v[0], v[1])); }; break;
+            case 3: lambda = [&func](vec const& v) -> double { return boost::python::extract<double>(func(v[0], v[1], v[2])); }; break;
             default: cout << "Dimension must be 1, 2, or 3" << endl; exit(0);
         }
-        return integrate(boost::function<double(vec)>(lambda));
+        return integrate(lambda);
     }
 
     // ---- EXPOSE TO PYTHON ----
     BOOST_PYTHON_MODULE(hermite)
     {
         using namespace boost::python;
-        // def("integrate", integrate_wrap);
-        // def("integrate_2d", integrate_2d_wrap);
-        // def("integrate_3d", integrate_3d_wrap);
+
+        class_<std::vec>("double_vector")
+            .def(vector_indexing_suite<std::vec>())
+            ;
+
+        class_<std::mat>("double_mat")
+            .def(vector_indexing_suite<std::mat>())
+            ;
+
         class_<Quad>("Quad", init<int,int>())
             .def("integrate", &Quad::integrate_wrapper)
+            .def_readonly("nodes", &Quad::nodes)
+            .def_readonly("weights", &Quad::weights)
             ;
     }
 }
