@@ -3,6 +3,7 @@ import sympy as sy
 import time
 
 from libhermite import hermite
+from libspectral import spectral
 
 print("Assemble quadratures...")
 
@@ -22,9 +23,17 @@ for i in range(len(weights)):
 
 def function(x: float, y: float, z: float) -> float: return np.cos(2*x+2*y+2*z) + x*y + np.exp(-z*z) +np.cos(2*x+2*y+2*z) + x*y + np.exp(-z*z) +np.cos(2*x+2*y+2*z) + x*y + np.exp(-z*z) +np.cos(2*x+2*y+2*z) + x*y + np.exp(-z*z) +np.cos(2*x+2*y+2*z) + x*y + np.exp(-z*z)
 function_string = 'cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2])'
-def function(x, y, z): return x*x
-function_string = 'v[0]*v[0]'
+# def function(x, y, z): return x*x
+# function_string = 'v[0]*v[0]'
 # def poly(x, y, z): return x**2+y**3+(x+y+z)**4
+
+print("Calculate integral with numpy...")
+quadrature = spectral.Quad([100, 100, 100])
+def function_vec(v): return 0*v[0] + 1
+start = time.time()
+result = quadrature.integrate(function_vec)
+end = time.time()
+print("-> Result = " + str(result) + ", Time = " + str(end-start))
 
 print("Calculate 3D integral with Gauss-Hermite...")
 start = time.time()
@@ -40,16 +49,9 @@ print("-> Result = " + str(result_cpp) + ", Time = " + str(end-start))
 
 print("Calculate 3D integral with python loop...")
 start = time.time()
-result_python = 0.
+result = 0.
 for i in range(len(weights)):
-    result_python += np_weights[i] * function(np_nodes[i][0], np_nodes[i][1], np_nodes[i][2])
+    result += weights[i] * function(nodes[i][0], nodes[i][1],  nodes[i][2])
 end = time.time()
-print("-> Result = " + str(result_python) + ", Time = " + str(end-start))
-
-
-print("Calculate 3D integral with Smolyak...")
-start = time.time()
-result_smolyak = quad_smolyak.integrate(function)
-end = time.time()
-print("-> Result = " + str(result_smolyak) + ", Time = " + str(end-start))
+print("-> Result = " + str(result) + ", Time = " + str(end-start))
 
