@@ -1,6 +1,7 @@
 CALL_GRAPH             = YES
 CREATE_SUBDIRS         = YES
 EXTRACT_ALL            = YES
+EXTRA_PACKAGES         = {amsmath}
 INPUT                  = spectral.py README.md
 OPTIMIZE_OUTPUT_JAVA   = YES
 OUTPUT_DIRECTORY       = doc
