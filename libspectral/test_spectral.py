@@ -5,17 +5,23 @@ import spectral as sp
 
 class TestIntegrate(unittest.TestCase):
 
+    ## Test that the weighted integral of the constant function
+    # \f$ f := 1 \f$ is equal to 1 for different quadrature
+    # sizes.
     def test_normalization_nodes(self):
         deg = [2**i for i in range(8)]
         for i in deg:
             integral = sp.integrate(lambda v: 1 + 0*v[0], [i])
             self.assertAlmostEqual(integral, 1)
 
+    ## Test that the weighted integral of the constant function
+    # \f$ f := 1 \f$ is equal to 1 in dimensions 1,2 and 3.
     def test_normalization_dim(self):
         for i in range(1, 4):
             integral = sp.integrate(lambda v: 1 + 0*v[0], 100, dim=i)
             self.assertAlmostEqual(integral, 1)
 
+    ## Test that the first moment of the weight has the correct value.
     def test_mean(self):
         dim = 3
         mean = np.random.random(dim)
@@ -23,6 +29,7 @@ class TestIntegrate(unittest.TestCase):
             coord = sp.integrate(lambda v: v[i], 8, dim=dim, mean=mean)
             self.assertAlmostEqual(coord, mean[i])
 
+    ## Test that the second moment of the weight has the correct value.
     def test_covariance(self):
         dim = 3
         rand_mat = np.random.random((dim, dim))
@@ -32,6 +39,7 @@ class TestIntegrate(unittest.TestCase):
                 cov_ij = sp.integrate(lambda v: v[i]*v[j], 8, dim=dim, cov=cov)
                 self.assertAlmostEqual(cov_ij, cov[i][j])
 
+    ## Test the quadrature object
     def test_quad(self):
         dim = 3
         rand_mat = np.random.random((dim, dim))
@@ -44,3 +52,9 @@ class TestIntegrate(unittest.TestCase):
             for j in range(len(cov)):
                 cov_ij = quad.integrate(lambda v: (v[i]-mean[i])*(v[j]-mean[j]))
                 self.assertAlmostEqual(cov_ij, cov[i][j])
+
+# class TestHermiteTransform(unittest.TestCase):
+
+    ## Test that hermite polynomials are orthonormal
+    # def test_normalization_nodes(self):
+
