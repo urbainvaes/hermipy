@@ -14,12 +14,15 @@ import numpy.linalg as la
 import numpy.polynomial.hermite_e as herm
 import scipy.special
 
+from libhermite import hermite as hm
+
+
 ## Compute an N-dimensional Gauss-hermite quadrature
 #
 # This function returns the sample points and weights of a Gauss-Hermite
 # quadrature with the following general weight
 # \f[
-# g(\mu;\Sigma, x) := \frac{1}{{\sqrt{(2\pi)^k|\boldsymbol\Sigma|}}} \exp\left(-\frac 1 2 ({\mathbf x}-{\boldsymbol\mu})^\mathrm{T}{\boldsymbol\Sigma}^{-1}({\mathbf x}-{\boldsymbol\mu})\right),
+#     g(\mu;\Sigma, x) := \frac{1}{{\sqrt{(2\pi)^k|\boldsymbol\Sigma|}}} \exp\left(-\frac 1 2 ({\mathbf x}-{\boldsymbol\mu})^\mathrm{T}{\boldsymbol\Sigma}^{-1}({\mathbf x}-{\boldsymbol\mu})\right),
 # \f]
 # where \f$ \mu \f$ = \p mean and \f$ \Sigma \f$ = cov.
 # The number of sample points to use along each eigen-direction of covariance
@@ -48,7 +51,7 @@ import scipy.special
 # \retval nodes A 2-D array containing the sample points of the quadrature,
 # with `nodes[0]` containing the coordinates of the first node, etc.
 # \retval weights  A 1-D array containing the weights of the quadrature.
-def hermegauss_nd(deg, dim=None, mean=None, cov=None):
+def hermegauss_nd(deg, dim=None):
     if dim is not None:
         n_nodes = np.full(dim, deg)
     elif isinstance(deg, int):
@@ -56,10 +59,6 @@ def hermegauss_nd(deg, dim=None, mean=None, cov=None):
     else:
         n_nodes = deg
     dim = len(n_nodes)
-    if mean is None:
-        mean = np.zeros(dim)
-    if cov is None:
-        cov = np.eye(dim)
     nodes_multidim = []
     weights_multidim = []
     for i in range(dim):
@@ -67,7 +66,67 @@ def hermegauss_nd(deg, dim=None, mean=None, cov=None):
         weights_1d = weights_1d/np.sqrt(2*np.pi)  # Normalize
         nodes_multidim.append(nodes_1d)
         weights_multidim.append(weights_1d)
-    return nodes_multidim, weights_multidim
+    return [nodes_multidim], [weights_multidim]
+
+
+## Compute the weighted multi-dimensional integral of a function using a
+# Gauss-Hermite quadrature
+#
+# See spectral::hermegauss_nd for a full documentation of the parameters
+#
+# ## Note
+# It is important that this function be able to take a list of
+def integrate_with_quad(f, nodes, weights, mean=None, cov=None):
+
+    dim = len(nodes[0])
+    if mean is None:
+        mean = np.zeros(dim)
+    if cov is None:
+        cov = np.eye(dim)
+
+    n_products = len(nodes)
+    eigval, eigvec = la.eig(cov)
+    mat_factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
+
+    @nb.jit("f8(f8[:])", fastmath=True)
+    def numba_f(standard_v):
+        real_v = mean + mat_factor.dot(standard_v)
+        return f(real_v)
+
+    @nb.njit(fastmath=True)
+    def integrate_numba_f():
+        result = 0
+        for product_index in range(n_products):
+            sub_nodes = nodes[product_index]
+            sub_weights = weights[product_index]
+            n_dim = [0]*dim
+            n_tot = 1
+            for i in range(dim):
+                n_dim[i] = len(sub_nodes[i])
+                n_tot *= n_dim[i]
+            for i in range(n_tot):
+                remainder = i
+                mult_ind = [0]*dim
+                for j in range(dim):
+                    divider = n_dim[j]
+                    mult_ind[j] = remainder % divider
+                    remainder = remainder // divider
+                node = np.zeros(dim)
+                weight = 1
+                for d in range(dim):
+                    node[d] = sub_nodes[d][mult_ind[d]]
+                    weight *= sub_weights[d][mult_ind[d]]
+                result += numba_f(node) * np.prod(weight)
+            # product_nodes = itertools.product(sub_nodes)
+            # product_weights = itertools.product(sub_weights)
+            # for node, weight in zip(product_nodes, product_weights):
+            #     print(numba_f(node))
+            #     print(weight)
+            #     result += numba_f(node) * np.prod(weight)
+        return result
+    return integrate_numba_f()
+
+
 
 
 ## Compute the weighted multi-dimensional integral of a function using a
@@ -91,8 +150,8 @@ def hermegauss_nd(deg, dim=None, mean=None, cov=None):
 #
 # \param f The function to integrate. # \returns the value of the multi-dimensional integral
 def integrate(f, deg, dim=None, mean=None, cov=None):
-    nodes, weights = hermegauss_nd(deg, dim, mean, cov)
-    return np.dot(f(nodes.T), weights)
+    nodes, weights = hermegauss_nd(deg, dim)
+    return integrate_with_quad(f, nodes, weights, mean=mean, cov=cov)
 
 
 ## Convert a hermite series to a polynomial
@@ -226,15 +285,5 @@ class Quad:
     ## Compute a multi-dimensional integral
     #
     # See spectral::integrate for a description of the parameters.
-    def integrate(self, f):
-
-        @nb.jit(fastmath=True)
-        def numba_f(v):
-            return f(v)
-
-        @nb.njit(fastmath=True, parallel=True)
-        result = 0
-        for m in itertools.product(range(deg_max+1), repeat=dim):
-            result += 
-
-        return np.dot(f(self.nodes.T), self.weights)
+    def integrate(self, f, mean=None, cov=None):
+        return integrate_with_quad(f, self.nodes, self.weights, mean=mean, cov=cov)
