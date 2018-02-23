@@ -49,8 +49,8 @@ vec hermite_expand(s_func func,
     vec exp_coeffs(n_polys);
 
     unsigned int i,j,k,l;
-    double* node = (double*) malloc(sizeof(double)*3);
-    double* mapped_node = (double*) malloc(sizeof(double)*3);
+    double* node = (double*) malloc(sizeof(double)*dim);
+    double* mapped_node = (double*) malloc(sizeof(double)*dim);
 
     vec sq(degree + 1, 0);
     for (i = 0; i < sq.size(); i++)
@@ -113,14 +113,14 @@ vec hermite_expand(s_func func,
             Multi_index_iterator iter_degree(dim, degree);
             const ivec & m = iter_degree.get();
 
-            for (k = 0; k < n_polys; k++) 
+            for (k = 0; k < n_polys; k++)
             {
                 double val_at_point = 1;
                 for (l = 0; l < dim; l++)
                 {
-                    if (m[l] != 0) 
+                    if (m[l] != 0)
                     {
-                        val_at_point *=  herm_vals_1d[l][j][k];
+                        val_at_point *=  herm_vals_1d[l][p[l]][k];
                     }
                 }
 
@@ -141,61 +141,8 @@ double integrate_with_quad(s_func func,
         mat const & dilation) {
 
     vec integral = hermite_expand(func, 0, nodes, weights, translation, dilation);
+
     return integral[0];
-    // return 0;
-
-    // unsigned int dim = nodes[0].size();
-    // unsigned int n_products = nodes.size();
-
-    // double result = 0.;
-
-    // unsigned int i,j,k,l;
-    // double* node = (double*) malloc(sizeof(double)*3);
-    // double* mapped_node = (double*) malloc(sizeof(double)*3);
-    // // vec node(dim);
-    // // vec mapped_node(dim);
-
-    // for (i = 0; i < n_products; ++i)
-    // {
-    //     mat sub_nodes = nodes[i];
-    //     mat sub_weights = weights[i];
-
-    //     ivec n_points(dim);
-    //     unsigned int n_points_tot = 1;
-
-    //     for (j = 0; j < dim; j++)
-    //     {
-    //         n_points[j] = sub_nodes[j].size();
-    //         n_points_tot *= n_points[j];
-    //     }
-
-    //     Hyper_cube_iterator iter_mult(n_points);
-    //     const ivec & m = iter_mult.get();
-
-    //     for (j = 0; j < n_points_tot; j++)
-    //     {
-    //         double weight = 1;
-    //         for (k = 0; k < dim; k++)
-    //         {
-    //             node[k] = sub_nodes[k][m[k]];
-    //             weight *= sub_weights[k][m[k]];
-    //         }
-
-    //         for (k = 0; k < dim; k++)
-    //         {
-    //             mapped_node[k] = 0;
-    //             for (l = 0; l < dim; l++)
-    //             {
-    //                 mapped_node[k] += dilation[k][l]*node[l];
-    //             }
-    //             mapped_node[k] += translation[k];
-    //         }
-
-    //         result += weight * func(mapped_node);
-    //         iter_mult.increment();
-    //     }
-    // }
-    // return result;
 }
 
 void intern_function(string const & function_body) {
@@ -219,6 +166,9 @@ void intern_function(string const & function_body) {
     }
 }
 
+
+// ---- PYTHON WRAPPERS ----
+
 double integrate_from_string(
         string const & function_body,
         cube const & nodes,
@@ -238,25 +188,23 @@ double integrate_from_string(
     return result;
 }
 
-// double hermite_expand_from_string(
-//         string const & function_body,
-//         int degree,
-//         cube const & nodes,
-//         cube const & weights,
-//         vec const & translation,
-//         mat const & dilation) {
+vec hermite_expand_from_string(
+        string const & function_body,
+        int degree,
+        cube const & nodes,
+        cube const & weights,
+        vec const & translation,
+        mat const & dilation) {
 
-//     intern_function(function_body);
-//     string name = to_string(hash<string>()(function_body));
-//     string so_file = "/tmp/" + name + ".so";
-
-//     // Load function dynamically
-//     void *function_so = dlopen(so_file.c_str(), RTLD_NOW);
-//     s_func func = (s_func) dlsym(function_so, "toIntegrate");
-//     double result = integrate_with_quad(func, nodes, weights, translation, dilation);
-//     dlclose(function_so);
-//     return result;
-// }
+    intern_function(function_body);
+    string name = to_string(hash<string>()(function_body));
+    string so_file = "/tmp/" + name + ".so";
+    void *function_so = dlopen(so_file.c_str(), RTLD_NOW);
+    s_func func = (s_func) dlsym(function_so, "toIntegrate");
+    vec result = hermite_expand(func, degree, nodes, weights, translation, dilation);
+    dlclose(function_so);
+    return result;
+}
 
 
 // ---- PYTHON API ----
@@ -276,8 +224,8 @@ BOOST_PYTHON_MODULE(hermite)
         .def(vector_indexing_suite<cube>())
         ;
 
-    // def("hermite_expand", hermite_expand);
     def("integrate_from_string", integrate_from_string);
+    def("hermite_expand", hermite_expand_from_string);
 }
 
 }

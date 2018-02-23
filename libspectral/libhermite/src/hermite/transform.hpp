@@ -25,12 +25,6 @@ double integrate_with_quad(s_func func,
 
 void intern_function(std::string const & function_body);
 
-double integrate_from_string(
-        std::string const & function_body,
-        cube const & nodes,
-        cube const & weights,
-        vec const & translation,
-        mat const & dilation);
 }
 
 #endif
