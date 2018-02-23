@@ -14,44 +14,27 @@
 #include <boost/math/special_functions/binomial.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
-
-// #include "hermite/helpers/templates.hpp"
-// #include "hermite/helpers/combinatorics.hpp"
-// #include "hermite/integrator.hpp"
-// #include "hermite/quadrature.hpp"
+#include "hermite/types.hpp"
+#include "hermite/iterators.hpp"
+#include "hermite/transform.hpp"
 
 using namespace std;
 
 namespace hermite {
-
-// Arrays
-typedef std::vector<double> vec;
-typedef std::vector<vec> mat;
-typedef std::vector<mat> cube;
-
-typedef std::vector<int> ivec;
-
-// Functions
-// typedef boost::function<double(vec const &)> s_func;
-typedef double (*s_func)(double*);
 
 void increment_multi_index(ivec & m, ivec const & upper_bounds)
 {
     unsigned int dim = m.size();
     unsigned int i = dim - 1;
     while(m[i] == upper_bounds[i] - 1 && i>0) {
+        m[i] = 0;
         i -= 1;
     }
     m[i] += 1;
-    for (unsigned int j = i + 1; j < dim; j++)
-    {
-        m[j] = 0;
-    }
 }
 
-// vec hermite_expand(s_func func,
-
-double integrate_with_quad(s_func func,
+vec hermite_expand(s_func func,
+        unsigned int degree,
         cube const & nodes,
         cube const & weights,
         vec const & translation,
@@ -60,35 +43,61 @@ double integrate_with_quad(s_func func,
     unsigned int dim = nodes[0].size();
     unsigned int n_products = nodes.size();
 
-    double result = 0.;
+    using boost::math::binomial_coefficient;
+    unsigned int n_polys = (unsigned int) binomial_coefficient<double> (degree + dim, dim);
+
+    vec exp_coeffs(n_polys);
 
     unsigned int i,j,k,l;
     double* node = (double*) malloc(sizeof(double)*3);
     double* mapped_node = (double*) malloc(sizeof(double)*3);
-    // vec node(dim);
-    // vec mapped_node(dim);
 
-    for (i = 0; i < n_products; ++i)
+    vec sq(degree + 1, 0);
+    for (i = 0; i < sq.size(); i++)
+    {
+        sq[i] = sqrt(i);
+    }
+
+    for (i = 0; i < n_products; i++)
     {
         mat sub_nodes = nodes[i];
         mat sub_weights = weights[i];
-        ivec n_points(dim);
-        unsigned int n_points_tot = 1;
 
+        unsigned int n_points_tot = 1;
+        ivec n_points(dim);
         for (j = 0; j < dim; j++)
         {
             n_points[j] = sub_nodes[j].size();
             n_points_tot *= n_points[j];
         }
 
-        ivec m(dim, 0);
+        // Compute Hermite polynomials in each dimension
+        cube herm_vals_1d(dim);
+        for (j = 0; j < dim; ++j)
+        {
+            herm_vals_1d[j] = mat(n_points[j], vec(degree + 1, 0));
+            for (k = 0; k < n_points[j]; k++)
+            {
+                double x = sub_nodes[j][k];
+                herm_vals_1d[j][k][0] = 1;
+                herm_vals_1d[j][k][1] = x;
+                for (l = 1; l < degree; l++)
+                {
+                    herm_vals_1d[j][k][l+1] = (1/sq[l+1])*(x*herm_vals_1d[j][k][l]-sq[l]*herm_vals_1d[j][k][l-1]);
+                }
+            }
+        }
+
+        Hyper_cube_iterator iter_points(n_points);
+        const ivec & p = iter_points.get();
+
         for (j = 0; j < n_points_tot; j++)
         {
             double weight = 1;
             for (k = 0; k < dim; k++)
             {
-                node[k] = sub_nodes[k][m[k]];
-                weight *= sub_weights[k][m[k]];
+                node[k] = sub_nodes[k][p[k]];
+                weight *= sub_weights[k][p[k]];
             }
 
             for (k = 0; k < dim; k++)
@@ -101,19 +110,95 @@ double integrate_with_quad(s_func func,
                 mapped_node[k] += translation[k];
             }
 
-            result += weight * func(mapped_node);
-            increment_multi_index(m, n_points);
+            Multi_index_iterator iter_degree(dim, degree);
+            const ivec & m = iter_degree.get();
+
+            for (k = 0; k < n_polys; k++) 
+            {
+                double val_at_point = 1;
+                for (l = 0; l < dim; l++)
+                {
+                    if (m[l] != 0) 
+                    {
+                        val_at_point *=  herm_vals_1d[l][j][k];
+                    }
+                }
+
+                exp_coeffs[k] += func(mapped_node) * weight * val_at_point;
+                iter_degree.increment();
+            }
+            iter_points.increment();
         }
     }
-    return result;
+
+    return exp_coeffs;
 }
 
-double integrate_from_string(
-        string const & function_body,
+double integrate_with_quad(s_func func,
         cube const & nodes,
         cube const & weights,
         vec const & translation,
         mat const & dilation) {
+
+    vec integral = hermite_expand(func, 0, nodes, weights, translation, dilation);
+    return integral[0];
+    // return 0;
+
+    // unsigned int dim = nodes[0].size();
+    // unsigned int n_products = nodes.size();
+
+    // double result = 0.;
+
+    // unsigned int i,j,k,l;
+    // double* node = (double*) malloc(sizeof(double)*3);
+    // double* mapped_node = (double*) malloc(sizeof(double)*3);
+    // // vec node(dim);
+    // // vec mapped_node(dim);
+
+    // for (i = 0; i < n_products; ++i)
+    // {
+    //     mat sub_nodes = nodes[i];
+    //     mat sub_weights = weights[i];
+
+    //     ivec n_points(dim);
+    //     unsigned int n_points_tot = 1;
+
+    //     for (j = 0; j < dim; j++)
+    //     {
+    //         n_points[j] = sub_nodes[j].size();
+    //         n_points_tot *= n_points[j];
+    //     }
+
+    //     Hyper_cube_iterator iter_mult(n_points);
+    //     const ivec & m = iter_mult.get();
+
+    //     for (j = 0; j < n_points_tot; j++)
+    //     {
+    //         double weight = 1;
+    //         for (k = 0; k < dim; k++)
+    //         {
+    //             node[k] = sub_nodes[k][m[k]];
+    //             weight *= sub_weights[k][m[k]];
+    //         }
+
+    //         for (k = 0; k < dim; k++)
+    //         {
+    //             mapped_node[k] = 0;
+    //             for (l = 0; l < dim; l++)
+    //             {
+    //                 mapped_node[k] += dilation[k][l]*node[l];
+    //             }
+    //             mapped_node[k] += translation[k];
+    //         }
+
+    //         result += weight * func(mapped_node);
+    //         iter_mult.increment();
+    //     }
+    // }
+    // return result;
+}
+
+void intern_function(string const & function_body) {
 
     string name = to_string(hash<string>()(function_body));
     string cpp_file = "/tmp/" + name + ".cpp";
@@ -132,6 +217,18 @@ double integrate_from_string(
         string command = "c++ " + cpp_file + " -o " + so_file + " -O3 -Ofast -shared -fPIC";
         system(command.c_str());
     }
+}
+
+double integrate_from_string(
+        string const & function_body,
+        cube const & nodes,
+        cube const & weights,
+        vec const & translation,
+        mat const & dilation) {
+
+    intern_function(function_body);
+    string name = to_string(hash<string>()(function_body));
+    string so_file = "/tmp/" + name + ".so";
 
     // Load function dynamically
     void *function_so = dlopen(so_file.c_str(), RTLD_NOW);
@@ -140,6 +237,26 @@ double integrate_from_string(
     dlclose(function_so);
     return result;
 }
+
+// double hermite_expand_from_string(
+//         string const & function_body,
+//         int degree,
+//         cube const & nodes,
+//         cube const & weights,
+//         vec const & translation,
+//         mat const & dilation) {
+
+//     intern_function(function_body);
+//     string name = to_string(hash<string>()(function_body));
+//     string so_file = "/tmp/" + name + ".so";
+
+//     // Load function dynamically
+//     void *function_so = dlopen(so_file.c_str(), RTLD_NOW);
+//     s_func func = (s_func) dlsym(function_so, "toIntegrate");
+//     double result = integrate_with_quad(func, nodes, weights, translation, dilation);
+//     dlclose(function_so);
+//     return result;
+// }
 
 
 // ---- PYTHON API ----
@@ -159,6 +276,7 @@ BOOST_PYTHON_MODULE(hermite)
         .def(vector_indexing_suite<cube>())
         ;
 
+    // def("hermite_expand", hermite_expand);
     def("integrate_from_string", integrate_from_string);
 }
 
