@@ -49,111 +49,103 @@ void map_point(vec const & translation, mat const & dilation, double *node, doub
 
 // cube inv_hermite_transform(vec coefficients, cube const & nodes, cube const & weights)
 // {
+
 // }
 
 vec hermite_expand(
         u_int degree,
-        mat const & f_grid,
-        cube const & nodes,
-        cube const & weights) {
-
-    u_int dim = nodes[0].size();
-    u_int n_products = nodes.size();
+        vec const & f_grid,
+        mat const & nodes,
+        mat const & weights)
+{
+    u_int dim = nodes.size();
 
     using boost::math::binomial_coefficient;
     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
 
     vec exp_coeffs(n_polys, 0);
 
-    u_int i,j,k,l;
-    for (i = 0; i < n_products; i++)
+    u_int i,j,k;
+
+    u_int n_points_tot = 1;
+    ivec n_points(dim);
+    for (i = 0; i < dim; i++)
     {
-        u_int n_points_tot = 1;
-        ivec n_points(dim);
+        n_points[i] = nodes[i].size();
+        n_points_tot *= n_points[i];
+    }
+
+    // Compute Hermite polynomials in each dimension
+    cube herm_vals_1d(dim);
+    for (i = 0; i < dim; ++i)
+    {
+        herm_vals_1d[i] = mat(n_points[i], vec(degree + 1, 0));
+        for (j = 0; j < n_points[i]; j++)
+        {
+            hermite_eval(nodes[i][j], degree, herm_vals_1d[i][j]);
+        }
+    }
+
+    Hyper_cube_iterator p(n_points);
+    for (i = 0; i < n_points_tot; i++, p.increment())
+    {
+        double weight = 1;
         for (j = 0; j < dim; j++)
         {
-            n_points[j] = nodes[i][j].size();
-            n_points_tot *= n_points[j];
+            weight *= weights[j][p[j]];
         }
 
-        // Compute Hermite polynomials in each dimension
-        cube herm_vals_1d(dim);
-        for (j = 0; j < dim; ++j)
+        Multi_index_iterator m(dim, degree);
+        for (j = 0; j < n_polys; j++, m.increment())
         {
-            herm_vals_1d[j] = mat(n_points[j], vec(degree + 1, 0));
-            for (k = 0; k < n_points[j]; k++)
-            {
-                hermite_eval(nodes[i][j][k], degree, herm_vals_1d[j][k]);
-            }
-        }
-
-        Hyper_cube_iterator p(n_points);
-        for (j = 0; j < n_points_tot; j++, p.increment())
-        {
-            double weight = 1;
+            double val_at_point = 1;
             for (k = 0; k < dim; k++)
             {
-                weight *= weights[i][k][p[k]];
-            }
-
-            Multi_index_iterator m(dim, degree);
-            for (k = 0; k < n_polys; k++, m.increment())
-            {
-                double val_at_point = 1;
-                for (l = 0; l < dim; l++)
+                if (m[k] != 0)
                 {
-                    if (m[l] != 0)
-                    {
-                        val_at_point *= herm_vals_1d[l][p[l]][m[l]];
-                    }
+                    val_at_point *= herm_vals_1d[k][p[k]][m[k]];
                 }
-
-                // cout << "Hermite val: " << val_at_point << endl;
-                // cout << "Function: " << func(mapped_node) * weight << endl;
-                exp_coeffs[k] += f_grid[i][j] * weight * val_at_point;
             }
+
+            // cout << "Hermite val: " << val_at_point << endl;
+            // cout << "Function: " << func(mapped_node) * weight << endl;
+            exp_coeffs[j] += f_grid[i] * weight * val_at_point;
         }
     }
 
     return exp_coeffs;
 }
 
-mat discretize_function(
+vec discretize_function(
         s_func func,
-        cube const & nodes,
+        mat const & nodes,
         vec const & translation,
         mat const & dilation)
 {
-    u_int n_products = nodes.size();
-    mat result(n_products);
+    u_int dim = nodes.size();
 
-    u_int dim = nodes[0].size();
-
-    u_int i,j,k;
+    u_int i,j;
     double* node = (double*) malloc(sizeof(double)*dim);
     double* mapped_node = (double*) malloc(sizeof(double)*dim);
 
-    for (i = 0; i < n_products; i++)
+    u_int n_points_tot = 1;
+    ivec n_points(dim);
+    for (u_int i = 0; i < dim; i++)
     {
-        u_int n_points_tot = 1;
-        ivec n_points(dim);
-        for (u_int j = 0; j < dim; j++)
-        {
-            n_points[j] = nodes[i][j].size();
-            n_points_tot *= n_points[j];
-        }
-        result[i] = vec(n_points_tot, 0);
+        n_points[i] = nodes[i].size();
+        n_points_tot *= n_points[i];
+    }
+    vec result(n_points_tot, 0);
 
-        Hyper_cube_iterator p(n_points);
-        for (j = 0; j < n_points_tot; j++, p.increment())
+    Hyper_cube_iterator p(n_points);
+    for (i = 0; i < n_points_tot; i++, p.increment())
+    {
+        for (j = 0; j < dim; j++)
         {
-            for (k = 0; k < dim; k++)
-            {
-                node[k] = nodes[i][k][p[k]];
-            }
-            map_point(translation, dilation, node, mapped_node);
-            result[i][j] = func(mapped_node);
+            node[j] = nodes[j][p[j]];
         }
+        map_point(translation, dilation, node, mapped_node);
+        result[i] = func(mapped_node);
     }
 
     free(node);
@@ -162,22 +154,20 @@ mat discretize_function(
     return result;
 }
 
-
 double integrate_with_quad(
-        mat const & f_grid,
-        cube const & nodes,
-        cube const & weights)
+        vec const & f_grid,
+        mat const & nodes,
+        mat const & weights)
 {
 
     vec integral = hermite_expand(0, f_grid, nodes, weights);
-
     return integral[0];
 }
 
 // ---- PYTHON WRAPPERS ----
 
-void intern_function(string const & function_body) {
-
+void intern_function(string const & function_body)
+{
     string name = to_string(hash<string>()(function_body));
     string cpp_file = "/tmp/" + name + ".cpp";
     string so_file = "/tmp/" + name + ".so";
@@ -197,9 +187,9 @@ void intern_function(string const & function_body) {
     }
 }
 
-mat discretize_function_from_string(
+vec discretize_function_from_string(
         string function_body,
-        cube const & nodes,
+        mat const & nodes,
         vec const & translation,
         mat const & dilation)
 {
@@ -208,19 +198,19 @@ mat discretize_function_from_string(
     string so_file = "/tmp/" + name + ".so";
     void *function_so = dlopen(so_file.c_str(), RTLD_NOW);
     s_func func = (s_func) dlsym(function_so, "toIntegrate");
-    mat result = discretize_function(func, nodes, translation, dilation);
+    vec result = discretize_function(func, nodes, translation, dilation);
     dlclose(function_so);
     return result;
 }
 
 double integrate_from_string(
         string const & function_body,
-        cube const & nodes,
-        cube const & weights,
+        mat const & nodes,
+        mat const & weights,
         vec const & translation,
         mat const & dilation) {
 
-    mat f_grid = discretize_function_from_string(function_body, nodes, translation, dilation);
+    vec f_grid = discretize_function_from_string(function_body, nodes, translation, dilation);
     double result = integrate_with_quad(f_grid, nodes, weights);
     return result;
 }
@@ -228,13 +218,13 @@ double integrate_from_string(
 vec hermite_expand_from_string(
         string const & function_body,
         int degree,
-        cube const & nodes,
-        cube const & weights,
+        mat const & nodes,
+        mat const & weights,
         vec const & translation,
-        mat const & dilation) {
-
-    mat f_grid = discretize_function_from_string(function_body, nodes, translation, dilation);
-    vec result = hermite_expand(degree, f_grid,  nodes, weights);
+        mat const & dilation)
+{
+    vec f_grid = discretize_function_from_string(function_body, nodes, translation, dilation);
+    vec result = hermite_expand(degree, f_grid, nodes, weights);
     return result;
 }
 

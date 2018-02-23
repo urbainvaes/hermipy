@@ -7,6 +7,7 @@
 # \f[
 #     \int_{\mathbb R^n} H^\alpha(x) \, H^\beta(x) \, \rho(x) \, \mathrm d x = 1
 # \f]
+import collections
 import itertools
 import numba as nb
 import numpy as np
@@ -69,6 +70,42 @@ def hermegauss_nd(deg, dim=None):
     return [nodes_multidim], [weights_multidim]
 
 
+## Convert to and from c++
+def convert_to_cpp_vec(vec):
+    cpp_vec = hm.double_vec()
+    cpp_vec.extend(vec)
+    return cpp_vec
+
+
+def convert_to_cpp_mat(mat):
+    cpp_mat = hm.double_mat()
+    for vec in mat:
+        cpp_mat.append(convert_to_cpp_vec(vec))
+    return cpp_mat
+
+
+def convert_to_numpy_vec(vec):
+    numpy_vec = np.zeros(len(vec))
+    for i in range(len(vec)):
+        numpy_vec[i] = vec[i]
+    return numpy_vec
+
+
+def convert_to_numpy_mat(mat):
+    numpy_mat = np.zeros((len(mat), len(mat[0])))
+    for i in range(len(mat)):
+        numpy_mat[i] = convert_to_numpy_vec(mat[i])
+    return numpy_mat
+
+
+def convert_to_list(array):
+    if not isinstance(array, collections.Iterable):
+        return array
+    else:
+        result = []
+        for elem in result:
+            result.append(convert_to_list(elem))
+
 ## Compute the weighted multi-dimensional integral of a function using a
 # Gauss-Hermite quadrature
 #
@@ -87,35 +124,19 @@ def integrate_with_quad(f, nodes, weights, mean=None, cov=None):
     eigval, eigvec = la.eig(cov)
     mat_factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
 
-    cpp_nodes = hm.double_cube()
-    for mat in nodes:
-        m = hm.double_mat()
-        for vec in mat:
-            v = hm.double_vec()
-            v.extend(vec)
-            m.append(v)
-        cpp_nodes.append(m)
+    cpp_translation = convert_to_cpp_vec(mean)
+    cpp_dilation = convert_to_cpp_mat(mat_factor)
 
-    cpp_weights = hm.double_cube()
-    for mat in weights:
-        m = hm.double_mat()
-        for vec in mat:
-            v = hm.double_vec()
-            v.extend(vec)
-            m.append(v)
-        cpp_weights.append(m)
+    result = 0
 
-    cpp_translation = hm.double_vec()
-    cpp_translation.extend(mean)
+    for i in range(len(nodes)):
 
-    cpp_dilation = hm.double_mat()
-    for vec in mat_factor:
-        v = hm.double_vec()
-        v.extend(vec)
-        cpp_dilation.append(v)
+        cpp_nodes = convert_to_cpp_mat(nodes[i])
+        cpp_weights = convert_to_cpp_mat(weights[i])
+        result += hm.integrate_from_string(f, cpp_nodes, cpp_weights,
+                                           cpp_translation, cpp_dilation)
 
-    return hm.integrate_from_string(f, cpp_nodes, cpp_weights,
-                                    cpp_translation, cpp_dilation)
+    return result
 
 ## Compute the weighted multi-dimensional integral of a function using a
 # Gauss-Hermite quadrature
@@ -209,34 +230,22 @@ def herm_transform_with_quad(f, degree, nodes, weights, mean=None, cov=None):
     eigval, eigvec = la.eig(cov)
     mat_factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
 
-    cpp_nodes = hm.double_cube()
-    for mat in nodes:
-        m = hm.double_mat()
-        for vec in mat:
-            v = hm.double_vec()
-            v.extend(vec)
-            m.append(v)
-        cpp_nodes.append(m)
+    cpp_translation = convert_to_cpp_vec(mean)
+    cpp_dilation = convert_to_cpp_mat(mat_factor)
 
-    cpp_weights = hm.double_cube()
-    for mat in weights:
-        m = hm.double_mat()
-        for vec in mat:
-            v = hm.double_vec()
-            v.extend(vec)
-            m.append(v)
-        cpp_weights.append(m)
+    n_poly = int(scipy.special.binom(degree + dim, dim))
+    result = np.zeros(n_poly)
 
-    cpp_translation = hm.double_vec()
-    cpp_translation.extend(mean)
+    for i in range(len(nodes)):
 
-    cpp_dilation = hm.double_mat()
-    for vec in mat_factor:
-        v = hm.double_vec()
-        v.extend(vec)
-        cpp_dilation.append(v)
+        cpp_nodes = convert_to_cpp_mat(nodes[i])
+        cpp_weights = convert_to_cpp_mat(weights[i])
 
-    return hm.hermite_expand(f, degree, cpp_nodes, cpp_weights, cpp_translation, cpp_dilation)
+        coeffs = hm.hermite_expand(f, degree, cpp_nodes, cpp_weights,
+                                   cpp_translation, cpp_dilation)
+        result += convert_to_numpy_vec(coeffs)
+
+    return result
 
     # @nb.jit(fastmath=True)
     # def numba_f(v):
