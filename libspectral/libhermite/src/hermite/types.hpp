@@ -3,13 +3,16 @@
 
 #include <vector>
 
-namespace hermite {
-    // Arrays
-    typedef std::vector<double> vec;
-    typedef std::vector<vec> mat;
-    typedef std::vector<mat> cube;
+namespace std {
 
-    typedef std::vector<unsigned int> ivec;
+    typedef unsigned int u_int;
+
+    // Arrays
+    typedef vector<double> vec;
+    typedef vector<vec> mat;
+    typedef vector<mat> cube;
+
+    typedef vector<unsigned int> ivec;
 
     // Functions
     // typedef boost::function<double(vec const &)> s_func;

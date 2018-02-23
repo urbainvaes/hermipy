@@ -12,12 +12,16 @@ class Vector_iterator {
     public:
 
     unsigned int dim;
-    ivec multi_index;
+    std::ivec multi_index;
     bool full;
 
 
-    const ivec& get() const {
+    const std::ivec& get() const {
         return multi_index;
+    }
+
+    int operator[](int i) {
+        return multi_index[i];
     }
 
     bool isFull() const {
@@ -27,7 +31,7 @@ class Vector_iterator {
     public:
 
     virtual void increment() = 0;
-    Vector_iterator(int dim): dim(dim), multi_index(ivec(dim, 0)), full(false) {}
+    Vector_iterator(int dim): dim(dim), multi_index(std::ivec(dim, 0)), full(false) {}
 
 };
 
@@ -48,12 +52,12 @@ class Multi_index_iterator : public Vector_iterator {
 class Hyper_cube_iterator : public Vector_iterator {
 
     // Upper bounds excluded
-    const ivec upper_bounds;
+    const std::ivec upper_bounds;
 
     public:
 
     void increment();
-    Hyper_cube_iterator(const ivec & upper_bounds):
+    Hyper_cube_iterator(const std::ivec & upper_bounds):
         Vector_iterator(upper_bounds.size()), upper_bounds(upper_bounds) {}
 };}
 

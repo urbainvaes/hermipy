@@ -198,45 +198,83 @@ def monval(x, c, mean=None, cov=None):
 # This allows the evaluation of the \f$ n \f$ first Hermite polynomials
 # in one point in \f$ \mathcal O(n) \f$ operations, compared to \f$
 # \mathcal O(n^2) \f$ for a naive implementation.
-def herm_transform(function, dim, deg, n_points, mean=None, cov=None):
+def herm_transform_with_quad(f, degree, nodes, weights, mean=None, cov=None):
 
-    @nb.jit(fastmath=True)
-    def numba_f(v):
-        return function(v)
+    dim = len(nodes[0])
+    if mean is None:
+        mean = np.zeros(dim)
+    if cov is None:
+        cov = np.eye(dim)
 
-    quad_unit = Quad(n_points, dim)
-    quad_real = Quad(n_points, dim, mean, cov)
-    n_poly = int(scipy.special.binom(deg + dim, dim))
-    mult_inds = multi_indices(dim, deg)
-    exp_coeffs = {}
-    for m in mult_inds:
-        exp_coeffs[m] = 0
-    h = np.zeros((dim, deg+1))
-    sq = np.sqrt(range(deg+1))
-    for d in range(dim):
-        h[d][0] = 1
+    eigval, eigvec = la.eig(cov)
+    mat_factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
 
-    @nb.jit(nopython=True, fastmath=True)
-    def herm_eval_1d(x, deg):
-        result = np.zeros(deg + 1)
-        result[0] = 1
-        result[1] = x
-        for n in range(1, deg):
-            result[n+1] = (1/sq[n+1])*(x*result[n]-sq[n]*result[n-1])
-            # result[n+1] = (x*result[n]-n*result[n-1])
-        return result
+    cpp_nodes = hm.double_cube()
+    for mat in nodes:
+        m = hm.double_mat()
+        for vec in mat:
+            v = hm.double_vec()
+            v.extend(vec)
+            m.append(v)
+        cpp_nodes.append(m)
 
-    for i_node in range(len(quad_unit.nodes)):
-        u_node = quad_unit.nodes[i_node]
-        r_node = quad_real.nodes[i_node]
-        for d in range(dim):
-            h[d] = herm_eval_1d(u_node[d], deg)
-        for m in mult_inds:
-            vals = [h[d][m[d]] for d in range(dim)]
-            # print(mult_inds[i_mult])
-            # print(vals)
-            exp_coeffs[m] += np.prod(vals)*numba_f(r_node)*quad_unit.weights[i_node]
-    return exp_coeffs
+    cpp_weights = hm.double_cube()
+    for mat in weights:
+        m = hm.double_mat()
+        for vec in mat:
+            v = hm.double_vec()
+            v.extend(vec)
+            m.append(v)
+        cpp_weights.append(m)
+
+    cpp_translation = hm.double_vec()
+    cpp_translation.extend(mean)
+
+    cpp_dilation = hm.double_mat()
+    for vec in mat_factor:
+        v = hm.double_vec()
+        v.extend(vec)
+        cpp_dilation.append(v)
+
+    return hm.hermite_expand(f, degree, cpp_nodes, cpp_weights, cpp_translation, cpp_dilation)
+
+    # @nb.jit(fastmath=True)
+    # def numba_f(v):
+    #     return function(v)
+
+    # quad_unit = Quad(n_points, dim)
+    # quad_real = Quad(n_points, dim, mean, cov)
+    # n_poly = int(scipy.special.binom(deg + dim, dim))
+    # mult_inds = multi_indices(dim, deg)
+    # exp_coeffs = {}
+    # for m in mult_inds:
+    #     exp_coeffs[m] = 0
+    # h = np.zeros((dim, deg+1))
+    # sq = np.sqrt(range(deg+1))
+    # for d in range(dim):
+    #     h[d][0] = 1
+
+    # @nb.jit(nopython=True, fastmath=True)
+    # def herm_eval_1d(x, deg):
+    #     result = np.zeros(deg + 1)
+    #     result[0] = 1
+    #     result[1] = x
+    #     for n in range(1, deg):
+    #         result[n+1] = (1/sq[n+1])*(x*result[n]-sq[n]*result[n-1])
+    #         # result[n+1] = (x*result[n]-n*result[n-1])
+    #     return result
+
+    # for i_node in range(len(quad_unit.nodes)):
+    #     u_node = quad_unit.nodes[i_node]
+    #     r_node = quad_real.nodes[i_node]
+    #     for d in range(dim):
+    #         h[d] = herm_eval_1d(u_node[d], deg)
+    #     for m in mult_inds:
+    #         vals = [h[d][m[d]] for d in range(dim)]
+    #         # print(mult_inds[i_mult])
+    #         # print(vals)
+    #         exp_coeffs[m] += np.prod(vals)*numba_f(r_node)*quad_unit.weights[i_node]
+    # return exp_coeffs
 
 def inv_hermite_transform(coeffs, dim, n_points):
     quad = Quad(n_points, dim)

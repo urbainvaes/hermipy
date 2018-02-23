@@ -4,7 +4,7 @@ project(Hermite)
 set (PROJECT_VERSION_MAJOR 0)
 set (PROJECT_VERSION_MINOR 0)
 set (CMAKE_BUILD_TYPE Release)
-set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall") # Necessary to repeat
+set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -Wall") # Necessary to repeat
 # set(CMAKE_CXX_STANDARD 17)
 
 # Find necessary packages

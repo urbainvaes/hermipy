@@ -8,20 +8,16 @@
 
 namespace hermite {
 
-void increment_multi_index(ivec & m, ivec const & upper_bounds);
+std::vec hermite_expand(
+        std::u_int degree,
+        std::mat const & f_grid,
+        std::cube const & nodes,
+        std::cube const & weights);
 
-vec hermite_expand(s_func func,
-        unsigned int degree,
-        cube const & nodes,
-        cube const & weights,
-        vec const & translation,
-        mat const & dilation);
-
-double integrate_with_quad(s_func func,
-        cube const & nodes,
-        cube const & weights,
-        vec const & translation,
-        mat const & dilation);
+double integrate_with_quad(
+        std::mat const & f_grid,
+        std::cube const & nodes,
+        std::cube const & weights);
 
 void intern_function(std::string const & function_body);
 
