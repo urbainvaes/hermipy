@@ -11,14 +11,23 @@ class TestIntegrate(unittest.TestCase):
     def test_normalization_nodes(self):
         deg = [2**i for i in range(8)]
         for i in deg:
-            integral = sp.integrate(lambda v: 1 + 0*v[0], [i])
+            integral = sp.integrate('1', [i])
             self.assertAlmostEqual(integral, 1)
+
+            integral = sp.integrate('v[0]', [i])
+            self.assertAlmostEqual(integral, 0)
 
     ## Test that the weighted integral of the constant function
     # \f$ f := 1 \f$ is equal to 1 in dimensions 1,2 and 3.
     def test_normalization_dim(self):
         for i in range(1, 4):
-            integral = sp.integrate(lambda v: 1 + 0*v[0], 100, dim=i)
+            integral = sp.integrate('1', [i])
+            self.assertAlmostEqual(integral, 1)
+
+            integral = sp.integrate('v[0]', 100, dim=i)
+            self.assertAlmostEqual(integral, 0)
+
+            integral = sp.integrate('v[0]*v[0]', 100, dim=i)
             self.assertAlmostEqual(integral, 1)
 
     ## Test that the first moment of the weight has the correct value.
@@ -26,7 +35,8 @@ class TestIntegrate(unittest.TestCase):
         dim = 3
         mean = np.random.random(dim)
         for i in range(len(mean)):
-            coord = sp.integrate(lambda v: v[i], 8, dim=dim, mean=mean)
+            fun = 'v[{}]'.format(i)
+            coord = sp.integrate(fun, 8, dim=dim, mean=mean)
             self.assertAlmostEqual(coord, mean[i])
 
     ## Test that the second moment of the weight has the correct value.
@@ -36,7 +46,8 @@ class TestIntegrate(unittest.TestCase):
         cov = np.matmul(rand_mat.T, rand_mat)
         for i in range(len(cov)):
             for j in range(len(cov)):
-                cov_ij = sp.integrate(lambda v: v[i]*v[j], 8, dim=dim, cov=cov)
+                fun = 'v[{}]*v[{}]'.format(i, j)
+                cov_ij = sp.integrate(fun, 8, dim=dim, cov=cov)
                 self.assertAlmostEqual(cov_ij, cov[i][j])
 
     ## Test the quadrature object

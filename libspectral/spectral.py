@@ -84,50 +84,38 @@ def integrate_with_quad(f, nodes, weights, mean=None, cov=None):
     if cov is None:
         cov = np.eye(dim)
 
-    n_products = len(nodes)
     eigval, eigvec = la.eig(cov)
     mat_factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
 
-    @nb.jit("f8(f8[:])", fastmath=True)
-    def numba_f(standard_v):
-        real_v = mean + mat_factor.dot(standard_v)
-        return f(real_v)
+    cpp_nodes = hm.double_cube()
+    for mat in nodes:
+        m = hm.double_mat()
+        for vec in mat:
+            v = hm.double_vec()
+            v.extend(vec)
+            m.append(v)
+        cpp_nodes.append(m)
 
-    @nb.njit(fastmath=True)
-    def integrate_numba_f():
-        result = 0
-        for product_index in range(n_products):
-            sub_nodes = nodes[product_index]
-            sub_weights = weights[product_index]
-            n_dim = [0]*dim
-            n_tot = 1
-            for i in range(dim):
-                n_dim[i] = len(sub_nodes[i])
-                n_tot *= n_dim[i]
-            for i in range(n_tot):
-                remainder = i
-                mult_ind = [0]*dim
-                for j in range(dim):
-                    divider = n_dim[j]
-                    mult_ind[j] = remainder % divider
-                    remainder = remainder // divider
-                node = np.zeros(dim)
-                weight = 1
-                for d in range(dim):
-                    node[d] = sub_nodes[d][mult_ind[d]]
-                    weight *= sub_weights[d][mult_ind[d]]
-                result += numba_f(node) * np.prod(weight)
-            # product_nodes = itertools.product(sub_nodes)
-            # product_weights = itertools.product(sub_weights)
-            # for node, weight in zip(product_nodes, product_weights):
-            #     print(numba_f(node))
-            #     print(weight)
-            #     result += numba_f(node) * np.prod(weight)
-        return result
-    return integrate_numba_f()
+    cpp_weights = hm.double_cube()
+    for mat in weights:
+        m = hm.double_mat()
+        for vec in mat:
+            v = hm.double_vec()
+            v.extend(vec)
+            m.append(v)
+        cpp_weights.append(m)
 
+    cpp_translation = hm.double_vec()
+    cpp_translation.extend(mean)
 
+    cpp_dilation = hm.double_mat()
+    for vec in mat_factor:
+        v = hm.double_vec()
+        v.extend(vec)
+        cpp_dilation.append(v)
 
+    return hm.integrate_from_string(f, cpp_nodes, cpp_weights,
+                                    cpp_translation, cpp_dilation)
 
 ## Compute the weighted multi-dimensional integral of a function using a
 # Gauss-Hermite quadrature

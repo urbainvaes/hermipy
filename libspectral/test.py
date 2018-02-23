@@ -1,26 +1,19 @@
 import spectral as sp
+import time
 import numpy as np
 import numba as nb
 from libhermite import hermite as hm
 
-function = 'v[0]'
-nodes, weights = sp.hermegauss_nd([5, 3])
+nodes, weights = sp.hermegauss_nd([100, 100, 100])
 
-a=hm.double_cube()
-a.append
+function = 'cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2])'
+start = time.time()
+for i in range(100):
+    result = sp.integrate_with_quad(function, nodes, weights)
+print("Result: " + str(result) + ", Time: " + str(time.time() - start))
 
-
-
-# @nb.jit("f8(f8[:])", fastmath=True)
-# def function(v):
-#     return v[0]
-
-
-
-# print(sp.integrate_with_quad(function, nodes, weights))
-
-# print(sp.integrate(function, [100, 100, 100]))
-
-# deg = [2**i for i in range(8)]
-# for i in deg:
-#     print(sp.integrate(lambda v: 1 + 0*v[0], [i]))
+function = 'v[0]*v[1]'
+start = time.time()
+for i in range(100):
+    result = sp.integrate_with_quad(function, nodes, weights)
+print("Result: " + str(result) + ", Time: " + str(time.time() - start))

@@ -10,6 +10,7 @@
 
 #include <boost/function.hpp>
 #include <boost/python.hpp>
+#include <boost/core/ref.hpp>
 #include <boost/math/special_functions/binomial.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
@@ -18,7 +19,6 @@
 // #include "hermite/helpers/combinatorics.hpp"
 // #include "hermite/integrator.hpp"
 // #include "hermite/quadrature.hpp"
-
 
 using namespace std;
 
@@ -30,13 +30,12 @@ typedef std::vector<vec> mat;
 typedef std::vector<mat> cube;
 
 typedef std::vector<int> ivec;
-typedef std::vector<ivec> imat;
-typedef std::vector<imat> icube;
 
 // Functions
-typedef std::function<double(vec const &)> s_func;
+// typedef boost::function<double(vec const &)> s_func;
+typedef double (*s_func)(double*);
 
-void increment_multi_index(ivec &m, ivec const & upper_bounds)
+void increment_multi_index(ivec & m, ivec const & upper_bounds)
 {
     unsigned int dim = m.size();
     unsigned int i = dim - 1;
@@ -50,13 +49,24 @@ void increment_multi_index(ivec &m, ivec const & upper_bounds)
     }
 }
 
-double integrate_with_quad(s_func const & func, cube const & nodes, cube const & weights) {
+// vec hermite_expand(s_func func,
 
-    unsigned int i,j,k;
+double integrate_with_quad(s_func func,
+        cube const & nodes,
+        cube const & weights,
+        vec const & translation,
+        mat const & dilation) {
+
     unsigned int dim = nodes[0].size();
     unsigned int n_products = nodes.size();
 
     double result = 0.;
+
+    unsigned int i,j,k,l;
+    double* node = (double*) malloc(sizeof(double)*3);
+    double* mapped_node = (double*) malloc(sizeof(double)*3);
+    // vec node(dim);
+    // vec mapped_node(dim);
 
     for (i = 0; i < n_products; ++i)
     {
@@ -74,80 +84,82 @@ double integrate_with_quad(s_func const & func, cube const & nodes, cube const &
         ivec m(dim, 0);
         for (j = 0; j < n_points_tot; j++)
         {
-            vec node(dim);
             double weight = 1;
             for (k = 0; k < dim; k++)
             {
                 node[k] = sub_nodes[k][m[k]];
                 weight *= sub_weights[k][m[k]];
             }
-            result += weight * func(node);
+
+            for (k = 0; k < dim; k++)
+            {
+                mapped_node[k] = 0;
+                for (l = 0; l < dim; l++)
+                {
+                    mapped_node[k] += dilation[k][l]*node[l];
+                }
+                mapped_node[k] += translation[k];
+            }
+
+            result += weight * func(mapped_node);
             increment_multi_index(m, n_points);
         }
     }
     return result;
 }
 
-double integrate_from_string(string const& function_body, cube nodes, cube weights) {
+double integrate_from_string(
+        string const & function_body,
+        cube const & nodes,
+        cube const & weights,
+        vec const & translation,
+        mat const & dilation) {
 
-    // Write function to file
-    ofstream helper_file;
-    helper_file.open("/tmp/helper_function.cpp");
-    helper_file << "#include <vector>\n#include <cmath>\n";
-    helper_file << "extern \"C\" double toIntegrate(std::vector<double> v) {\n";
-    helper_file << "    return " << function_body << ";\n}";
-    helper_file.close();
+    string name = to_string(hash<string>()(function_body));
+    string cpp_file = "/tmp/" + name + ".cpp";
+    string so_file = "/tmp/" + name + ".so";
+    ifstream test_exists(so_file.c_str());
 
-    // Compile file
-    system("c++ /tmp/helper_function.cpp -o /tmp/helper_function.so -shared -fPIC");
+    if(! test_exists.good()) {
+         ofstream write_function;
+         write_function.open(cpp_file);
+         write_function << "#include <vector>\n#include <cmath>\n";
+         write_function << "extern \"C\" double toIntegrate(double *v) {\n";
+         write_function << "    return " << function_body << ";\n}";
+         write_function.close();
+
+        // Compile file
+        string command = "c++ " + cpp_file + " -o " + so_file + " -O3 -Ofast -shared -fPIC";
+        system(command.c_str());
+    }
 
     // Load function dynamically
-    typedef double (*vec_func)(vec);
-    void *function_so = dlopen("/tmp/helper_function.so", RTLD_NOW);
-    vec_func func = (vec_func) dlsym(function_so, "toIntegrate");
-    double result = integrate_with_quad(func, nodes, weights);
+    void *function_so = dlopen(so_file.c_str(), RTLD_NOW);
+    s_func func = (s_func) dlsym(function_so, "toIntegrate");
+    double result = integrate_with_quad(func, nodes, weights, translation, dilation);
     dlclose(function_so);
     return result;
 }
 
-// // ---- PYTHON WRAPPERS ----
-// double Quad::integrate_wrapper(boost::python::object const& func) {
-//     std::function<double(vec const&)> lambda;
-//     switch (this->nodes[0].size()) {
-//         case 1: lambda = [&func](vec const& v) -> double { return boost::python::extract<double>(func (v[0])); }; break;
-//         case 2: lambda = [&func](vec const& v) -> double { return boost::python::extract<double>(func(v[0], v[1])); }; break;
-//         case 3: lambda = [&func](vec const& v) -> double { return boost::python::extract<double>(func(v[0], v[1], v[2])); }; break;
-//         default: cout << "Dimension must be 1, 2, or 3" << endl; exit(0);
-//     }
-//     return integrate(lambda);
-// }
 
 // ---- PYTHON API ----
 BOOST_PYTHON_MODULE(hermite)
 {
     using namespace boost::python;
 
-    class_<vec>("cpp_vector")
+    class_<vec>("double_vec")
         .def(vector_indexing_suite<vec>())
         ;
 
-    class_<mat>("cpp_mat")
+    class_<mat>("double_mat")
         .def(vector_indexing_suite<mat>())
         ;
 
-    class_<cube>("cpp_cube")
+    class_<cube>("double_cube")
         .def(vector_indexing_suite<cube>())
         ;
 
-
     def("integrate_from_string", integrate_from_string);
-
-    // class_<Quad>("Quad", init<int,int>())
-    //     .def("integrate", &Quad::integrate_wrapper)
-    //     .def("integrate_from_string", &integrate_from_string)
-    //     .def_readonly("nodes", &Quad::nodes)
-    //     .def_readonly("weights", &Quad::weights)
-    //     ;
 }
 
 }
