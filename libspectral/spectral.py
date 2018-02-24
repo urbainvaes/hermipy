@@ -241,8 +241,8 @@ def herm_transform_with_quad(f, degree, nodes, weights, mean=None, cov=None):
         cpp_nodes = convert_to_cpp_mat(nodes[i])
         cpp_weights = convert_to_cpp_mat(weights[i])
 
-        coeffs = hm.hermite_expand(f, degree, cpp_nodes, cpp_weights,
-                                   cpp_translation, cpp_dilation)
+        coeffs = hm.hermite_transform(f, degree, cpp_nodes, cpp_weights,
+                                   cpp_translation, cpp_dilation, True)
         result += convert_to_numpy_vec(coeffs)
 
     return result
@@ -309,7 +309,7 @@ class Quad:
     def __init__(self, deg, dim=None, mean=None, cov=None):
 
         # Nodes and weights of the quadrature
-        nodes, weights = hermegauss_nd(deg, dim, mean, cov)
+        nodes, weights = hermegauss_nd(deg, dim)
 
         ## The sample points of the quadrature.
         self.nodes = nodes
@@ -317,8 +317,15 @@ class Quad:
         ## The weights of the quadrature.
         self.weights = weights
 
+        ## Mean of the Gaussian weight
+        self.mean = mean
+
+        ## Covariance of the Gaussian weight
+        self.cov = cov
+
+
     ## Compute a multi-dimensional integral
     #
     # See spectral::integrate for a description of the parameters.
     def integrate(self, f, mean=None, cov=None):
-        return integrate_with_quad(f, self.nodes, self.weights, mean=mean, cov=cov)
+        return integrate_with_quad(f, self.nodes, self.weights, self.mean, self.cov)

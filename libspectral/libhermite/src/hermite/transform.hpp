@@ -8,19 +8,17 @@
 
 namespace hermite {
 
-std::vec hermite_expand(
+std::vec hermite_transform(
         std::u_int degree,
         std::vec const & f_grid,
         std::mat const & nodes,
-        std::mat const & weights);
+        std::mat const & weights,
+        bool forward);
 
 double integrate_with_quad(
         std::vec const & f_grid,
         std::mat const & nodes,
         std::mat const & weights);
-
-void intern_function(std::string const & function_body);
-
 }
 
 #endif

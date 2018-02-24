@@ -51,20 +51,21 @@ class TestIntegrate(unittest.TestCase):
                 self.assertAlmostEqual(cov_ij, cov[i][j])
 
     ## Test the quadrature object
-    # def test_quad(self):
-    #     dim = 3
-    #     rand_mat = np.random.random((dim, dim))
-    #     mean = np.arange(dim)
-    #     cov = np.matmul(rand_mat.T, rand_mat)
-    #     quad = sp.Quad(8, dim=dim, mean=mean, cov=cov)
-    #     for i in range(len(cov)):
-    #         mean_i = quad.integrate(lambda v: v[i])
-    #         self.assertAlmostEqual(mean_i, mean[i])
-    #         for j in range(len(cov)):
-    #             cov_ij = quad.integrate(lambda v: (v[i]-mean[i])*(v[j]-mean[j]))
-    #             self.assertAlmostEqual(cov_ij, cov[i][j])
+    def test_quad(self):
+        dim = 3
+        rand_mat = np.random.random((dim, dim))
+        mean = np.random.random(dim)
+        cov = np.matmul(rand_mat.T, rand_mat)
+        quad = sp.Quad(8, dim=dim, mean=mean, cov=cov)
+        for i in range(len(cov)):
+            mean_i = quad.integrate('v[{}]'.format(i))
+            self.assertAlmostEqual(mean_i, mean[i])
+            for j in range(len(cov)):
+                fun = '(v[{}]-{})*(v[{}]-{})'.format(i, mean[i], j, mean[j])
+                cov_ij = quad.integrate(fun)
+                self.assertAlmostEqual(cov_ij, cov[i][j])
 
-# class TestHermiteTransform(unittest.TestCase):
+class TestHermiteTransform(unittest.TestCase):
 
     ## Test that hermite polynomials are orthonormal
     # def test_normalization_nodes(self):

@@ -22,7 +22,9 @@ using namespace std;
 
 namespace hermite {
 
-void hermite_eval(double x, u_int degree, vec & values)
+void hermite_eval(double x,
+        u_int degree,
+        vec & values)
 {
     values[0] = 1;
     values[1] = x;
@@ -33,7 +35,10 @@ void hermite_eval(double x, u_int degree, vec & values)
     }
 }
 
-void map_point(vec const & translation, mat const & dilation, double *node, double *mapped_node)
+void map_point(vec const & translation,
+        mat const & dilation,
+        double *node,
+        double *mapped_node)
 {
     u_int dim = translation.size();
 
@@ -47,23 +52,16 @@ void map_point(vec const & translation, mat const & dilation, double *node, doub
     }
 }
 
-// cube inv_hermite_transform(vec coefficients, cube const & nodes, cube const & weights)
-// {
-
-// }
-
-vec hermite_expand(
+vec hermite_transform(
         u_int degree,
-        vec const & f_grid,
+        vec const & input,
         mat const & nodes,
-        mat const & weights)
+        mat const & weights,
+        bool forward)
 {
     u_int dim = nodes.size();
-
     using boost::math::binomial_coefficient;
     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
-
-    vec exp_coeffs(n_polys, 0);
 
     u_int i,j,k;
 
@@ -73,6 +71,16 @@ vec hermite_expand(
     {
         n_points[i] = nodes[i].size();
         n_points_tot *= n_points[i];
+    }
+
+    vec output;
+    if (forward)
+    {
+        output = vec(n_polys, 0);
+    }
+    else
+    {
+        output = vec(n_points_tot, 0);
     }
 
     // Compute Hermite polynomials in each dimension
@@ -90,9 +98,12 @@ vec hermite_expand(
     for (i = 0; i < n_points_tot; i++, p.increment())
     {
         double weight = 1;
-        for (j = 0; j < dim; j++)
+        if (forward)
         {
-            weight *= weights[j][p[j]];
+            for (j = 0; j < dim; j++)
+            {
+                weight *= weights[j][p[j]];
+            }
         }
 
         Multi_index_iterator m(dim, degree);
@@ -106,14 +117,18 @@ vec hermite_expand(
                     val_at_point *= herm_vals_1d[k][p[k]][m[k]];
                 }
             }
-
-            // cout << "Hermite val: " << val_at_point << endl;
-            // cout << "Function: " << func(mapped_node) * weight << endl;
-            exp_coeffs[j] += f_grid[i] * weight * val_at_point;
+            if(forward)
+            {
+                output[j] += input[i] * weight * val_at_point;
+            }
+            else
+            {
+                output[i] += input[j] * weight * val_at_point;
+            }
         }
     }
 
-    return exp_coeffs;
+    return output;
 }
 
 vec discretize_function(
@@ -159,8 +174,7 @@ double integrate_with_quad(
         mat const & nodes,
         mat const & weights)
 {
-
-    vec integral = hermite_expand(0, f_grid, nodes, weights);
+    vec integral = hermite_transform(0, f_grid, nodes, weights, true);
     return integral[0];
 }
 
@@ -221,10 +235,11 @@ vec hermite_expand_from_string(
         mat const & nodes,
         mat const & weights,
         vec const & translation,
-        mat const & dilation)
+        mat const & dilation,
+        bool forward)
 {
     vec f_grid = discretize_function_from_string(function_body, nodes, translation, dilation);
-    vec result = hermite_expand(degree, f_grid, nodes, weights);
+    vec result = hermite_transform(degree, f_grid, nodes, weights, forward);
     return result;
 }
 
@@ -246,7 +261,7 @@ BOOST_PYTHON_MODULE(hermite)
         ;
 
     def("integrate_from_string", integrate_from_string);
-    def("hermite_expand", hermite_expand_from_string);
+    def("hermite_transform", hermite_expand_from_string);
 }
 
 }
