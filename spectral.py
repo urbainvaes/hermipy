@@ -14,6 +14,8 @@ import numpy as np
 import numpy.linalg as la
 import numpy.polynomial.hermite_e as herm
 import scipy.special
+import sympy as sy
+import re
 
 from libhermite import hermite as hm
 
@@ -88,13 +90,13 @@ def convert_to_list(array):
 # \retval nodes A 2-D array containing the sample points of the quadrature,
 # with `nodes[0]` containing the coordinates of the first node, etc.
 # \retval weights  A 1-D array containing the weights of the quadrature.
-def hermegauss_nd(deg, dim=None):
+def hermegauss_nd(n_points, dim=None):
     if dim is not None:
-        n_nodes = np.full(dim, deg)
-    elif isinstance(deg, int):
-        n_nodes = [deg]
+        n_nodes = np.full(dim, n_points)
+    elif isinstance(n_points, int):
+        n_nodes = [n_points]
     else:
-        n_nodes = deg
+        n_nodes = n_points
     dim = len(n_nodes)
     nodes_multidim = []
     weights_multidim = []
@@ -105,14 +107,33 @@ def hermegauss_nd(deg, dim=None):
         weights_multidim.append(weights_1d)
     return nodes_multidim, weights_multidim
 
-## Compute the weighted multi-dimensional integral of a function using a
-# Gauss-Hermite quadrature
-#
-# See spectral::hermegauss_nd for a full documentation of the parameters
-#
-# ## Note
-# It is important that this function be able to take a list of
-def integrate_simple_quad(f, nodes, weights, mean=None, cov=None):
+
+def stringify(function):
+    if not isinstance(function, str):
+        function = sy.ccode(function)
+
+    # If x, y, z notation is used
+    subst_vars = function
+    subst_vars = re.sub(r'\bx\b', 'v[0]', subst_vars)
+    subst_vars = re.sub(r'\by\b', 'v[1]', subst_vars)
+    subst_vars = re.sub(r'\bz\b', 'v[2]', subst_vars)
+
+    # If v0, v1, ... notation is used
+    subst_vars = re.sub(r'(?<=[v])([0-9]+)', r'[\1]', subst_vars)
+
+    return subst_vars
+
+
+## Discretize a function
+def discretize(function, nodes, mean=None, cov=None):
+
+    is_iterable = isinstance(function, collections.Iterable)
+    is_string = isinstance(function, str)
+
+    if is_iterable and not is_string:
+        return function
+
+    function = stringify(function)
 
     dim = len(nodes)
     if mean is None:
@@ -125,16 +146,26 @@ def integrate_simple_quad(f, nodes, weights, mean=None, cov=None):
 
     cpp_translation = convert_to_cpp_vec(mean)
     cpp_dilation = convert_to_cpp_mat(mat_factor)
+    cpp_nodes = convert_to_cpp_mat(nodes)
 
+    cpp_discretization = hm.discretize(function, cpp_nodes,
+                                       cpp_translation, cpp_dilation)
+    return convert_to_numpy_vec(cpp_discretization)
+
+
+## Compute the weighted multi-dimensional integral of a function using a
+# Gauss-Hermite quadrature
+#
+# See spectral::hermegauss_nd for a full documentation of the parameters
+#
+# ## Note
+# It is important that this function be able to take a list of
+def integrate_simple_quad(f, nodes, weights, mean=None, cov=None):
+
+    f_grid = convert_to_cpp_vec(discretize(f, nodes, mean, cov))
     cpp_nodes = convert_to_cpp_mat(nodes)
     cpp_weights = convert_to_cpp_mat(weights)
-
-    if isinstance(f, str):
-        f_nodes = hm.discretize(f, cpp_nodes, cpp_translation, cpp_dilation)
-    else:
-        f_nodes = f
-
-    result = hm.integrate(f_nodes, cpp_nodes, cpp_weights)
+    result = hm.integrate(f_grid, cpp_nodes, cpp_weights)
     return result
 
 
@@ -153,8 +184,8 @@ def integrate_composite_quad(f, nodes, weights, mean=None, cov=None):
 # See spectral::hermegauss_nd for a full documentation of the parameters
 #
 # \param f The function to integrate. # \returns the value of the multi-dimensional integral
-def integrate(f, deg, dim=None, mean=None, cov=None):
-    nodes, weights = hermegauss_nd(deg, dim)
+def integrate(f, n_points, dim=None, mean=None, cov=None):
+    nodes, weights = hermegauss_nd(n_points, dim)
     return integrate_simple_quad(f, nodes, weights, mean=mean, cov=cov)
 
 
@@ -176,27 +207,6 @@ def herm_to_poly(c):
 # multiple polynomials. In the two dimensional case the
 # coefficients may be thought of as stored in the columns of
 # c.
-def hermval(x, c, mean=None, cov=None):
-    dim = len(x[0])
-    if mean is None:
-        mean = np.zeros(dim)
-    if cov is None:
-        cov = np.eye(dim)
-    eigval, eigvec = la.eig(cov)
-    mat_factor = np.matmul(eigvec,np.sqrt(np.diag(eigval)))
-    x_standard = la.inv(mat_factor)(x - mean).T
-
-
-def monval(x, c, mean=None, cov=None):
-    dim = len(x[0])
-    if mean is None:
-        mean = np.zeros(dim)
-    if cov is None:
-        cov = np.eye(dim)
-    eigval, eigvec = la.eig(cov)
-    mat_factor = np.matmul(eigvec,np.sqrt(np.diag(eigval)))
-    x_standard = la.inv(mat_factor)(x - mean).T
-
 
 ## Expand Hermite function with complexity O(n*n)
 #
@@ -215,36 +225,22 @@ def monval(x, c, mean=None, cov=None):
 # in one point in \f$ \mathcal O(n) \f$ operations, compared to \f$
 # \mathcal O(n^2) \f$ for a naive implementation.
 
-def transform_simple_quad(f, degree, nodes, weights, mean=None, cov=None):
+def transform_simple_quad(f, degree, nodes, weights, mean=None,
+                          cov=None, forward=True):
 
+    f_grid = convert_to_cpp_vec(discretize(f, nodes, mean, cov))
     dim = len(nodes)
-    if mean is None:
-        mean = np.zeros(dim)
-    if cov is None:
-        cov = np.eye(dim)
-
-    eigval, eigvec = la.eig(cov)
-    mat_factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
-
-    cpp_translation = convert_to_cpp_vec(mean)
-    cpp_dilation = convert_to_cpp_mat(mat_factor)
-
     n_poly = int(scipy.special.binom(degree + dim, dim))
     result = np.zeros(n_poly)
-
     cpp_nodes = convert_to_cpp_mat(nodes)
     cpp_weights = convert_to_cpp_mat(weights)
 
-    if isinstance(f, str):
-        f_nodes = hm.discretize(f, cpp_nodes, cpp_translation, cpp_dilation)
-    else:
-        f_nodes = f
-
-    result = hm.transform(degree, f_nodes, cpp_nodes, cpp_weights, True)
+    result = hm.transform(degree, f_grid, cpp_nodes, cpp_weights, forward)
     return convert_to_numpy_vec(result)
 
 
-def transform_composite_quad(f, degree, nodes, weights, mean=None, cov=None):
+def transform_composite_quad(f, degree, nodes, weights,
+                             mean=None, cov=None, forward=True):
 
     dim = len(nodes[0])
     n_poly = int(scipy.special.binom(degree + dim, dim))
@@ -253,9 +249,23 @@ def transform_composite_quad(f, degree, nodes, weights, mean=None, cov=None):
     for i in range(len(nodes)):
         f_arg = f if isinstance(f, str) else f[i]
         result += transform_simple_quad(f_arg, degree, nodes[i],
-                                        weights[i], mean, cov)
+                                        weights[i], mean, cov, forward)
     return result
 
+
+def eval_simple_quad(coeffs, degree, nodes):
+    cpp_coeffs = convert_to_cpp_vec(coeffs)
+    return transform_simple_quad(cpp_coeffs, degree, nodes, nodes, forward=False)
+
+
+def eval_composite_quad(coeffs, degree, nodes):
+    result = []
+
+    for i in range(len(nodes)):
+        result_quad = eval_simple_quad(coeffs, degree, nodes[i],
+                                       nodes[i], forward=False)
+        result.append(result_quad)
+    return result
 
 ## Enumerate the N-dimensional multi-indices \f$ \alpha \f$ such that \f$ |\alpha| \leq b \f$.
 #
@@ -264,6 +274,7 @@ def transform_composite_quad(f, degree, nodes, weights, mean=None, cov=None):
 def multi_indices(dim, deg_max, deg_min=0):
     return [m for m in itertools.product(range(deg_max+1), repeat=dim) if \
             sum(m) <= deg_max and sum(m) >= deg_min]
+
 
 ## Gauss-Hermite quadrature.
 #
@@ -298,3 +309,12 @@ class Quad:
     # See spectral::integrate for a description of the parameters.
     def integrate(self, f, mean=None, cov=None):
         return integrate_composite_quad(f, self.nodes, self.weights, self.mean, self.cov)
+
+
+    def transform(self, degree, function):
+        return transform_composite_quad(function, degree, self.nodes,
+                                        self.weights, self.mean, self.cov)
+
+
+    def eval(self, coeffs, coefficients):
+        return eval_composite_quad(coeffs, self.nodes)

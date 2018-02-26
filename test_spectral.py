@@ -1,6 +1,11 @@
 import unittest
 import numpy as np
 import spectral as sp
+import numpy.polynomial.hermite_e as herm
+import math
+
+import importlib
+importlib.reload(sp)
 
 
 class TestIntegrate(unittest.TestCase):
@@ -69,8 +74,52 @@ class TestIntegrate(unittest.TestCase):
                 cov_ij = quad.integrate(fun)
                 self.assertAlmostEqual(cov_ij, cov[i][j])
 
-# class TestHermiteTransform(unittest.TestCase):
 
-    ## Test that hermite polynomials are orthonormal
-    # def test_normalization_nodes(self):
+class TestHermiteTransform(unittest.TestCase):
+
+    def test_constant(self):
+        degree = 30
+        n_points = [degree, degree, degree]
+        nodes, weights = sp.hermegauss_nd(n_points)
+        coeffs = sp.transform_simple_quad('1', degree, nodes, weights)
+        for i in range(len(coeffs)):
+            target_value = 1. if i == 0 else 0.
+            self.assertAlmostEqual(coeffs[i], target_value)
+
+    def test_consistent_eval(self):
+        degree = 10
+        n_points = 10
+        nodes, weights = sp.hermegauss_nd(n_points)
+        nodes_scipy, weights_scipy = herm.hermegauss(n_points)
+        for i in range(degree):
+            coeffs = np.zeros(degree + 1)
+            coeffs[i] = 1
+            factor = math.sqrt(math.factorial(i))
+            hi_nodes_scipy = herm.hermeval(nodes_scipy, coeffs)
+            hi_nodes = sp.eval_simple_quad(coeffs, degree, nodes)
+            diff = sum(abs(hi_nodes_scipy/factor - hi_nodes))
+            self.assertAlmostEqual(diff, 0)
+
+    def test_forward_backward(self):
+        degree = 10
+        nodes, weights = sp.hermegauss_nd(degree + 1)
+        f_hermite = np.random.random(degree + 1)
+        f_grid = sp.eval_simple_quad(f_hermite, degree, nodes)
+        f_hermite_new = sp.transform_simple_quad(f_grid, degree, nodes, weights)
+        diff = sum(abs(f_hermite - f_hermite_new))
+        self.assertAlmostEqual(diff, 0)
+
+    # def test_quad_transform(self):
+        # dim = 3
+        # n_points 
+        # rand_mat = np.random.random((dim, dim))
+        # mean = np.random.random(dim)
+        # cov = np.matmul(rand_mat.T, rand_mat)
+        # quad = sp.Quad(8, dim=dim, mean=mean, cov=cov)
+        # n_points = [degree, degree, degree]
+        # nodes, weights = sp.hermegauss_nd(n_points)
+        # coeffs = sp.transform_simple_quad('1', degree, nodes, weights)
+        # for i in range(len(coeffs)):
+        #     target_value = 1. if i == 0 else 0.
+        #     self.assertAlmostEqual(coeffs[i], target_value)
 

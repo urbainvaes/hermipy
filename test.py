@@ -1,31 +1,31 @@
-import numpy as np
-import numpy.polynomial.hermite_e as herm
-import numba as nb
+import spectral as sp
 import time
+import numpy as np
+from libhermite import hermite as hm
 
-nodes_1d, weights_1d = herm.hermegauss(100)
+nodes, weights = sp.hermegauss_nd([5, 5, 5])
+function = 'cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2])'
 
-@nb.jit(fastmath=True)
-def function_to_integrate(x, y, z):
-    return np.cos(2*x+2*y+2*z) + x*y + np.exp(-z*z) + np.cos(2*x+2*y+2*z) + x*y + np.exp(-z*z) + np.cos(2*x+2*y+2*z) + x*y + np.exp(-z*z) + np.cos(2*x+2*y+2*z) + x*y + np.exp(-z*z) + np.cos(2*x+2*y+2*z) + x*y + np.exp(-z*z)
-    # return 1
+v = sp.transform_simple_quad('v[1]', 2, nodes, weights)
+print('python')
+for i in v: print(i)
 
-
-@nb.njit(fastmath=True,parallel=True)
-def integrate3(num_int_Points):
-    result = 0.
-    for i in range(num_int_Points):
-        for j in range(num_int_Points):
-            for k in range(num_int_Points):
-                f_point = function_to_integrate(nodes_1d[i],nodes_1d[j],nodes_1d[k])
-                weight_point = weights_1d[i] * weights_1d[j] * weights_1d[k]
-                result += f_point * weight_point
-    return result
+nodes, weights = sp.hermegauss_nd([100, 100, 100])
+function = 'cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2]) +cos(2*v[0]+2*v[1]+2*v[2]) + v[0]*v[1] + exp(-v[2]*v[2])'
 
 start = time.time()
+v = sp.transform_simple_quad(function, 20, nodes, weights)
+print("Time: " + str(time.time() - start))
 
+# print(v[0])
+
+start = time.time()
 for i in range(100):
-    result = integrate3(100)
+    result = sp.integrate_simple_quad(function, nodes, weights)
+print("Result: " + str(result) + ", Time: " + str(time.time() - start))
 
-print("Result: " + str(result))
-print(time.time()-start)
+# function = 'v[0]*v[1]'
+# start = time.time()
+# for i in range(100):
+#     result = sp.integrate_with_quad(function, nodes, weights)
+# print("Result: " + str(result) + ", Time: " + str(time.time() - start))

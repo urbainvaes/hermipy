@@ -12,7 +12,7 @@ std::vec discretize(
         std::s_func func,
         std::mat const & nodes,
         std::vec const & translation,
-        std::mat const & dilation):
+        std::mat const & dilation);
 
 std::vec transform(
         std::u_int degree,

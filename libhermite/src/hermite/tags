@@ -1,0 +1,35 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+Quad	/home/urbain/scratch/integrator/libspectral/spectral.py	/^class Quad:$/;"	c
+__init__	/home/urbain/scratch/integrator/libspectral/spectral.py	/^    def __init__(self, deg, dim=None, mean=None, cov=None):$/;"	m	class:Quad
+collections	/home/urbain/scratch/integrator/libspectral/spectral.py	/^import collections$/;"	i
+convert_to_cpp_mat	/home/urbain/scratch/integrator/libspectral/spectral.py	/^def convert_to_cpp_mat(mat):$/;"	f
+convert_to_cpp_vec	/home/urbain/scratch/integrator/libspectral/spectral.py	/^def convert_to_cpp_vec(vec):$/;"	f
+convert_to_list	/home/urbain/scratch/integrator/libspectral/spectral.py	/^def convert_to_list(array):$/;"	f
+convert_to_numpy_mat	/home/urbain/scratch/integrator/libspectral/spectral.py	/^def convert_to_numpy_mat(mat):$/;"	f
+convert_to_numpy_vec	/home/urbain/scratch/integrator/libspectral/spectral.py	/^def convert_to_numpy_vec(vec):$/;"	f
+eval_composite_quad	/home/urbain/scratch/integrator/libspectral/spectral.py	/^def eval_composite_quad(coeffs, degree, nodes, mean=None, cov=None):$/;"	f
+eval_simple_quad	/home/urbain/scratch/integrator/libspectral/spectral.py	/^def eval_simple_quad(coeffs, degree, nodes, mean=None, cov=None):$/;"	f
+herm	/home/urbain/scratch/integrator/libspectral/spectral.py	/^import numpy.polynomial.hermite_e as herm$/;"	i
+herm_to_poly	/home/urbain/scratch/integrator/libspectral/spectral.py	/^def herm_to_poly(c):$/;"	f
+hermegauss_nd	/home/urbain/scratch/integrator/libspectral/spectral.py	/^def hermegauss_nd(deg, dim=None):$/;"	f
+hm	/home/urbain/scratch/integrator/libspectral/spectral.py	/^from libhermite import hermite as hm$/;"	i
+integrate	/home/urbain/scratch/integrator/libspectral/spectral.py	/^    def integrate(self, f, mean=None, cov=None):$/;"	m	class:Quad
+integrate	/home/urbain/scratch/integrator/libspectral/spectral.py	/^def integrate(f, deg, dim=None, mean=None, cov=None):$/;"	f
+integrate_composite_quad	/home/urbain/scratch/integrator/libspectral/spectral.py	/^def integrate_composite_quad(f, nodes, weights, mean=None, cov=None):$/;"	f
+integrate_simple_quad	/home/urbain/scratch/integrator/libspectral/spectral.py	/^def integrate_simple_quad(f, nodes, weights, mean=None, cov=None):$/;"	f
+itertools	/home/urbain/scratch/integrator/libspectral/spectral.py	/^import itertools$/;"	i
+la	/home/urbain/scratch/integrator/libspectral/spectral.py	/^import numpy.linalg as la$/;"	i
+multi_indices	/home/urbain/scratch/integrator/libspectral/spectral.py	/^def multi_indices(dim, deg_max, deg_min=0):$/;"	f
+np	/home/urbain/scratch/integrator/libspectral/spectral.py	/^import numpy as np$/;"	i
+numpy	/home/urbain/scratch/integrator/libspectral/spectral.py	/^import numpy.linalg as la$/;"	i
+numpy	/home/urbain/scratch/integrator/libspectral/spectral.py	/^import numpy.polynomial.hermite_e as herm$/;"	i
+polynomial	/home/urbain/scratch/integrator/libspectral/spectral.py	/^import numpy.polynomial.hermite_e as herm$/;"	i
+scipy	/home/urbain/scratch/integrator/libspectral/spectral.py	/^import scipy.special$/;"	i
+special	/home/urbain/scratch/integrator/libspectral/spectral.py	/^import scipy.special$/;"	i
+transform_composite_quad	/home/urbain/scratch/integrator/libspectral/spectral.py	/^def transform_composite_quad(f, degree, nodes, weights, mean=None, cov=None, forward=True):$/;"	f
+transform_simple_quad	/home/urbain/scratch/integrator/libspectral/spectral.py	/^def transform_simple_quad(f, degree, nodes, weights, mean=None, cov=None, forward=True):$/;"	f
