@@ -8,14 +8,20 @@
 
 namespace hermite {
 
-std::vec hermite_transform(
+std::vec discretize(
+        std::s_func func,
+        std::mat const & nodes,
+        std::vec const & translation,
+        std::mat const & dilation):
+
+std::vec transform(
         std::u_int degree,
         std::vec const & f_grid,
         std::mat const & nodes,
         std::mat const & weights,
         bool forward);
 
-double integrate_with_quad(
+double integrate(
         std::vec const & f_grid,
         std::mat const & nodes,
         std::mat const & weights);

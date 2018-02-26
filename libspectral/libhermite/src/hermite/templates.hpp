@@ -5,6 +5,17 @@
 #include <cmath>
 
 #include "hermite/types.hpp"
+#include <boost/python/stl_iterator.hpp>
+
+namespace py = boost::python;
+
+// template< typename T >
+// inline
+// std::vector< T > to_std_vector( const py::object& iterable )
+// {
+//     return std::vector< T >( py::stl_input_iterator< T >( iterable ),
+//                              py::stl_input_iterator< T >( ) );
+// }
 
 /*!
  * Compute the difference between two vectors. Using this function requires that the difference between elements of v1 and v2 be well-defined.
@@ -50,6 +61,8 @@ template<class type> std::vector<type> operator*(const std::vector<type>& vec, c
     }
     return result;
 }
+_
+
 
 /*!
  * Multiply matrix 1 by matrix 2

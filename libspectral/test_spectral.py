@@ -17,6 +17,7 @@ class TestIntegrate(unittest.TestCase):
             integral = sp.integrate('v[0]', [i])
             self.assertAlmostEqual(integral, 0)
 
+
     ## Test that the weighted integral of the constant function
     # \f$ f := 1 \f$ is equal to 1 in dimensions 1,2 and 3.
     def test_normalization_dim(self):
@@ -30,6 +31,7 @@ class TestIntegrate(unittest.TestCase):
             integral = sp.integrate('v[0]*v[0]', 100, dim=i)
             self.assertAlmostEqual(integral, 1)
 
+
     ## Test that the first moment of the weight has the correct value.
     def test_mean(self):
         dim = 3
@@ -38,6 +40,7 @@ class TestIntegrate(unittest.TestCase):
             fun = 'v[{}]'.format(i)
             coord = sp.integrate(fun, 8, dim=dim, mean=mean)
             self.assertAlmostEqual(coord, mean[i])
+
 
     ## Test that the second moment of the weight has the correct value.
     def test_covariance(self):
@@ -49,6 +52,7 @@ class TestIntegrate(unittest.TestCase):
                 fun = 'v[{}]*v[{}]'.format(i, j)
                 cov_ij = sp.integrate(fun, 8, dim=dim, cov=cov)
                 self.assertAlmostEqual(cov_ij, cov[i][j])
+
 
     ## Test the quadrature object
     def test_quad(self):
@@ -65,7 +69,7 @@ class TestIntegrate(unittest.TestCase):
                 cov_ij = quad.integrate(fun)
                 self.assertAlmostEqual(cov_ij, cov[i][j])
 
-class TestHermiteTransform(unittest.TestCase):
+# class TestHermiteTransform(unittest.TestCase):
 
     ## Test that hermite polynomials are orthonormal
     # def test_normalization_nodes(self):

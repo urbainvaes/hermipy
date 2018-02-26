@@ -52,7 +52,7 @@ void map_point(vec const & translation,
     }
 }
 
-vec hermite_transform(
+vec transform(
         u_int degree,
         vec const & input,
         mat const & nodes,
@@ -131,7 +131,7 @@ vec hermite_transform(
     return output;
 }
 
-vec discretize_function(
+vec discretize(
         s_func func,
         mat const & nodes,
         vec const & translation,
@@ -169,17 +169,17 @@ vec discretize_function(
     return result;
 }
 
-double integrate_with_quad(
+double integrate(
         vec const & f_grid,
         mat const & nodes,
         mat const & weights)
 {
-    vec integral = hermite_transform(0, f_grid, nodes, weights, true);
+    vec integral = transform(0, f_grid, nodes, weights, true);
     return integral[0];
 }
 
-// ---- PYTHON WRAPPERS ----
 
+// ---- PYTHON WRAPPERS ----
 void intern_function(string const & function_body)
 {
     string name = to_string(hash<string>()(function_body));
@@ -201,7 +201,7 @@ void intern_function(string const & function_body)
     }
 }
 
-vec discretize_function_from_string(
+vec discretize_from_string(
         string function_body,
         mat const & nodes,
         vec const & translation,
@@ -212,36 +212,11 @@ vec discretize_function_from_string(
     string so_file = "/tmp/" + name + ".so";
     void *function_so = dlopen(so_file.c_str(), RTLD_NOW);
     s_func func = (s_func) dlsym(function_so, "toIntegrate");
-    vec result = discretize_function(func, nodes, translation, dilation);
+    vec result = discretize(func, nodes, translation, dilation);
     dlclose(function_so);
     return result;
 }
 
-double integrate_from_string(
-        string const & function_body,
-        mat const & nodes,
-        mat const & weights,
-        vec const & translation,
-        mat const & dilation) {
-
-    vec f_grid = discretize_function_from_string(function_body, nodes, translation, dilation);
-    double result = integrate_with_quad(f_grid, nodes, weights);
-    return result;
-}
-
-vec hermite_expand_from_string(
-        string const & function_body,
-        int degree,
-        mat const & nodes,
-        mat const & weights,
-        vec const & translation,
-        mat const & dilation,
-        bool forward)
-{
-    vec f_grid = discretize_function_from_string(function_body, nodes, translation, dilation);
-    vec result = hermite_transform(degree, f_grid, nodes, weights, forward);
-    return result;
-}
 
 // ---- PYTHON API ----
 BOOST_PYTHON_MODULE(hermite)
@@ -260,8 +235,9 @@ BOOST_PYTHON_MODULE(hermite)
         .def(vector_indexing_suite<cube>())
         ;
 
-    def("integrate_from_string", integrate_from_string);
-    def("hermite_transform", hermite_expand_from_string);
+    def("discretize", discretize_from_string);
+    def("integrate", integrate);
+    def("transform", transform);
 }
 
 }
