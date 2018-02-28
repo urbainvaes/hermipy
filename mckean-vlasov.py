@@ -28,9 +28,9 @@ x = sy.symbols('x')
 # Inverse temperature
 beta = 1
 
-# potential = x**4/4 - x**2/2
+potential = x**4/4 - x**2/2
 # potential = x**4
-potential = x**2/2 + sy.cos(x)
+# potential = x**2/2 + sy.cos(x)
 
 dx_potential = sy.diff(potential, x)
 dxx_potential = sy.diff(dx_potential, x)
@@ -65,7 +65,7 @@ inv_factor = sy.exp(-potential/2)
 mean = 0
 cov = 1
 
-potential_quad = (x - mean)*(x - mean)/(2 * cov)
+potential_quad = 0.5*sy.log(2*sy.pi*cov) * (x - mean)*(x - mean)/(2 * cov)
 dx_potential_quad = sy.diff(potential_quad, x)
 dxx_potential_quad = sy.diff(dx_potential_quad, x)
 rho_gaussian = sy.exp(-beta*potential_quad)
@@ -81,10 +81,6 @@ def backward_quad(f):
 linear_gaussian = sy.sqrt(rho_gaussian) * backward_quad(1/sy.sqrt(rho_gaussian))
 linear_gaussian = sy.expand(sy.simplify(linear_gaussian))
 
-# Factor to pass from between Fokker-Planck to Schrodinger
-factor_gaussian = sy.exp(potential_quad/2)
-inv_factor_gaussian = sy.exp(-potential_quad/2)
-
 # }}}
 # ---- NUMERICAL METHOD ----
 
@@ -97,26 +93,15 @@ n_points = 100
 # Nodes and weights of the Gauss-Hermite quadrature
 # points, weights = sp.hermegauss_nd(n_points, dim=dim)
 
-u_init = inv_factor_gaussian
+u_init = 1
 
 # Discretize functions
 quad = sp.Quad(n_points, dim=1, mean=[mean], cov=[[cov]])
 factor_n = quad.discretize(factor)
 inv_factor_n = quad.discretize(inv_factor)
-factor_gaussian_n = quad.discretize(factor_gaussian)
-inv_factor_gaussian_n = quad.discretize(inv_factor_gaussian)
 u_init_n = quad.discretize(u_init)
 diff_linear_n = quad.discretize(diff_linear)
 
-
-# Plot the difference between linear terms
-# plt.plot(quad.nodes[0][0], u_init_n)
-# plt.show()
-
-# Time step
-dt = 0.0
-
-# Number of iterations
 n_iter = 10
 degree = n_points - 1
 
@@ -124,23 +109,26 @@ degree = n_points - 1
 x_points = quad.discretize('x')
 degrees = np.arange(degree + 1)
 
-# Eigenvalues
+
+# Plot difference between linear terms
+# plot = plt.plot(x_points, diff_linear_n)
+# plt.show()
+
+
+degree = 7
+dt = 0.0
+n_iter = 10
+# Number of iterations
+
 eigenvalues_gaussian = np.arange(degree + 1)
-
-plot = plt.plot(x_points, diff_linear_n)
-plt.show()
-
-plot = plt.plot(x_points, u_init_n)
-plt.show()
-
 u_n = u_init_n
-
 for i in range(n_iter):
-    plot = plt.plot(x_points, u_n); plt.show(block=False)
-    h_n = quad.transform(u_n, degree, l2=True)
-    # h_n = h_n + dt * eigenvalues_gaussian * h_n
-    u_n = quad.eval(h_n, degree)[0] * inv_factor_gaussian_n
-    # u_n = u_n + dt * diff_linear_n * u_n
+    plot = plt.plot(x_points, u_n);
+    plt.show(block=True)
+    h_n = quad.transform(u_n, degree)
+    h_n = h_n + dt * eigenvalues_gaussian * h_n
+    u_n = quad.eval(h_n, degree)[0]
+    u_n = u_n + dt * diff_linear_n * u_n
 
 plt.show()
 

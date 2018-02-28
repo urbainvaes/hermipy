@@ -29,6 +29,7 @@ void hermite_eval(double x,
 {
 
     double factor = l2 ? sqrt(1 / sqrt(2*M_PI) *  exp(-x*x/2)) : 1;
+    // cout << factor << endl;
     values[0] = 1*factor;
     values[1] = x*factor;
 
@@ -108,6 +109,7 @@ vec transform(
             {
                 double x = nodes[j][p[j]];
                 double factor = l2 ? sqrt(2*M_PI) * exp(x*x/2) : 1;
+                // cout << factor << endl;
                 weight *= weights[j][p[j]]*factor;
             }
         }
