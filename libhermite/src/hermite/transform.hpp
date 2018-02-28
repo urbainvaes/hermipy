@@ -19,7 +19,7 @@ std::vec transform(
         std::vec const & f_grid,
         std::mat const & nodes,
         std::mat const & weights,
-        bool forward);
+        bool forward, bool l2);
 
 double integrate(
         std::vec const & f_grid,

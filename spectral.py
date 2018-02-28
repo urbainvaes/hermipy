@@ -124,7 +124,7 @@ def stringify(function):
     return subst_vars
 
 
-## Discretize a function
+## Discretize a function on a simple quadrature
 def discretize(function, nodes, mean=None, cov=None):
 
     is_iterable = isinstance(function, collections.Iterable)
@@ -226,7 +226,7 @@ def herm_to_poly(c):
 # \mathcal O(n^2) \f$ for a naive implementation.
 
 def transform_simple_quad(f, degree, nodes, weights, mean=None,
-                          cov=None, forward=True):
+                          cov=None, forward=True, l2=False):
 
     f_grid = convert_to_cpp_vec(discretize(f, nodes, mean, cov))
     dim = len(nodes)
@@ -235,12 +235,12 @@ def transform_simple_quad(f, degree, nodes, weights, mean=None,
     cpp_nodes = convert_to_cpp_mat(nodes)
     cpp_weights = convert_to_cpp_mat(weights)
 
-    result = hm.transform(degree, f_grid, cpp_nodes, cpp_weights, forward)
+    result = hm.transform(degree, f_grid, cpp_nodes, cpp_weights, forward, l2)
     return convert_to_numpy_vec(result)
 
 
 def transform_composite_quad(f, degree, nodes, weights,
-                             mean=None, cov=None, forward=True):
+                             mean=None, cov=None, forward=True, l2=False):
 
     dim = len(nodes[0])
     n_poly = int(scipy.special.binom(degree + dim, dim))
@@ -249,21 +249,20 @@ def transform_composite_quad(f, degree, nodes, weights,
     for i in range(len(nodes)):
         f_arg = f if isinstance(f, str) else f[i]
         result += transform_simple_quad(f_arg, degree, nodes[i],
-                                        weights[i], mean, cov, forward)
+                                        weights[i], mean, cov, forward, l2)
     return result
 
 
-def eval_simple_quad(coeffs, degree, nodes):
+def eval_simple_quad(coeffs, degree, nodes, l2=False):
     cpp_coeffs = convert_to_cpp_vec(coeffs)
-    return transform_simple_quad(cpp_coeffs, degree, nodes, nodes, forward=False)
+    return transform_simple_quad(cpp_coeffs, degree, nodes, nodes, forward=False, l2=l2)
 
 
-def eval_composite_quad(coeffs, degree, nodes):
+def eval_composite_quad(coeffs, degree, nodes, l2=False):
     result = []
 
     for i in range(len(nodes)):
-        result_quad = eval_simple_quad(coeffs, degree, nodes[i],
-                                       nodes[i], forward=False)
+        result_quad = eval_simple_quad(coeffs, degree, nodes[i], l2)
         result.append(result_quad)
     return result
 
@@ -286,10 +285,10 @@ class Quad:
     ## A Gauss-Hermite quadrature
     #
     # See spectral::hermegauss_nd for a description of the parameters.
-    def __init__(self, deg, dim=None, mean=None, cov=None):
+    def __init__(self, n_points, dim=None, mean=None, cov=None):
 
         # Nodes and weights of the quadrature
-        nodes, weights = hermegauss_nd(deg, dim)
+        nodes, weights = hermegauss_nd(n_points, dim)
 
         ## The sample points of the quadrature.
         self.nodes = [nodes]
@@ -307,14 +306,20 @@ class Quad:
     ## Compute a multi-dimensional integral
     #
     # See spectral::integrate for a description of the parameters.
-    def integrate(self, f, mean=None, cov=None):
+    def integrate(self, f):
         return integrate_composite_quad(f, self.nodes, self.weights, self.mean, self.cov)
 
+    def discretize(self, f):
+        return discretize(f, self.nodes[0], self.mean, self.cov)
 
-    def transform(self, degree, function):
+    def transform(self, function, degree, l2=False):
+        # if l2:
+        #     l2_weights = weights
+        #     for i in range(len(nodes)):
+        #         for j in range(len(nodes[i]))
+        #             weights[i][j] = weights[i][j] * np.exp(nodes[i][j]**2/4)
         return transform_composite_quad(function, degree, self.nodes,
-                                        self.weights, self.mean, self.cov)
+                                        self.weights, self.mean, self.cov, l2=l2)
 
-
-    def eval(self, coeffs, coefficients):
-        return eval_composite_quad(coeffs, self.nodes)
+    def eval(self, coeffs, degree, l2=False):
+        return eval_composite_quad(coeffs, degree, self.nodes, l2=l2)

@@ -24,10 +24,13 @@ namespace hermite {
 
 void hermite_eval(double x,
         u_int degree,
-        vec & values)
+        vec & values,
+        bool l2)
 {
-    values[0] = 1;
-    values[1] = x;
+
+    double factor = l2 ? sqrt(1 / sqrt(2*M_PI) *  exp(-x*x/2)) : 1;
+    values[0] = 1*factor;
+    values[1] = x*factor;
 
     for (unsigned i = 1; i < degree; i++)
     {
@@ -57,7 +60,8 @@ vec transform(
         vec const & input,
         mat const & nodes,
         mat const & weights,
-        bool forward)
+        bool forward,
+        bool l2)
 {
     u_int dim = nodes.size();
     using boost::math::binomial_coefficient;
@@ -90,7 +94,7 @@ vec transform(
         herm_vals_1d[i] = mat(n_points[i], vec(degree + 1, 0));
         for (j = 0; j < n_points[i]; j++)
         {
-            hermite_eval(nodes[i][j], degree, herm_vals_1d[i][j]);
+            hermite_eval(nodes[i][j], degree, herm_vals_1d[i][j], l2);
         }
     }
 
@@ -102,7 +106,9 @@ vec transform(
         {
             for (j = 0; j < dim; j++)
             {
-                weight *= weights[j][p[j]];
+                double x = nodes[j][p[j]];
+                double factor = l2 ? sqrt(2*M_PI) * exp(x*x/2) : 1;
+                weight *= weights[j][p[j]]*factor;
             }
         }
 
@@ -174,7 +180,7 @@ double integrate(
         mat const & nodes,
         mat const & weights)
 {
-    vec integral = transform(0, f_grid, nodes, weights, true);
+    vec integral = transform(0, f_grid, nodes, weights, true, false);
     return integral[0];
 }
 
