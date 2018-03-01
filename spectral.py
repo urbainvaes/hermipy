@@ -247,8 +247,9 @@ def transform_composite_quad(f, degree, nodes, weights,
     result = np.zeros(n_poly)
 
     for i in range(len(nodes)):
-        f_arg = f if isinstance(f, str) else f[i]
-        result += transform_simple_quad(f_arg, degree, nodes[i],
+        #  FIXME: desc (urbain, Wed 28 Feb 2018 02:47:04 PM GMT) 
+        # f_arg = f if isinstance(f, str) else f[i]
+        result += transform_simple_quad(f, degree, nodes[i],
                                         weights[i], mean, cov, forward, l2)
     return result
 
