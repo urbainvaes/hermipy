@@ -1,151 +1,231 @@
 # IMPORT MODULES {{{
 import sympy as sy
+import sympy.printing as syp
 import numpy as np
 import spectral as sp
-
-# import os
-# import sys
-# import re
-import time
-# import sympy.printing
-# import sympy.parsing.sympy_parser as symparser
-
 import matplotlib.pyplot as plt
-
-import matplotlib
+sy.init_printing()
 # }}}
-
-import importlib
-importlib.reload(sp)
-
-# PARAMETERS OF THE EQUATION {{{
+# ABSTRACT SYMBOLIC CALCULATIONS {{{
 
 # Number of space dimensions
 dim = 1
 
-# Space variable
-x = sy.symbols('x')
+# Space variable, time variable and inverse temperature
+x, t, beta_a = sy.symbols('x t beta')
 
-# Inverse temperature
+# Potential of interest
+potential_pa = sy.Function('V')(x)
+
+# Quadratic potential used for the approximation
+potential_qa = sy.Function('Vq')(x)
+
+# Solution of the Fokker-Planck equation
+r = sy.Function('ρ')(x, t)
+
+# Mapped solution: u = ρ * e^{V/2} * e^{Vq/2} to equation with BK operator
+u = sy.Function('u')(x, t)
+u_x = sy.Function('u')(x)
+
+# Mapped solution of Schrodinger equation
+v = sy.Function('v')(x, t)
+
+
+# Backward Kolmogorov operator associated with potential
+def backward(potential, f):
+    dx_potential = sy.diff(potential, x)
+    dx_f = sy.diff(f, x)
+    dxx_f = sy.diff(dx_f, x)
+    return - dx_potential * dx_f + (1/beta_a) * dxx_f
+
+
+# Fokker-Planck operator associated with potential
+def forward(potential, f):
+    dx_potential = sy.diff(potential, x)
+    dxx_potential = sy.diff(dx_potential, x)
+    dx_f = sy.diff(f, x)
+    dxx_f = sy.diff(dx_f, x)
+    return (dx_potential * dx_f + dxx_potential * f) + (1/beta_a) * dxx_f
+
+
+# Factors to map Fokker-Planck to backward Kolmogorov operator
+factor_pa = sy.exp(-beta_a * potential_pa / 2)
+factor_qa = sy.exp(-beta_a * potential_qa / 2)
+
+# Mapping to L² space weighted by Gaussian
+factor_a = factor_pa * factor_qa
+
+# Solutions
+r_sol_a = sy.exp(-beta_a * potential_pa)
+v_sol_a = r_sol_a/factor_pa
+u_sol_a = r_sol_a/factor_a
+
+# Fokker-Planck equation to solve (= 0)
+fk = sy.diff(r, t) - forward(potential_pa, r)
+
+# Schrodinger equation associated with fk
+sch = sy.simplify(fk.subs(r, v*factor_pa).doit()/factor_pa)
+
+# Backward Kolmogorov-like equation
+bk = sy.simplify(fk.subs(r, u*factor_a).doit()/factor_a)
+
+# Obtain RHS (if the left-hand side is the time derivative)
+operator_rhs = - bk.subs(u, sy.Function('u')(x)).doit()
+
+# Obtain multiplication operator
+multiplication_a = operator_rhs.subs(u_x, 1).doit()
+
+# Remainder of the operator
+generator_ou = sy.simplify(operator_rhs - multiplication_a*u_x)
+
+# Assert that `generator_ou` is the generator of an OU process
+assert generator_ou == backward(potential_qa, u_x)
+
+# Assert that the solutions found above are correct
+assert fk.subs(r, r_sol_a).doit().simplify() == 0
+assert sch.subs(v, v_sol_a).doit().simplify() == 0
+assert bk.subs(u, u_sol_a).doit().simplify() == 0
+
+# }}}
+# PRINT TO STDOUT {{{
+print("Fokker-Planck equation to solve: ")
+syp.pprint(fk)
+
+print("Mapping to a Schrődinger equation")
+syp.pprint(sch)
+
+print("Mapping to an equation with BK operator")
+syp.pprint(bk)
+
+print("Operator in the right-hand side")
+syp.pprint(operator_rhs)
+
+print("Multiplication part of the operator")
+syp.pprint(multiplication_a)
+
+print("Remainder of the operator")
+syp.pprint(generator_ou)
+# }}}
+# EVALUATE ABSTRACT EXPRESSIONS FOR PROBLEM AT HAND {{{
+
 beta = 1
 
-# potential = x**4/4 - x**2/2
-# potential = x**4
-potential = x**2/2 + 10*sy.cos(x)
-
-dx_potential = sy.diff(potential, x)
-dxx_potential = sy.diff(dx_potential, x)
-rho = sy.exp(-beta*potential)
-
-
-# Backward Kolmogorov operator
-def backward(f):
-    dx_f = sy.diff(f, x)
-    dxx_f = sy.diff(dx_f, x)
-    return - dx_potential * dx_f + (1/beta) * dxx_f
-
-
-# Fokker-Planck operator
-def forward(f):
-    dx_f = sy.diff(f, x)
-    dxx_f = sy.diff(dx_f, x)
-    return - (dx_potential * dx_f + dxx_potential * f) * f + beta * dxx_f
-
-
-# Linear term in Schrodinger equation
-linear = sy.sqrt(rho) * backward(1/sy.sqrt(rho))
-linear = sy.expand(sy.simplify(linear))
-
-# }}}
-# QUADRATIC POTENTIAL FOR APPROXIMATION {{{
-
 mean = 0
-cov = .1
+cov = 1
 
-potential_quad = 0.5*np.log(2*np.pi*cov) + (x - mean)*(x - mean)/(2 * cov)
-dx_potential_quad = sy.diff(potential_quad, x)
-dxx_potential_quad = sy.diff(dx_potential_quad, x)
-rho_gaussian = sy.exp(-beta*potential_quad)
+potential_p = x**2/2 + 10*sy.cos(x)
+potential_q = 0.5*np.log(2*np.pi*cov) + (x - mean)*(x - mean)/(2 * cov)
 
+factor_p = factor_pa.subs(potential_pa, potential_p)
+factor_p = factor_p.subs(beta_a, beta)
+factor_q = factor_qa.subs(potential_qa, potential_q)
+factor_q = factor_q.subs(beta_a, beta)
+factor = factor_q*factor_p
 
-# Backward Kolmogorov operator
-def backward_quad(f):
-    dx_f = sy.diff(f, x)
-    dxx_f = sy.diff(dx_f, x)
-    return - dx_potential_quad * dx_f + (1/beta) * dxx_f
+multiplication = multiplication_a.subs(potential_pa, potential_p)
+multiplication = multiplication.subs(potential_qa, potential_q).doit()
+multiplication = multiplication.subs(beta_a, beta).doit()
 
-
-# Linear term in the case of the quadratic potential
-linear_gaussian = sy.sqrt(rho_gaussian) * backward_quad(1/sy.sqrt(rho_gaussian))
-linear_gaussian = sy.expand(sy.simplify(linear_gaussian))
-
-# Factor between backward Kolmogorov and Schrődinger equation
-sqrt_gaussian = sy.sqrt(rho_gaussian)
-print("Linear term corresponding to quadratic potential:")
-print(linear_gaussian)
+r_sol = r_sol_a.subs(potential_pa, potential_p)
+r_sol = r_sol.subs(beta_a, beta)
+v_sol = v_sol_a.subs(potential_pa, potential_p)
+v_sol = v_sol.subs(beta_a, beta)
+u_sol = u_sol_a.subs(potential_pa, potential_p)
+u_sol = u_sol.subs(potential_qa, potential_q)
+u_sol = u_sol.subs(beta_a, beta)
 
 # }}}
-# ---- NUMERICAL METHOD ----
-sy.init_printing()
+# DISCRETIZE VARIOUS FUNCTIONS ON GRID {{{
 
-# Number of degrees in Hermite expansion
-degree = 30
+degree = 100
 degrees = np.arange(degree + 1)
 
-# Fine quadrature for function evaluation
 n_points_fine = 200
-quad_fine = sp.Quad(n_points_fine, dim=1, mean=[mean], cov=[[cov]])
-x_fine = quad_fine.discretize('x')
-sqrt_gaussian_fine = quad_fine.discretize(sqrt_gaussian)
-
-# Coarse quadrature for Hermite transform
 n_points_coarse = degree + 1
-quad_coarse = sp.Quad(n_points_coarse, dim=1, mean=[mean], cov=[[cov]])
-sqrt_gaussian_coarse = quad_coarse.discretize(sqrt_gaussian)
 
-# Difference between linear terms
-diff_linear = linear - linear_gaussian
+quad_fine = sp.Quad(n_points_fine, dim=1, mean=[mean], cov=[[cov]])
+quad_coarse = sp.Quad(n_points_coarse, dim=1, mean=[mean], cov=[[cov]])
+
+x_fine = quad_fine.discretize('x')
+x_coarse = quad_coarse.discretize('x')
+
+factor_p_fine = quad_fine.discretize(factor_p)
+factor_q_fine = quad_fine.discretize(factor_q)
+factor_fine = quad_fine.discretize(factor)
+
+factor_p_coarse = quad_coarse.discretize(factor_p)
+factor_q_coarse = quad_coarse.discretize(factor_q)
+factor_coarse = quad_coarse.discretize(factor)
+
+multiplication_fine = quad_fine.discretize(multiplication)
+multiplication_coarse = quad_coarse.discretize(multiplication)
+
+u_sol_fine = quad_fine.discretize(u_sol)
+u_sol_coarse = quad_coarse.discretize(u_sol)
+v_sol_fine = quad_fine.discretize(v_sol)
+v_sol_coarse = quad_coarse.discretize(v_sol)
+r_sol_fine = quad_fine.discretize(r_sol)
+r_sol_coarse = quad_coarse.discretize(r_sol)
+
+u_approx_fine = quad_fine.eval(quad_coarse.transform(u_sol, degree), degree)[0]
+v_approx_fine = u_approx_fine * factor_q_fine
+r_approx_fine = u_approx_fine * factor_fine
+
+
+def norm_herm(hermite_coeffs):
+    return np.sqrt(np.sum(np.square(hermite_coeffs)))
+
+
+# Normalization
+norm_sol_fine = norm_herm(quad_fine.transform(u_sol_fine, degree))
+norm_approx_fine = norm_herm(quad_fine.transform(u_approx_fine, degree))
+v_sol_fine = v_sol_fine / norm_sol_fine
+r_sol_fine = r_sol_fine / norm_sol_fine
+v_approx_fine = v_approx_fine / norm_approx_fine
+r_approx_fine = r_approx_fine / norm_approx_fine
+
+# }}}
+# NUMERICAL METHOD
 
 # Print approximating functions to Schrődinger equation
 fig, ax = plt.subplots(1, 1)
-for i in degrees:
-    h = np.zeros(degree + 1)
-    h[i] = 1
-    Eh = quad_fine.eval(h, degree)[0] * sqrt_gaussian_fine
+plt.ion()
+
+for i in [d for d in degrees if d % 2 == 0]:
+    ax.set_title("Hermite function of index " + str(i))
+    h_i = np.zeros(degree + 1)
+    h_i[i] = 1
+    Eh = quad_fine.eval(h_i, degree)[0] * factor_q_fine
     ax.plot(x_fine, Eh)
-plt.show()
-
-# Discretize functions
-
+    ax.set_ylim((-2, 2))
+    plt.draw()
+    plt.pause(.01)
+    ax.clear()
 
 # Time step and number of iterations
 dt = 2e-2
-n_iter = 100000
+n_iter = 100
 
 # Eigenvalues of the operator
-# eigenvalues_gaussian = - np.arange(degree + 1)
-eigenvalues_gaussian = np.zeros(degree + 1) - 1.
+eigenvalues_gaussian = - np.arange(degree + 1)
 
 # Initial condition
-u_init = 1
+u_init = factor_q / factor_p
 u_coarse = quad_coarse.discretize(u_init)
-diff_linear_coarse = quad_coarse.discretize(diff_linear)
-h_n = quad_coarse.transform(u_coarse, degree)
+Hu = quad_coarse.transform(u_coarse, degree)
 
 # Exact solution on fine grid
-u_exact_fine = quad_fine.discretize(sy.sqrt(rho))
-u_exact_coarse = quad_coarse.discretize(sy.sqrt(rho))
-u_approx_fine = quad_fine.eval(quad_coarse.transform(u_exact_coarse/sqrt_gaussian_coarse, degree), degree)[0]*sqrt_gaussian_fine
-norm_aux = quad_coarse.transform(u_exact_coarse/sqrt_gaussian_coarse, degree)
-norm = np.sqrt(np.sum(np.square(norm_aux)))
-u_exact_fine = u_exact_fine / norm
-u_approx_fine = u_approx_fine / norm
+# v_approx_fine = quad_fine.eval(quad_coarse.transform(u_sol_coarse, degree), degree)[0]*factor_q_fine
+# norm_aux = quad_coarse.transform(u_exact_coarse/sqrt_gaussian_coarse, degree)
+# norm = np.sqrt(np.sum(np.square(norm_aux)))
+# v_exact_fine = u_exact_fine / norm
+# v_approx_fine = u_approx_fine / norm
 
-plt.plot(x_fine, u_exact_fine)
-plt.show()
+# plt.plot(x_fine, u_exact_fine)
+# plt.show()
 
 # Create figure with two subplots
-fig, (ax1, ax2) = plt.subplots(2, 1)
+fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
 
 # Activate interactive plotting
 plt.ion()
@@ -157,32 +237,40 @@ for i in range(n_iter):
         plt.pause(.01)
 
         # Representation of u on fine grid
-        u_fine = quad_fine.eval(h_n, degree)[0]
+        u_fine = quad_fine.eval(Hu, degree)[0]
+
+        # Plot solution in flat space
+        ax11.clear()
+        ax11.set_title("Solution to Schrődinger equation")
+        ax11.plot(x_fine, u_fine * factor_q_fine)
+        ax11.plot(x_fine, v_sol_fine)
+        ax11.plot(x_fine, v_approx_fine)
 
         # Plot solution in real space
-        ax1.clear()
-        ax1.set_title("Solution to Schrődinger equation")
-        ax1.plot(x_fine, u_fine * sqrt_gaussian_fine)
-        ax1.plot(x_fine, u_exact_fine)
-        ax1.plot(x_fine, u_approx_fine)
+        ax12.clear()
+        ax12.set_title("Solution to Fokker-Planck equation")
+        ax12.plot(x_fine, u_fine * factor_fine)
 
         # Plot Hermite transform
-        ax2.clear()
-        ax2.set_title("Hermite coefficients of the solution")
-        ax2.bar(degrees, h_n)
+        ax21.clear()
+        ax21.set_title("Hermite coefficients of the solution")
+        ax21.bar(degrees, Hu)
 
         plt.draw()
     # }}}
 
     # h_n = quad.transform(u_n, degree)
-    h_n = h_n + dt/2 * eigenvalues_gaussian * h_n
-    u_coarse = quad_coarse.eval(h_n, degree)[0]
-    h_n = h_n + dt * quad_coarse.transform(u_coarse*diff_linear_coarse, degree)
-    h_n = h_n + dt/2 * eigenvalues_gaussian * h_n
+    Hu = Hu + dt/2 * eigenvalues_gaussian * Hu
+    u_coarse = quad_coarse.eval(Hu, degree)[0]
+    Hu = Hu + dt * quad_coarse.transform(u_coarse*multiplication_coarse, degree)
+    Hu = Hu + dt/2 * eigenvalues_gaussian * Hu
 
     # Normalization
-    h_n = h_n/np.sqrt(np.sum(np.square(h_n)))
+    Hu = Hu/norm_herm(Hu)
 
     # u_n = u_n + dt * diff_linear_n * u_n
 
 # # plt.plot(points[0], potential_n)
+
+import importlib
+importlib.reload(sp)
