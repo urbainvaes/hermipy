@@ -111,7 +111,7 @@ syp.pprint(generator_ou)
 beta = 1
 
 mean = 0
-cov = 1
+cov = .1
 
 potential_p = x**2/2 + 10*sy.cos(x)
 potential_q = 0.5*np.log(2*np.pi*cov) + (x - mean)*(x - mean)/(2 * cov)
@@ -201,13 +201,14 @@ for i in [d for d in degrees if d % 2 == 0]:
     plt.draw()
     plt.pause(.01)
     ax.clear()
+plt.close()
 
 # Time step and number of iterations
-dt = 2e-2
-n_iter = 100
+dt = 2e-3*cov
+n_iter = 100000
 
 # Eigenvalues of the operator
-eigenvalues_gaussian = - np.arange(degree + 1)
+eigenvalues_gaussian = - np.arange(degree + 1)/cov
 
 # Initial condition
 u_init = factor_q / factor_p
@@ -233,7 +234,7 @@ plt.ion()
 for i in range(n_iter):
 
     # Plotting {{{
-    if i % 1 == 0:
+    if i % 100 == 0:
         plt.pause(.01)
 
         # Representation of u on fine grid
@@ -270,7 +271,7 @@ for i in range(n_iter):
 
     # u_n = u_n + dt * diff_linear_n * u_n
 
-# # plt.plot(points[0], potential_n)
+# plt.plot(points[0], potential_n)
 
 import importlib
 importlib.reload(sp)

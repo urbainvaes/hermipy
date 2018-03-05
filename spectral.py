@@ -47,6 +47,13 @@ def convert_to_numpy_mat(mat):
     return numpy_mat
 
 
+def convert_to_numpy_cube(cube):
+    numpy_cube = np.zeros((len(cube), len(cube[0]), len(cube[0][0])))
+    for i in range(len(cube)):
+        numpy_cube[i] = convert_to_numpy_mat(cube[i])
+    return numpy_cube
+
+
 def convert_to_list(array):
     if not isinstance(array, collections.Iterable):
         return array
@@ -247,7 +254,7 @@ def transform_composite_quad(f, degree, nodes, weights,
     result = np.zeros(n_poly)
 
     for i in range(len(nodes)):
-        #  FIXME: desc (urbain, Wed 28 Feb 2018 02:47:04 PM GMT) 
+        #  FIXME: desc (urbain, Wed 28 Feb 2018 02:47:04 PM GMT)
         # f_arg = f if isinstance(f, str) else f[i]
         result += transform_simple_quad(f, degree, nodes[i],
                                         weights[i], mean, cov, forward, l2)
@@ -275,6 +282,13 @@ def multi_indices(dim, deg_max, deg_min=0):
     return [m for m in itertools.product(range(deg_max+1), repeat=dim) if \
             sum(m) <= deg_max and sum(m) >= deg_min]
 
+
+def varf_simple_quad(f, degree, nodes, weights, mean, cov):
+    f_grid = convert_to_cpp_vec(discretize(f, nodes, mean, cov))
+    cpp_nodes = convert_to_cpp_mat(nodes)
+    cpp_weights = convert_to_cpp_mat(weights)
+    result = hm.varf(degree, f_grid, cpp_nodes, cpp_weights)
+    return convert_to_numpy_mat(result)
 
 ## Gauss-Hermite quadrature.
 #
@@ -324,3 +338,7 @@ class Quad:
 
     def eval(self, coeffs, degree, l2=False):
         return eval_composite_quad(coeffs, degree, self.nodes, l2=l2)
+
+    def varf(self, function, degree):
+        return varf_simple_quad(function, degree, self.nodes[0],
+                                self.weights[0], self.mean, self.cov)

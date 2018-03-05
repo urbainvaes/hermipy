@@ -11,7 +11,6 @@ std::mat varf(
         std::u_int degree,
         std::vec const & input,
         std::mat const & nodes,
-        std::mat const & weights,
-        std::mat const & weight);
+        std::mat const & weights);
 }
 #endif
