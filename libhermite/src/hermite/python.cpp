@@ -10,6 +10,7 @@
 #include "hermite/transform.hpp"
 #include "hermite/discretize.hpp"
 #include "hermite/types.hpp"
+#include "hermite/io.hpp"
 
 using namespace std;
 

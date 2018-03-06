@@ -1,4 +1,5 @@
 # IMPORT MODULES {{{
+import scipy.linalg as la
 import sympy as sy
 import sympy.printing as syp
 import numpy as np
@@ -225,12 +226,73 @@ Hu = quad_coarse.transform(u_coarse, degree)
 # plt.plot(x_fine, u_exact_fine)
 # plt.show()
 
+# Get matrix representation of operator in Hermite space:
+diag_op = np.diag(eigenvalues_gaussian)
+multiplication_op = quad_fine.varf(multiplication_fine, degree)
+total_op = diag_op + multiplication_op
+
+eigen_values, eigen_vectors = la.eig(multiplication_op)
+
+# Print approximating functions to Schrődinger equation
+fig, ax = plt.subplots(1, 1)
+plt.ion()
+
+for i in range(10):
+    ax.set_title("First eigenfunctions of Fokker-Planck operator")
+    h_i = np.zeros(degree + 1)
+    h_i[i] = 1
+    Eh = quad_fine.eval(h_i, degree)[0] * factor_q_fine
+    ax.plot(x_fine, Eh)
+    ax.set_ylim((-2, 2))
+    plt.draw()
+    plt.pause(.01)
+    ax.clear()
+plt.close()
+# Plot first eigenvectors
+
+
+
+# Simple integration
+for i in range(n_iter):
+
+    # Plotting {{{
+    if i % 100 == 0:
+        plt.pause(.01)
+
+        # Representation of u on fine grid
+        u_fine = quad_fine.eval(Hu, degree)[0]
+
+        # Plot solution in flat space
+        ax11.clear()
+        ax11.set_title("Solution to Schrődinger equation")
+        ax11.plot(x_fine, u_fine * factor_q_fine)
+        ax11.plot(x_fine, v_sol_fine)
+        ax11.plot(x_fine, v_approx_fine)
+
+        # Plot solution in real space
+        ax12.clear()
+        ax12.set_title("Solution to Fokker-Planck equation")
+        ax12.plot(x_fine, u_fine * factor_fine)
+
+        # Plot Hermite transform
+        ax21.clear()
+        ax21.set_title("Hermite coefficients of the solution")
+        ax21.bar(degrees, Hu)
+
+        plt.draw()
+    # }}}
+
+    # Normalization
+    Hu = la.expm(total_op)
+
 # Create figure with two subplots
 fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
 
 # Activate interactive plotting
 plt.ion()
 
+
+# Splitting method
 for i in range(n_iter):
 
     # Plotting {{{

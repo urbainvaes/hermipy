@@ -5,7 +5,7 @@
 
 namespace hermite {
 
-std::cube triple_products(u_int degree);
+std::cube triple_products(int degree);
 
 std::mat varf(
         std::u_int degree,

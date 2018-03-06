@@ -40,3 +40,22 @@ void Hyper_cube_iterator::increment()
         multi_index[i] += 1;
     }
 }
+
+void Multi_index_iterator::reset()
+{
+    full = false;
+    sum = 0;
+    for (unsigned int i = 0; i < dim; i++)
+    {
+        multi_index[i] = 0;
+    }
+}
+
+void Hyper_cube_iterator::reset()
+{
+    full = false;
+    for (unsigned int i = 0; i < dim; i++)
+    {
+        multi_index[i] = 0;
+    }
+}

@@ -2,13 +2,13 @@ import spectral as sp
 import time
 import numpy as np
 from libhermite import hermite as hm
-
+import importlib
+importlib.reload(sp)
+importlib.reload(hm)
 cube = hm.triple_products(5)
-
 c=sp.convert_to_numpy_cube(hm.triple_products(3))
-
 quad = sp.Quad(100)
-quad.varf('1', 2)
+quad.varf('1', 1)
 
 
 

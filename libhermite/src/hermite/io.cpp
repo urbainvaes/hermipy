@@ -10,35 +10,32 @@ namespace hermite {
 void printVec(vec a)
 {
     cout << "[" << a[0];
-    for (u_int i = 0; i < a.size(); i++)
+    for (u_int i = 1; i < a.size(); i++)
     {
             cout << ", " << a[i];
     }
-    cout << "]" << endl;
+    cout << "]";
 }
 
-void printMat(mat a)
+void printMat(mat a, string begin)
 {
-    cout << "[";
-    printVec(a[0]);
-    for (u_int i = 0; i < a.size(); i++)
+    cout << "["; printVec(a[0]);
+    for (u_int i = 1; i < a.size(); i++)
     {
-        cout << " ";
+        cout << endl << begin;
         printVec(a[i]);
     }
-    cout << "]" << endl;
+    cout << "]";
 }
 
-void printCube(cube a)
+void printCube(cube a, string begin)
 {
     cout << "[";
     printMat(a[0]);
-    for (u_int i = 0; i < a.size(); i++)
+    for (u_int i = 1; i < a.size(); i++)
     {
-        cout << " ";
+        cout << endl << begin;
         printMat(a[i]);
     }
     cout << "]" << endl;
-}
-
-}
+}}
