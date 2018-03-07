@@ -11,8 +11,7 @@ namespace hermite {
 
 void hermite_eval(double x,
         std::u_int degree,
-        std::vec & values,
-        bool l2);
+        std::vec & values);
 
 }
 

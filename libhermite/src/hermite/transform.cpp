@@ -25,8 +25,7 @@ vec transform(
         vec const & input,
         mat const & nodes,
         mat const & weights,
-        bool forward,
-        bool l2)
+        bool forward)
 {
     u_int dim = nodes.size();
     using boost::math::binomial_coefficient;
@@ -59,7 +58,7 @@ vec transform(
         herm_vals_1d[i] = mat(n_points[i], vec(degree + 1, 0));
         for (j = 0; j < n_points[i]; j++)
         {
-            hermite_eval(nodes[i][j], degree, herm_vals_1d[i][j], l2);
+            hermite_eval(nodes[i][j], degree, herm_vals_1d[i][j]);
         }
     }
 
@@ -72,9 +71,7 @@ vec transform(
             for (j = 0; j < dim; j++)
             {
                 double x = nodes[j][p[j]];
-                double factor = l2 ? sqrt(2*M_PI) * exp(x*x/2) : 1;
-                // cout << factor << endl;
-                weight *= weights[j][p[j]]*factor;
+                weight *= weights[j][p[j]];
             }
         }
 

@@ -233,7 +233,7 @@ def herm_to_poly(c):
 # \mathcal O(n^2) \f$ for a naive implementation.
 
 def transform_simple_quad(f, degree, nodes, weights, mean=None,
-                          cov=None, forward=True, l2=False):
+                          cov=None, forward=True):
 
     f_grid = convert_to_cpp_vec(discretize(f, nodes, mean, cov))
     dim = len(nodes)
@@ -242,12 +242,12 @@ def transform_simple_quad(f, degree, nodes, weights, mean=None,
     cpp_nodes = convert_to_cpp_mat(nodes)
     cpp_weights = convert_to_cpp_mat(weights)
 
-    result = hm.transform(degree, f_grid, cpp_nodes, cpp_weights, forward, l2)
+    result = hm.transform(degree, f_grid, cpp_nodes, cpp_weights, forward)
     return convert_to_numpy_vec(result)
 
 
 def transform_composite_quad(f, degree, nodes, weights,
-                             mean=None, cov=None, forward=True, l2=False):
+                             mean=None, cov=None, forward=True):
 
     dim = len(nodes[0])
     n_poly = int(scipy.special.binom(degree + dim, dim))
@@ -257,20 +257,20 @@ def transform_composite_quad(f, degree, nodes, weights,
         #  FIXME: desc (urbain, Wed 28 Feb 2018 02:47:04 PM GMT)
         # f_arg = f if isinstance(f, str) else f[i]
         result += transform_simple_quad(f, degree, nodes[i],
-                                        weights[i], mean, cov, forward, l2)
+                                        weights[i], mean, cov, forward)
     return result
 
 
-def eval_simple_quad(coeffs, degree, nodes, l2=False):
+def eval_simple_quad(coeffs, degree, nodes):
     cpp_coeffs = convert_to_cpp_vec(coeffs)
-    return transform_simple_quad(cpp_coeffs, degree, nodes, nodes, forward=False, l2=l2)
+    return transform_simple_quad(cpp_coeffs, degree, nodes, nodes, forward=False)
 
 
-def eval_composite_quad(coeffs, degree, nodes, l2=False):
+def eval_composite_quad(coeffs, degree, nodes):
     result = []
 
     for i in range(len(nodes)):
-        result_quad = eval_simple_quad(coeffs, degree, nodes[i], l2)
+        result_quad = eval_simple_quad(coeffs, degree, nodes[i])
         result.append(result_quad)
     return result
 
@@ -327,18 +327,24 @@ class Quad:
     def discretize(self, f):
         return discretize(f, self.nodes[0], self.mean, self.cov)
 
-    def transform(self, function, degree, l2=False):
-        # if l2:
-        #     l2_weights = weights
-        #     for i in range(len(nodes)):
-        #         for j in range(len(nodes[i]))
-        #             weights[i][j] = weights[i][j] * np.exp(nodes[i][j]**2/4)
+    def transform(self, function, degree):
         return transform_composite_quad(function, degree, self.nodes,
-                                        self.weights, self.mean, self.cov, l2=l2)
+                                        self.weights, self.mean, self.cov)
 
-    def eval(self, coeffs, degree, l2=False):
-        return eval_composite_quad(coeffs, degree, self.nodes, l2=l2)
+    def eval(self, coeffs, degree):
+        return eval_composite_quad(coeffs, degree, self.nodes)
 
     def varf(self, function, degree):
         return varf_simple_quad(function, degree, self.nodes[0],
                                 self.weights[0], self.mean, self.cov)
+
+
+class hermite_series:
+
+    def __init__(self, coeffs, mean=None, cov=None):
+        self.coeffs = coeffs
+        self.mean = mean
+        self.cov = cov
+
+    def eval(self, degree, nodes):
+        return eval_simple_quad(self.coeffs, degree, nodes)
