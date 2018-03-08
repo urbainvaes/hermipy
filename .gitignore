@@ -1,4 +1,6 @@
 __pycache__
 build
 doc
+
 *.so
+Session.vim
