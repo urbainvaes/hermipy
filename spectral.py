@@ -7,9 +7,9 @@
 # \f[
 #     \int_{\mathbb R^n} H^\alpha(x) \, H^\beta(x) \, \rho(x) \, \mathrm d x = 1
 # \f]
+# Import modules {{{
 import collections
 import itertools
-# import numba as nb
 import numpy as np
 import numpy.linalg as la
 import numpy.polynomial.hermite_e as herm
@@ -18,8 +18,9 @@ import sympy as sy
 import re
 
 from libhermite import hermite as hm
-
-
+from inspect import signature
+# }}}
+# Functions for compatibility with C++ {{{
 def convert_to_cpp_vec(vec):
     cpp_vec = hm.double_vec()
     cpp_vec.extend(vec)
@@ -33,36 +34,35 @@ def convert_to_cpp_mat(mat):
     return cpp_mat
 
 
-def convert_to_numpy_vec(vec):
-    numpy_vec = np.zeros(len(vec))
-    for i in range(len(vec)):
-        numpy_vec[i] = vec[i]
-    return numpy_vec
+def convert_to_cpp_array(array):
+    dim = 0
+    if type(array) in (list, np.ndarray):
+        dim = 1
+        if type(array[0]) in (list, np.ndarray):
+            dim = 2
+    if dim is 1:
+        array = convert_to_cpp_vec(array)
+    elif dim is 2:
+        array = convert_to_cpp_mat(array)
+    return array
 
+# }}}
+# Define decorators to ease information exchange with C++ {{{
+def args_to_cpp(*names):
+    def convert(function):
+        sig = signature(function)
 
-def convert_to_numpy_mat(mat):
-    numpy_mat = np.zeros((len(mat), len(mat[0])))
-    for i in range(len(mat)):
-        numpy_mat[i] = convert_to_numpy_vec(mat[i])
-    return numpy_mat
-
-
-def convert_to_numpy_cube(cube):
-    numpy_cube = np.zeros((len(cube), len(cube[0]), len(cube[0][0])))
-    for i in range(len(cube)):
-        numpy_cube[i] = convert_to_numpy_mat(cube[i])
-    return numpy_cube
-
-
-def convert_to_list(array):
-    if not isinstance(array, collections.Iterable):
-        return array
-    else:
-        result = []
-        for elem in result:
-            result.append(convert_to_list(elem))
-
-
+        def wrapper(*args, **kwargs):
+            ba = sig.bind(*args, **kwargs)
+            args_od = ba.arguments
+            for key in args_od:
+                if key in names:
+                    arg = args_od[key]
+                    args_od[key] = convert_to_cpp_array(arg)
+            return function(**args_od)
+        return wrapper
+    return convert
+# }}}
 ## Compute an N-dimensional Gauss-hermite quadrature
 #
 # This function returns the sample points and weights of a Gauss-Hermite
@@ -115,7 +115,7 @@ def hermegauss_nd(n_points, dim=None):
     return nodes_multidim, weights_multidim
 
 
-def stringify(function):
+def stringify(function): # {{{
     if not isinstance(function, str):
         function = sy.ccode(function)
 
@@ -128,10 +128,11 @@ def stringify(function):
     # If v0, v1, ... notation is used
     subst_vars = re.sub(r'(?<=[v])([0-9]+)', r'[\1]', subst_vars)
 
-    return subst_vars
+    return subst_vars # }}}
 
 
 ## Discretize a function on a simple quadrature
+@args_to_cpp('nodes')
 def discretize(function, nodes, mean=None, cov=None):
 
     is_iterable = isinstance(function, collections.Iterable)
@@ -153,11 +154,9 @@ def discretize(function, nodes, mean=None, cov=None):
 
     cpp_translation = convert_to_cpp_vec(mean)
     cpp_dilation = convert_to_cpp_mat(mat_factor)
-    cpp_nodes = convert_to_cpp_mat(nodes)
-
-    cpp_discretization = hm.discretize(function, cpp_nodes,
+    cpp_discretization = hm.discretize(function, nodes,
                                        cpp_translation, cpp_dilation)
-    return convert_to_numpy_vec(cpp_discretization)
+    return np.array(cpp_discretization)
 
 
 ## Compute the weighted multi-dimensional integral of a function using a
@@ -167,12 +166,10 @@ def discretize(function, nodes, mean=None, cov=None):
 #
 # ## Note
 # It is important that this function be able to take a list of
+@args_to_cpp('nodes', 'weights')
 def integrate_simple_quad(f, nodes, weights, mean=None, cov=None):
-
     f_grid = convert_to_cpp_vec(discretize(f, nodes, mean, cov))
-    cpp_nodes = convert_to_cpp_mat(nodes)
-    cpp_weights = convert_to_cpp_mat(weights)
-    result = hm.integrate(f_grid, cpp_nodes, cpp_weights)
+    result = hm.integrate(f_grid, nodes, weights)
     return result
 
 
@@ -232,6 +229,7 @@ def herm_to_poly(c):
 # in one point in \f$ \mathcal O(n) \f$ operations, compared to \f$
 # \mathcal O(n^2) \f$ for a naive implementation.
 
+@args_to_cpp('nodes', 'weights')
 def transform_simple_quad(f, degree, nodes, weights, mean=None,
                           cov=None, forward=True):
 
@@ -239,11 +237,9 @@ def transform_simple_quad(f, degree, nodes, weights, mean=None,
     dim = len(nodes)
     n_poly = int(scipy.special.binom(degree + dim, dim))
     result = np.zeros(n_poly)
-    cpp_nodes = convert_to_cpp_mat(nodes)
-    cpp_weights = convert_to_cpp_mat(weights)
 
-    result = hm.transform(degree, f_grid, cpp_nodes, cpp_weights, forward)
-    return convert_to_numpy_vec(result)
+    result = hm.transform(degree, f_grid, nodes, weights, forward)
+    return np.array(result)
 
 
 def transform_composite_quad(f, degree, nodes, weights,
@@ -283,12 +279,11 @@ def multi_indices(dim, deg_max, deg_min=0):
             sum(m) <= deg_max and sum(m) >= deg_min]
 
 
+@args_to_cpp('nodes', 'weights')
 def varf_simple_quad(f, degree, nodes, weights, mean, cov):
     f_grid = convert_to_cpp_vec(discretize(f, nodes, mean, cov))
-    cpp_nodes = convert_to_cpp_mat(nodes)
-    cpp_weights = convert_to_cpp_mat(weights)
-    result = hm.varf(degree, f_grid, cpp_nodes, cpp_weights)
-    return convert_to_numpy_mat(result)
+    result = hm.varf(degree, f_grid, nodes, weights)
+    return np.array(result)
 
 ## Gauss-Hermite quadrature.
 #

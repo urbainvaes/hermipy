@@ -70,7 +70,6 @@ vec transform(
         {
             for (j = 0; j < dim; j++)
             {
-                double x = nodes[j][p[j]];
                 weight *= weights[j][p[j]];
             }
         }
@@ -105,7 +104,7 @@ double integrate(
         mat const & nodes,
         mat const & weights)
 {
-    vec integral = transform(0, f_grid, nodes, weights, true, false);
+    vec integral = transform(0, f_grid, nodes, weights, true);
     return integral[0];
 }
 

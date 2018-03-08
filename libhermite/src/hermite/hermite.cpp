@@ -8,7 +8,7 @@ namespace hermite {
 
 void hermite_eval(double x,
         u_int degree,
-        vec & valuesg
+        vec & values)
 {
 
     values[0] = 1;

@@ -110,7 +110,7 @@ mat varf(
     }
 
     // Hermite transform of input function
-    vec Hf = transform(2*degree, input, nodes, weights, true, false);
+    vec Hf = transform(2*degree, input, nodes, weights, true);
 
     mat result(n_polys, vec(n_polys, 0.));
     for (i = 0; i < n_polys; i++)
