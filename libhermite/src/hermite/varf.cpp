@@ -41,7 +41,7 @@ cube triple_products(int degree)
     }
 
     // i ≥ 2; j ≥ 2: h_{i+1} h_j = x REC_A(i) h_i h_j - REB_B(i) h_(i-1) h_(j)
-    //                           = (REC_A(i)/REC_A(j) (h_i h_(j+1) + REC_B(j) h_i h_(j-1)) + ...
+    //                           = (REC_A(i)/REC_A(j) (h_i h_(j+1) + REC_B(j) h_i h_(j-1)) - ...
     for (i = 2; i <= degree; i++)
     {
         double ai = REC_A(i-1);

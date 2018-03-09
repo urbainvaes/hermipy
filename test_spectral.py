@@ -80,6 +80,46 @@ class TestHermiteTransform(unittest.TestCase):
             diff = sum(abs(hi_nodes_scipy/factor - hi_nodes))
             self.assertAlmostEqual(diff, 0)
 
+    def test_forward_backward(self):
+        degree = 10
+        quad = sp.Quad.gauss_hermite(degree + 1)
+        f_hermite = np.random.random(degree + 1)
+        f_grid = quad.eval(f_hermite, degree)
+        f_hermite_new = quad.transform(f_grid, degree).coeffs
+        diff = sum(abs(f_hermite - f_hermite_new))
+        self.assertAlmostEqual(diff, 0)
+
+    def test_eval_different_grids(self):
+        degree = 10
+        quad_1 = sp.Quad.gauss_hermite(100, mean=[0], cov=[[1]])
+        quad_2 = sp.Quad.gauss_hermite(100, mean=[2], cov=[[.1]])
+        series = quad_1.transform('x', degree)
+        evaluation = quad_2.eval(series, degree)
+
+# class TestHermiteTransform(unittest.TestCase):
+
+#     def test_constant(self):
+#         degree = 30
+#         quad = sp.Quad.gauss_hermite(n_points=[degree, degree, degree])
+#         coeffs = quad.transform('1', degree).coeffs
+#         for i in range(len(coeffs)):
+#             target_value = 1. if i == 0 else 0.
+#             self.assertAlmostEqual(coeffs[i], target_value)
+
+#     def test_consistent_eval(self):
+#         degree = 10
+#         n_points = 10
+#         quad = sp.Quad.gauss_hermite(n_points)
+#         nodes_scipy, weights_scipy = herm.hermegauss(n_points)
+#         for i in range(degree):
+#             coeffs = np.zeros(degree + 1)
+#             coeffs[i] = 1
+#             factor = math.sqrt(math.factorial(i))
+#             hi_nodes_scipy = herm.hermeval(nodes_scipy, coeffs)
+#             hi_nodes = quad.eval(coeffs, degree)
+#             diff = sum(abs(hi_nodes_scipy/factor - hi_nodes))
+#             self.assertAlmostEqual(diff, 0)
+
 #     def test_forward_backward(self):
 #         degree = 10
 #         quad = sp.Quad.gauss_hermite(degree + 1)

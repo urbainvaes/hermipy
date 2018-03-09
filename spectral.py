@@ -32,10 +32,13 @@ def hermegauss_nd(n_points):
 
 class Series:
 
-    def __init__(self, coeffs, mean=None, cov=None):
+    def __init__(self, coeffs, dim=1, mean=None, cov=None):
         self.coeffs = coeffs
-        self.mean = mean
-        self.cov = cov
+        self.mean = np.zeros(dim) if mean is None else mean
+        self.cov = np.eye(dim) if cov is None else cov
+
+        eigval, eigvec = la.eig(self.cov)
+        self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
 
 
 class Quad:
@@ -43,9 +46,9 @@ class Quad:
         self.nodes = nodes
         self.weights = weights
 
-        dim = len(self.nodes)
-        self.mean = np.zeros(dim) if mean is None else mean
-        self.cov = np.eye(dim) if cov is None else cov
+        self.dim = len(self.nodes)
+        self.mean = np.zeros(self.dim) if mean is None else np.array(mean)
+        self.cov = np.eye(self.dim) if cov is None else np.array(cov)
 
         eigval, eigvec = la.eig(self.cov)
         self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
@@ -72,12 +75,12 @@ class Quad:
             return cls(nodes, weights, mean=mean, cov=cov)
 
     #  TODO: Add mapping (urbain, Thu 08 Mar 2018 11:07:49 PM GMT)
-    def mapped_nodes(self, test):
+    def mapped_nodes(self):
         grid_nodes = np.meshgrid(self.nodes)
         nodes_flattened = []
         for i in range(len(self.nodes)):
             nodes_flattened.append(grid_nodes[i].flatten())
-            nodes = np.vstack(nodes_flattened)
+        nodes = np.vstack(nodes_flattened)
         return nodes
 
     def discretize(self, f):
@@ -95,10 +98,20 @@ class Quad:
         f_grid = self.discretize(function)
         coeffs = hm.transform(degree, f_grid, self.nodes,
                               self.weights, forward=True)
-        return Series(coeffs, self.mean, self.cov)
+        return Series(coeffs, self.dim, self.mean, self.cov)
 
-    def eval(self, coeffs, degree):
-        return hm.transform(degree, coeffs, self.nodes,
+    def eval(self, series, degree):
+        if type(series) is np.ndarray:
+            series = Series(series, self.dim, self.mean, self.cov)
+        coeffs = series.coeffs
+        translation = self.mean - series.mean
+        factor = la.inv(series.factor) * self.factor
+        if la.norm(factor - np.diag(np.diag(factor)), 2) > 1e-8:
+            raise ValueError("Incompatible covariance matrices")
+        mapped_nodes = self.nodes.copy()
+        for i in range(len(self.nodes)):
+            mapped_nodes[i] = self.nodes[i]*factor[i] + translation[i]
+        return hm.transform(degree, coeffs, mapped_nodes,
                             self.weights, forward=False)
 
     def varf(self, function, degree):
