@@ -143,7 +143,7 @@ u_sol = u_sol.subs(beta_a, beta)
 degree = 100
 degrees = np.arange(degree + 1)
 n_points_num = degree + 1
-quad_num = sp.Quad(n_points_num, dim=1, mean=[mean], cov=[[cov]])
+quad_num = sp.Quad.gauss_hermite(n_points_num, dim=1, mean=[mean], cov=[[cov]])
 x_num = quad_num.discretize('x')
 factor_p_num = quad_num.discretize(factor_p)
 factor_q_num = quad_num.discretize(factor_q)
@@ -160,7 +160,7 @@ x_max = mean - np.sqrt(2) * np.sqrt(2*degree + 1) * np.sqrt(cov)
 # For visualization
 n_points_visu = 300
 cov_visu = cov
-quad_visu = sp.Quad(n_points_visu, dim=1, mean=[mean], cov=[[cov_visu]])
+quad_visu = sp.Quad.gauss_hermite(n_points_visu, dim=1, mean=[mean], cov=[[cov_visu]])
 x_visu = quad_visu.discretize('x')
 factor_p_visu = quad_visu.discretize(factor_p)
 factor_q_visu = quad_visu.discretize(factor_q)
@@ -169,7 +169,7 @@ multiplication_visu = quad_visu.discretize(multiplication)
 u_sol_visu = quad_visu.discretize(u_sol)
 v_sol_visu = quad_visu.discretize(v_sol)
 r_sol_visu = quad_visu.discretize(r_sol)
-u_approx_visu = quad_visu.eval(quad_num.transform(u_sol, degree), degree)[0]
+u_approx_visu = quad_visu.eval(quad_num.transform(u_sol, degree).coeffs, degree)
 v_approx_visu = u_approx_visu * factor_q_visu
 r_approx_visu = u_approx_visu * factor_visu
 
@@ -179,14 +179,14 @@ def norm_herm(hermite_coeffs):
 
 
 # Normalization
-norm_sol_visu = norm_herm(quad_visu.transform(u_sol_visu, degree))
-norm_approx_visu = norm_herm(quad_visu.transform(u_approx_visu, degree))
+norm_sol_visu = norm_herm(quad_visu.transform(u_sol_visu, degree).coeffs)
+norm_approx_visu = norm_herm(quad_visu.transform(u_approx_visu, degree).coeffs)
 v_sol_visu = v_sol_visu / norm_sol_visu
 r_sol_visu = r_sol_visu / norm_sol_visu
 v_approx_visu = v_approx_visu / norm_approx_visu
 r_approx_visu = r_approx_visu / norm_approx_visu
 
-Hu_sol = quad_num.transform(u_sol, degree)
+Hu_sol = quad_num.transform(u_sol, degree).coeffs
 Hu_sol = Hu_sol / norm_herm(Hu_sol)
 
 # }}}
@@ -200,7 +200,7 @@ ax.axvline(x=x_max)
 ax.set_ylim((-2, 2))
 h_i = np.zeros(degree + 1)
 h_i[degree] = 1
-Eh = quad_visu.eval(h_i, degree)[0] * factor_q_visu
+Eh = quad_visu.eval(h_i, degree) * factor_q_visu
 ax.plot(x_visu, Eh)
 plt.show()
 
@@ -214,10 +214,10 @@ eigenvalues_gaussian = - np.arange(degree + 1)/cov
 # Initial condition
 u_init = factor_q / factor_p
 u_num = quad_num.discretize(u_init)
-Hu = quad_num.transform(u_num, degree)
+Hu = quad_num.transform(u_num, degree).coeffs
 
 # Exact solution on fine grid
-# v_approx_visu = quad_visu.eval(quad_num.transform(u_sol_num, degree), degree)[0]*factor_q_visu
+# v_approx_visu = quad_visu.eval(quad_num.transform(u_sol_num, degree), degree)0]*factor_q_visu
 # norm_aux = quad_num.transform(u_exact_num/sqrt_gaussian_num, degree)
 # norm = np.sqrt(np.sum(np.square(norm_aux)))
 # v_exact_visu = u_exact_visu / norm
@@ -252,38 +252,6 @@ total_op = diag_op + multiplication_op
 
 
 
-# # Simple integration
-# for i in range(n_iter):
-
-#     # Plotting {{{
-#     if i % 100 == 0:
-#         plt.pause(.01)
-
-#         # Representation of u on fine grid
-#         u_visu = quad_visu.eval(Hu, degree)[0]
-
-#         # Plot solution in flat space
-#         ax11.clear()
-#         ax11.set_title("Solution to Schrődinger equation")
-#         ax11.plot(x_visu, u_visu * factor_q_visu)
-#         ax11.plot(x_visu, v_sol_visu)
-#         ax11.plot(x_visu, v_approx_visu)
-
-#         # Plot solution in real space
-#         ax12.clear()
-#         ax12.set_title("Solution to Fokker-Planck equation")
-#         ax12.plot(x_visu, u_visu * factor_visu)
-
-#         # Plot Hermite transform
-#         ax21.clear()
-#         ax21.set_title("Hermite coefficients of the solution")
-#         ax21.bar(degrees, Hu)
-
-#         plt.draw()
-#     # }}}
-
-#     # Normalization
-#     Hu = la.expm(total_op)
 
 # Create figure with two subplots
 fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
@@ -299,7 +267,7 @@ for i in range(n_iter):
         plt.pause(.01)
 
         # Representation of u on fine grid
-        u_visu = quad_visu.eval(Hu, degree)[0]
+        u_visu = quad_visu.eval(Hu, degree)
 
         # Plot solution in flat space
         ax11.clear()
@@ -328,8 +296,8 @@ for i in range(n_iter):
 
     # h_n = quad.transform(u_n, degree)
     Hu = Hu + dt/2 * eigenvalues_gaussian * Hu
-    u_num = quad_num.eval(Hu, degree)[0]
-    Hu = Hu + dt * quad_num.transform(u_num*multiplication_num, degree)
+    u_num = quad_num.eval(Hu, degree)
+    Hu = Hu + dt * quad_num.transform(u_num*multiplication_num, degree).coeffs
     Hu = Hu + dt/2 * eigenvalues_gaussian * Hu
 
     # Normalization

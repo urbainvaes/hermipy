@@ -1,9 +1,8 @@
 from libhermite import hermite_python as hm
-import itertools
+
 import numpy as np
 import numpy.linalg as la
 import numpy.polynomial.hermite_e as herm
-import scipy.special
 import sympy as sy
 import re
 
@@ -19,36 +18,28 @@ def stringify(function):
     return function
 
 
-def hermegauss_nd(n_points, dim=None):
-    if dim is not None:
-        n_nodes = np.full(dim, n_points)
-    elif isinstance(n_points, int):
-        n_nodes = [n_points]
-    else:
-        n_nodes = n_points
-    dim = len(n_nodes)
+def hermegauss_nd(n_points):
+    dim = len(n_points)
     nodes_multidim = []
     weights_multidim = []
     for i in range(dim):
-        nodes_1d, weights_1d = herm.hermegauss(n_nodes[i])
+        nodes_1d, weights_1d = herm.hermegauss(n_points[i])
         weights_1d = weights_1d/np.sqrt(2*np.pi)  # Normalize
         nodes_multidim.append(nodes_1d)
         weights_multidim.append(weights_1d)
     return nodes_multidim, weights_multidim
 
 
+class Series:
+
+    def __init__(self, coeffs, mean=None, cov=None):
+        self.coeffs = coeffs
+        self.mean = mean
+        self.cov = cov
+
+
 class Quad:
-    def __init__(self,
-                 n_points=None,
-                 dim=None,
-                 nodes=None,
-                 weights=None,
-                 mean=None,
-                 cov=None):
-
-        if n_points is not None:
-            nodes, weights = hermegauss_nd(n_points, dim)
-
+    def __init__(self, nodes, weights, mean=None, cov=None):
         self.nodes = nodes
         self.weights = weights
 
@@ -56,12 +47,44 @@ class Quad:
         self.mean = np.zeros(dim) if mean is None else mean
         self.cov = np.eye(dim) if cov is None else cov
 
+        eigval, eigvec = la.eig(self.cov)
+        self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
+
+    @classmethod
+    def gauss_hermite(cls, n_points, dim=None, mean=None, cov=None):
+        if dim is not None:
+            n_points = np.full(dim, n_points)
+        elif isinstance(n_points, int):
+            n_points = [n_points]
+        nodes, weights = hermegauss_nd(n_points)
+        return cls(nodes, weights, mean=mean, cov=cov)
+
+    @classmethod
+    def newton_cotes(cls, n_points, extrema, mean=None, cov=None):
+        nodes, weights = [], []
+        for i in range(len(extrema)):
+            nodes.append(np.linspace(-extrema[i], extrema[i], n_points[i]))
+            mesh_size = 2*extrema[i]/(n_points[i] - 1)
+            weights_simpson = np.zeros(n_points[i]) + 1
+            weights_simpson[0], weights_simpson[-1] = .5, .5
+            gaussian_weight = 1/np.sqrt(2*np.pi) * np.exp(-nodes[-1]**2/2.)
+            weights.append(weights_simpson * gaussian_weight * mesh_size)
+            return cls(nodes, weights, mean=mean, cov=cov)
+
+    #  TODO: Add mapping (urbain, Thu 08 Mar 2018 11:07:49 PM GMT)
+    def mapped_nodes(self, test):
+        grid_nodes = np.meshgrid(self.nodes)
+        nodes_flattened = []
+        for i in range(len(self.nodes)):
+            nodes_flattened.append(grid_nodes[i].flatten())
+            nodes = np.vstack(nodes_flattened)
+        return nodes
+
     def discretize(self, f):
         function = stringify(f)
         if isinstance(function, str):
-            eigval, eigvec = la.eig(self.cov)
-            factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
-            function = hm.discretize(function, self.nodes, self.mean, factor)
+            function = hm.discretize(function, self.nodes,
+                                     self.mean, self.factor)
         return function
 
     def integrate(self, function):
@@ -70,10 +93,13 @@ class Quad:
 
     def transform(self, function, degree):
         f_grid = self.discretize(function)
-        return hm.transform(degree, f_grid, self.nodes, self.weights, forward=True)
+        coeffs = hm.transform(degree, f_grid, self.nodes,
+                              self.weights, forward=True)
+        return Series(coeffs, self.mean, self.cov)
 
     def eval(self, coeffs, degree):
-        return hm.transform(degree, coeffs, self.nodes, self.weights, forward=False)
+        return hm.transform(degree, coeffs, self.nodes,
+                            self.weights, forward=False)
 
     def varf(self, function, degree):
         f_grid = self.discretize(function)
@@ -88,15 +114,10 @@ class CompQuad:
     # def integrate(f):
 
 
-class hermite_series:
 
-    def __init__(self, coeffs, mean=None, cov=None):
-        self.coeffs = coeffs
-        self.mean = mean
-        self.cov = cov
 
-    def eval(self, degree, nodes):
-        return eval_simple_quad(self.coeffs, degree, nodes)
+    # def eval(self, degree, nodes):
+    #     return eval_simple_quad(self.coeffs, degree, nodes)
 
 # def herm_to_poly(c):
 #     herme_coeffs = c/np.sqrt(np.sqrt(2*np.pi)*np.arange(len(c)))

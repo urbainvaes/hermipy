@@ -52,7 +52,7 @@ def discretize(function, nodes, translation, dilation):
 
 @convert_to_cpp('fgrid', 'nodes', 'weights')
 def integrate(fgrid, nodes, weights):
-    return np.array(hm.integrate(fgrid, nodes, weights))
+    return hm.integrate(fgrid, nodes, weights)
 
 
 @convert_to_cpp('fgrid', 'nodes', 'weights')
