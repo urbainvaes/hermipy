@@ -34,8 +34,12 @@ class Series:
 
     def __init__(self, coeffs, dim=1, mean=None, cov=None):
         self.coeffs = coeffs
-        self.mean = np.zeros(dim) if mean is None else mean
-        self.cov = np.eye(dim) if cov is None else cov
+
+        self.dim = dim
+        self.mean = np.zeros(self.dim) if mean is None \
+            else np.asarray(mean, float)
+        self.cov = np.eye(self.dim) if cov is None \
+            else np.asarray(cov, float)
 
         eigval, eigvec = la.eig(self.cov)
         self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
@@ -47,8 +51,10 @@ class Quad:
         self.weights = weights
 
         self.dim = len(self.nodes)
-        self.mean = np.zeros(self.dim) if mean is None else np.array(mean)
-        self.cov = np.eye(self.dim) if cov is None else np.array(cov)
+        self.mean = np.zeros(self.dim) if mean is None \
+            else np.asarray(mean, float)
+        self.cov = np.eye(self.dim) if cov is None \
+            else np.asarray(cov, float)
 
         eigval, eigvec = la.eig(self.cov)
         self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
@@ -74,14 +80,12 @@ class Quad:
             weights.append(weights_simpson * gaussian_weight * mesh_size)
             return cls(nodes, weights, mean=mean, cov=cov)
 
-    #  TODO: Add mapping (urbain, Thu 08 Mar 2018 11:07:49 PM GMT)
     def mapped_nodes(self):
-        grid_nodes = np.meshgrid(self.nodes)
-        nodes_flattened = []
-        for i in range(len(self.nodes)):
-            nodes_flattened.append(grid_nodes[i].flatten())
-        nodes = np.vstack(nodes_flattened)
-        return nodes
+        coords_nodes = []
+        for i in range(self.dim):
+            coord = 'v[{}]'.format(i)
+            coords_nodes.append(self.discretize(coord))
+        return np.asarray(np.vstack(coords_nodes)).T
 
     def discretize(self, f):
         function = stringify(f)
@@ -104,13 +108,14 @@ class Quad:
         if type(series) is np.ndarray:
             series = Series(series, self.dim, self.mean, self.cov)
         coeffs = series.coeffs
-        translation = self.mean - series.mean
-        factor = la.inv(series.factor) * self.factor
+        inv = la.inv(series.factor)
+        translation = inv.dot(self.mean - series.mean)
+        factor = inv * self.factor
         if la.norm(factor - np.diag(np.diag(factor)), 2) > 1e-8:
             raise ValueError("Incompatible covariance matrices")
         mapped_nodes = self.nodes.copy()
         for i in range(len(self.nodes)):
-            mapped_nodes[i] = self.nodes[i]*factor[i] + translation[i]
+            mapped_nodes[i] = self.nodes[i] * factor[i][i] + translation
         return hm.transform(degree, coeffs, mapped_nodes,
                             self.weights, forward=False)
 

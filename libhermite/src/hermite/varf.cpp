@@ -73,6 +73,63 @@ cube triple_products(int degree)
     return products;
 }
 
+mat varf_axes(
+        int degree, // ! 0 - (unsigned int) 1 = +inf
+        vec const & input,
+        mat const & nodes,
+        mat const & weights)
+{
+    mat products(degree + 1, vec(1*degree + 1, 0.));
+    mat e_products(degree + 1, vec(2*degree + 1, 0.));
+
+    // Compute entries for i ≤ j, and the rest by symmetry.
+    int i,j;
+
+    // i = 0: Fast Hermite transformunction
+    vec Hf = transform(2*degree, input, nodes, weights, true);
+
+    // i ≥ 2; j ≥ 2: h_{i+1} h_j = x REC_A(i) h_i h_j - REB_B(i) h_(i-1) h_(j)
+    //                           = (REC_A(i)/REC_A(j) (h_i h_(j+1) + REC_B(j) h_i h_(j-1)) - ...
+    for (i = 0; i <= degree; i++)
+    {
+        double ai = REC_A(i-1);
+        double bi = REC_B(i-1);
+        for (j = i; j <= 2*degree - i; j++)
+        {
+            if(i == 0)
+            {
+                if (abs(Hf[j]) > 1e-14)
+                {
+                    e_products[i][j] = Hf[j];
+                }
+                else
+                {
+                    e_products[i][j] = 0.;
+                }
+            }
+            else
+            {
+                double aj = REC_A(j);
+                double bj = REC_B(j);
+                e_products[i][j] += ai/aj * e_products[i-1][j+1];
+                e_products[i][j] += ai/aj*bj * e_products[i-1][j-1];
+                e_products[i][j] += i == 1 ? 0. : - bi * e_products[i-2][j];
+            }
+        }
+    }
+
+    for (i = 0; i <= degree; i++)
+    {
+        for (j = 0; j <= degree; j++)
+        {
+            products[i][j] = e_products[MIN(i,j)][MAX(i,j)];
+        }
+    }
+
+    return products;
+}
+
+
 mat varf(
         u_int degree,
         vec const & input,
@@ -83,43 +140,22 @@ mat varf(
 
     using boost::math::binomial_coefficient;
     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
-    u_int n_polys_2 = (u_int) binomial_coefficient<double> (2*degree + dim, dim);
 
-    // Products ‹h_i h_j h_k›, with (0 ≤ i,j ≤ degree) and (0 ≤ k ≤ 2*degree)
-    cube products = triple_products((int) degree);
-    cube multi_products(n_polys, mat(n_polys, vec(n_polys_2, 0.)));
+    mat products = varf_axes(degree, input, nodes, weights);
+    mat result(n_polys, vec(n_polys, 0.));
 
     Multi_index_iterator m1(dim, degree);
     Multi_index_iterator m2(dim, degree);
-    Multi_index_iterator m3(dim, 2*degree);
 
-    u_int i,j,k,l;
+    u_int i,j,k;
     for (i = 0, m1.reset(); i < n_polys; i++, m1.increment())
     {
         for (j = 0, m2.reset(); j < n_polys; j++, m2.increment())
         {
-            for (k = 0, m3.reset(); k < n_polys_2; k++, m3.increment())
+            result[i][j] = 1.;
+            for (k = 0; k < dim; k++)
             {
-                multi_products[i][j][k] = 1.;
-                for (l = 0; l < dim; l++)
-                {
-                    multi_products[i][j][k] *= products[m1[l]][m2[l]][m3[l]];
-                }
-            }
-        }
-    }
-
-    // Hermite transform of input function
-    vec Hf = transform(2*degree, input, nodes, weights, true);
-
-    mat result(n_polys, vec(n_polys, 0.));
-    for (i = 0; i < n_polys; i++)
-    {
-        for (j = 0; j < n_polys; j++)
-        {
-            for (k = 0; k < n_polys_2; k++)
-            {
-                result[i][j] += multi_products[i][j][k] * Hf[k];
+                result[i][j] *= products[m1[k]][m2[k]];
             }
         }
     }

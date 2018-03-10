@@ -1,7 +1,10 @@
+from libhermite import hermite_python as hm
+
 import unittest
 import numpy as np
 import spectral as sp
 import numpy.polynomial.hermite_e as herm
+import numpy.linalg as la
 import math
 
 
@@ -90,11 +93,14 @@ class TestHermiteTransform(unittest.TestCase):
         self.assertAlmostEqual(diff, 0)
 
     def test_eval_different_grids(self):
-        degree = 10
-        quad_1 = sp.Quad.gauss_hermite(100, mean=[0], cov=[[1]])
-        quad_2 = sp.Quad.gauss_hermite(100, mean=[2], cov=[[.1]])
+        degree = 5
+        quad_1 = sp.Quad.gauss_hermite(100, mean=[2.], cov=[[2.]])
+        quad_2 = sp.Quad.gauss_hermite(100, mean=[-1.], cov=[[.1]])
         series = quad_1.transform('x', degree)
         evaluation = quad_2.eval(series, degree)
+        discretization = quad_2.discretize('x')
+        la.norm(evaluation - discretization, 2)
+        self.assertAlmostEqual(la.norm(evaluation - discretization, 2), 0)
 
 # class TestHermiteTransform(unittest.TestCase):
 
