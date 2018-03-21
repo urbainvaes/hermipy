@@ -93,11 +93,21 @@ class TestHermiteTransform(unittest.TestCase):
         self.assertAlmostEqual(diff, 0)
 
     def test_eval_different_grids(self):
+        n_points = 100
         degree = 50
-        quad_1 = sp.Quad.gauss_hermite(100, mean=[2.], cov=[[2.]])
-        quad_2 = sp.Quad.gauss_hermite(100, mean=[-1.], cov=[[.1]])
+        quad_1 = sp.Quad.gauss_hermite(n_points, mean=[2.], cov=[[2.]])
+        quad_2 = sp.Quad.gauss_hermite(n_points, mean=[-1.], cov=[[.1]])
         series = quad_1.transform('x', degree)
         evaluation = quad_2.eval(series, degree)
         discretization = quad_2.discretize('x')
-        la.norm(evaluation - discretization, 2)
         self.assertAlmostEqual(la.norm(evaluation - discretization, 2), 0)
+
+    def test_newton_cotes(self):
+        mean = [2.]
+        cov = [[.5]]
+        degree = 10
+        quad_1 = sp.Quad.gauss_hermite([200], mean=mean, cov=cov)
+        quad_2 = sp.Quad.newton_cotes([10000], [6.], mean=mean, cov=cov)
+        series1 = quad_1.transform('x', degree)
+        series2 = quad_2.transform('x', degree)
+        assert(la.norm(series1.coeffs - series2.coeffs, 2) < 1e-3)

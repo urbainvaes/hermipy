@@ -1,5 +1,6 @@
 # IMPORT MODULES {{{
-import scipy.linalg as la
+import numpy.linalg as la
+import scipy.sparse.linalg as las
 import sympy as sy
 import sympy.printing as syp
 import numpy as np
@@ -111,6 +112,7 @@ syp.pprint(generator_ou)
 
 beta = 1
 
+# For numerical approximation
 mean = 0
 cov = .1
 
@@ -128,71 +130,47 @@ multiplication = multiplication_a.subs(potential_pa, potential_p)
 multiplication = multiplication.subs(potential_qa, potential_q).doit()
 multiplication = multiplication.subs(beta_a, beta).doit()
 
-r_sol = r_sol_a.subs(potential_pa, potential_p)
-r_sol = r_sol.subs(beta_a, beta)
-v_sol = v_sol_a.subs(potential_pa, potential_p)
-v_sol = v_sol.subs(beta_a, beta)
 u_sol = u_sol_a.subs(potential_pa, potential_p)
 u_sol = u_sol.subs(potential_qa, potential_q)
 u_sol = u_sol.subs(beta_a, beta)
+
+# Normalization using precise quadrature
+n_precise = 200
+quad_precise = sp.Quad.gauss_hermite(n_precise, dim=1,
+                                     mean=[mean], cov=[[cov]])
+norm_sol = np.sqrt(quad_precise.integrate(u_sol*u_sol))
+u_sol = u_sol / norm_sol
+
+# Hermite transform of the exact solution
+Hu_sol = quad_precise.transform(u_sol, n_precise - 1)
 
 # }}}
 # DISCRETIZE VARIOUS FUNCTIONS ON GRID {{{
 
 # For numerics
-degree = 100
+degree = 50
 degrees = np.arange(degree + 1)
 n_points_num = degree + 1
 quad_num = sp.Quad.gauss_hermite(n_points_num, dim=1, mean=[mean], cov=[[cov]])
-x_num = quad_num.discretize('x')
-factor_p_num = quad_num.discretize(factor_p)
-factor_q_num = quad_num.discretize(factor_q)
-factor_num = quad_num.discretize(factor)
 multiplication_num = quad_num.discretize(multiplication)
-u_sol_num = quad_num.discretize(u_sol)
-v_sol_num = quad_num.discretize(v_sol)
-r_sol_num = quad_num.discretize(r_sol)
 
 # Calculate limits of resolution
 x_min = mean + np.sqrt(2) * np.sqrt(2*degree + 1) * np.sqrt(cov)
 x_max = mean - np.sqrt(2) * np.sqrt(2*degree + 1) * np.sqrt(cov)
 
-# For visualization
-n_points_visu = 300
-cov_visu = cov
-quad_visu = sp.Quad.gauss_hermite(n_points_visu, dim=1, mean=[mean], cov=[[cov_visu]])
+# Parameters for visualization
+n_points_visu = [1000]
+extrema_visu = [np.sqrt(2) * np.sqrt(2*degree + 1)]
+cov_visu = .5*cov
+quad_visu = sp.Quad.newton_cotes(n_points_visu, extrema_visu,
+                                 mean=[mean], cov=[[cov_visu]])
 x_visu = quad_visu.discretize('x')
-factor_p_visu = quad_visu.discretize(factor_p)
+u_sol_visu = quad_visu.discretize(u_sol)
 factor_q_visu = quad_visu.discretize(factor_q)
 factor_visu = quad_visu.discretize(factor)
-multiplication_visu = quad_visu.discretize(multiplication)
-u_sol_visu = quad_visu.discretize(u_sol)
-v_sol_visu = quad_visu.discretize(v_sol)
-r_sol_visu = quad_visu.discretize(r_sol)
-u_approx_visu = quad_visu.eval(quad_num.transform(u_sol, degree).coeffs, degree)
-v_approx_visu = u_approx_visu * factor_q_visu
-r_approx_visu = u_approx_visu * factor_visu
-
-
-def norm_herm(hermite_coeffs):
-    return np.sqrt(np.sum(np.square(hermite_coeffs)))
-
-
-# Normalization
-norm_sol_visu = norm_herm(quad_visu.transform(u_sol_visu, degree).coeffs)
-norm_approx_visu = norm_herm(quad_visu.transform(u_approx_visu, degree).coeffs)
-v_sol_visu = v_sol_visu / norm_sol_visu
-r_sol_visu = r_sol_visu / norm_sol_visu
-v_approx_visu = v_approx_visu / norm_approx_visu
-r_approx_visu = r_approx_visu / norm_approx_visu
-
-Hu_sol = quad_num.transform(u_sol, degree).coeffs
-Hu_sol = Hu_sol / norm_herm(Hu_sol)
 
 # }}}
-# NUMERICAL METHOD
-
-# Plot Hermite function of highest degree
+# PLOT HERMITE FUNCTION OF HIGHEST DEGREE {{{
 fig, ax = plt.subplots(1, 1)
 ax.set_title("Hermite function of degree " + str(degree))
 ax.axvline(x=x_min)
@@ -200,58 +178,43 @@ ax.axvline(x=x_max)
 ax.set_ylim((-2, 2))
 h_i = np.zeros(degree + 1)
 h_i[degree] = 1
+h_i = sp.Series(h_i, mean=[mean], cov=[[cov]])
 Eh = quad_visu.eval(h_i, degree) * factor_q_visu
 ax.plot(x_visu, Eh)
 plt.show()
+# }}}
+# SPECTRAL METHOD FOR STATIONARY EQUATION {{{
+
+# Eigenvalues of the operator
+eigenvalues_gaussian = - np.arange(degree + 1)/cov
+
+# Get matrix representation of operator in Hermite space:
+diag_op = np.diag(eigenvalues_gaussian)
+multiplication_op = quad_precise.varf(multiplication, degree)
+total_op = diag_op + multiplication_op
+
+# Calculate eigenvector in kernel
+eigen_values, eigen_vectors = las.eigsh(total_op, k=1, which='SM')
+Hu_spec_stat = eigen_vectors.T[0]
+series_spec_stat = sp.Series(Hu_spec_stat, mean=[mean], cov=[[cov]])
+u_spec_stat_visu = quad_visu.eval(series_spec_stat, degree)
+
+# Comparison between exact solution and solution found using spectral method
+fig, ax = plt.subplots(1, 1)
+ax.plot(x_visu, abs(u_sol_visu) * factor_q_visu)
+ax.plot(x_visu, abs(u_spec_stat_visu) * factor_q_visu)
+plt.show()
+
+# }}}
 
 # Time step and number of iterations
 dt = 2e-3*cov
 n_iter = 100000
 
-# Eigenvalues of the operator
-eigenvalues_gaussian = - np.arange(degree + 1)/cov
-
 # Initial condition
 u_init = factor_q / factor_p
 u_num = quad_num.discretize(u_init)
-Hu = quad_num.transform(u_num, degree).coeffs
-
-# Exact solution on fine grid
-# v_approx_visu = quad_visu.eval(quad_num.transform(u_sol_num, degree), degree)0]*factor_q_visu
-# norm_aux = quad_num.transform(u_exact_num/sqrt_gaussian_num, degree)
-# norm = np.sqrt(np.sum(np.square(norm_aux)))
-# v_exact_visu = u_exact_visu / norm
-# v_approx_visu = u_approx_visu / norm
-
-# plt.plot(x_visu, u_exact_visu)
-# plt.show()
-
-# Get matrix representation of operator in Hermite space:
-diag_op = np.diag(eigenvalues_gaussian)
-multiplication_op = quad_visu.varf(multiplication_visu, degree)
-total_op = diag_op + multiplication_op
-
-# eigen_values, eigen_vectors = la.eigs(total_op, k=1, which='SM')
-
-# # Print approximating functions to Schrődinger equation
-# fig, ax = plt.subplots(1, 1)
-# plt.ion()
-
-# for i in range(10):
-#     ax.set_title("First eigenfunctions of Fokker-Planck operator")
-#     h_i = np.zeros(degree + 1)
-#     h_i[i] = 1
-#     Eh = quad_visu.eval(h_i, degree)[0] * factor_q_visu
-#     ax.plot(x_visu, Eh)
-#     ax.set_ylim((-2, 2))
-#     plt.draw()
-#     plt.pause(.01)
-#     ax.clear()
-# plt.close()
-# # Plot first eigenvectors
-
-
-
+Hu = quad_num.transform(u_num, degree)
 
 # Create figure with two subplots
 fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
@@ -273,8 +236,7 @@ for i in range(n_iter):
         ax11.clear()
         ax11.set_title("Solution to Schrődinger equation")
         ax11.plot(x_visu, u_visu * factor_q_visu)
-        ax11.plot(x_visu, v_sol_visu)
-        ax11.plot(x_visu, v_approx_visu)
+        ax11.plot(x_visu, u_sol_visu * factor_q_visu)
 
         # Plot solution in real space
         ax12.clear()
@@ -284,28 +246,23 @@ for i in range(n_iter):
         # Plot Hermite transform
         ax21.clear()
         ax21.set_title("Hermite coefficients of the numerical solution")
-        ax21.bar(degrees, Hu)
+        ax21.bar(degrees, Hu.coeffs)
 
         # Plot error for Hermite coefficients
         ax22.clear()
         ax22.set_title("Hermite coefficients of the stationary solution")
-        ax22.bar(degrees, Hu_sol)
+        ax22.bar(degrees, Hu_sol.coeffs[0:degree + 1])
 
         plt.draw()
     # }}}
 
-    # h_n = quad.transform(u_n, degree)
-    Hu = Hu + dt/2 * eigenvalues_gaussian * Hu
+    Hu.coeffs = Hu.coeffs + dt/2 * eigenvalues_gaussian * Hu.coeffs
     u_num = quad_num.eval(Hu, degree)
-    Hu = Hu + dt * quad_num.transform(u_num*multiplication_num, degree).coeffs
-    Hu = Hu + dt/2 * eigenvalues_gaussian * Hu
+    Hu.coeffs = Hu.coeffs + dt * quad_num.transform(u_num*multiplication_num, degree).coeffs
+    Hu.coeffs = Hu.coeffs + dt/2 * eigenvalues_gaussian * Hu.coeffs
 
     # Normalization
-    Hu = Hu/norm_herm(Hu)
-
-    # u_n = u_n + dt * diff_linear_n * u_n
-
-# plt.plot(points[0], potential_n)
+    Hu.coeffs = Hu.coeffs/la.norm(Hu.coeffs, 2)
 
 import importlib
 importlib.reload(sp)
