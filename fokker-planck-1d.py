@@ -110,15 +110,16 @@ syp.pprint(generator_ou)
 # }}}
 # EVALUATE ABSTRACT EXPRESSIONS FOR PROBLEM AT HAND {{{
 
-beta = 1
+# Parameter in diffusion
+beta = 2.
 
 # For numerical approximation
-mean = 0
+mean = .2
 cov = .1
 
 # potential_p = x**2/2 + 10*sy.cos(x)
 potential_p = x**4/4 - x**2/2
-potential_q = 0.5*np.log(2*np.pi*cov) + (x - mean)*(x - mean)/(2 * cov)
+potential_q = 0.5*np.log(2*np.pi*cov)/beta + (x - mean)*(x - mean)/(2*beta*cov)
 
 factor_p = factor_pa.subs(potential_pa, potential_p)
 factor_p = factor_p.subs(beta_a, beta)
@@ -161,7 +162,7 @@ x_max = mean - np.sqrt(2) * np.sqrt(2*degree + 1) * np.sqrt(cov)
 # Parameters for visualization
 n_points_visu = [1000]
 extrema_visu = [np.sqrt(2) * np.sqrt(2*degree + 1)]
-cov_visu = .5*cov
+cov_visu = 2*cov
 quad_visu = sp.Quad.newton_cotes(n_points_visu, extrema_visu,
                                  mean=[mean], cov=[[cov_visu]])
 x_visu = quad_visu.discretize('x')
@@ -171,6 +172,7 @@ factor_visu = quad_visu.discretize(factor)
 
 # }}}
 # PLOT HERMITE FUNCTION OF HIGHEST DEGREE {{{
+
 fig, ax = plt.subplots(1, 1)
 ax.set_title("Hermite function of degree " + str(degree))
 ax.axvline(x=x_min)
@@ -182,11 +184,12 @@ h_i = sp.Series(h_i, mean=[mean], cov=[[cov]])
 Eh = quad_visu.eval(h_i, degree) * factor_q_visu
 ax.plot(x_visu, Eh)
 plt.show()
+
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
 
 # Eigenvalues of the operator
-eigenvalues_gaussian = - np.arange(degree + 1)/cov
+eigenvalues_gaussian = - np.arange(degree + 1)/cov/beta
 
 # Get matrix representation of operator in Hermite space:
 diag_op = np.diag(eigenvalues_gaussian)
@@ -208,8 +211,8 @@ plt.show()
 # }}}
 
 # Time step and number of iterations
-dt = 2e-3*cov
-n_iter = 100000
+dt = 2e-4*cov
+n_iter = 10**6
 
 # Initial condition
 u_init = factor_q / factor_p
@@ -226,7 +229,7 @@ plt.ion()
 for i in range(n_iter):
 
     # Plotting {{{
-    if i % 100 == 0:
+    if i % 1000 == 0:
         plt.pause(.01)
 
         # Representation of u on fine grid
