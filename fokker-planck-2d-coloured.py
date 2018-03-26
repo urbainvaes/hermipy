@@ -32,7 +32,9 @@ r = sy.Function('ρ')(x, y, t)
 
 # Mapped solution: u = ρ * e^{V/2} * e^{Vq/2} to equation with BK operator
 u = sy.Function('u')(x, y, t)
-u_t = sy.Function('u')(x, y)
+u_xy = sy.Function('u')(x, y)
+u_x = sy.Function('u')(x)
+u_y = sy.Function('u')(y)
 
 # Mapped solution of Schrodinger equation
 v = sy.Function('v')(x, y, t)
@@ -71,52 +73,50 @@ factor_a = factor_pa * factor_qa
 # Fokker-Planck equation to solve (= 0)
 fk = sy.diff(r, t) - forward(potential_pa, r)
 
-# Schrodinger equation associated with fk
-sch = sy.simplify(fk.subs(r, v*factor_pa).doit()/factor_pa)
-
 # Backward Kolmogorov-like equation
 bk = sy.simplify(fk.subs(r, u*factor_a).doit()/factor_a)
 
 # Obtain RHS (if the left-hand side is the time derivative)
-operator_rhs = - bk.subs(u, u_t).doit()
+operator_rhs = - bk.subs(u, u_xy).doit()
 
 # Obtain multiplication operator
-multiplication_a = operator_rhs.subs(u_t, 1).doit()
+multiplication_a = operator_rhs.subs(u_xy, 1).doit()
+multiplication_ax, multiplication_ay = 0, 0
+
+for term in multiplication_a.args:
+    if x in term.free_symbols:
+        multiplication_ax += term
+    elif y in term.free_symbols:
+        multiplication_ay += term
 
 # Remainder
-operator_x = operator_rhs.subs(u_t, sy.Function('x')).doit()
+operator_x = operator_rhs.subs(u_xy, u_x).doit() - multiplication_a * u_x
+operator_y = operator_rhs.subs(u_xy, u_y).doit() - multiplication_a * u_y
+operator_x, operator_y = operator_x.simplify(), operator_y.simplify()
 
+remainder = sy.simplify(operator_rhs
+                        - multiplication_a * u_xy
+                        - operator_x.subs(u_x, u_xy)
+                        - operator_y.subs(u_y, u_xy))
 
-# # Remainder of the operator
-# generator_ou = sy.simplify(operator_rhs - multiplication_a*u_x)
-
-# # Assert that `generator_ou` is the generator of an OU process
-# assert generator_ou == backward(potential_qa, u_x)
-
-# # Assert that the solutions found above are correct
-# assert fk.subs(r, r_sol_a).doit().simplify() == 0
-# assert sch.subs(v, v_sol_a).doit().simplify() == 0
-# assert bk.subs(u, u_sol_a).doit().simplify() == 0
+assert remainder == 0
 
 # # }}}
 # # PRINT TO STDOUT {{{
-# print("Fokker-Planck equation to solve: ")
-# syp.pprint(fk)
+print("Fokker-Planck equation to solve: ")
+syp.pprint(fk)
 
-# print("Mapping to a Schrődinger equation")
-# syp.pprint(sch)
+print("Mapping to an equation with BK operator")
+syp.pprint(bk)
 
-# print("Mapping to an equation with BK operator")
-# syp.pprint(bk)
+print("Operator in the right-hand side")
+syp.pprint(operator_rhs)
 
-# print("Operator in the right-hand side")
-# syp.pprint(operator_rhs)
+print("X part of the operator")
+syp.pprint(multiplication_ax + operator_x)
 
-# print("Multiplication part of the operator")
-# syp.pprint(multiplication_a)
-
-# print("Remainder of the operator")
-# syp.pprint(generator_ou)
+print("Y part of the operator")
+syp.pprint(multiplication_ay + operator_y)
 # # }}}
 # # EVALUATE ABSTRACT EXPRESSIONS FOR PROBLEM AT HAND {{{
 

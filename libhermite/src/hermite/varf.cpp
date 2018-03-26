@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include <iostream>
+#include <map>
 
 #include "hermite/hermite.hpp"
 #include "hermite/iterators.hpp"
@@ -76,8 +77,6 @@ mat varf(
     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
     u_int n_polys_2 = (u_int) binomial_coefficient<double> (2*degree + dim, dim);
 
-    mat result(n_polys, vec(n_polys, 0.));
-
     cube products = triple_products_1d(degree);
 
     Multi_index_iterator m1(dim, degree);
@@ -88,6 +87,8 @@ mat varf(
     vec Hf = transform(2*degree, input, nodes, weights, true);
 
     u_int i,j,k,l;
+    mat result(n_polys, vec(n_polys, 0.));
+
     for (k = 0, m3.reset(); k < n_polys_2; k++, m3.increment())
     {
         if (abs(Hf[k]) < 1e-14)
@@ -110,6 +111,51 @@ mat varf(
     }
 
     return result;
+}
+
+string hash_print(ivec v) {
+    string hash = "";
+    for (u_int i = 0; i < v.size(); ++i)
+    {
+        hash += std::to_string(v[i]) + "-";
+    }
+    return hash;
+}
+
+mat dvarf(
+        u_int dim,
+        u_int degree,
+        u_int direction,
+        mat const & var)
+{
+    Multi_index_iterator m1(dim, degree);
+    Multi_index_iterator m2(dim, degree);
+
+    u_int i,j;
+
+    map<string, u_int> lin_indices;
+    for (i = 0, m1.reset(); i < var.size(); i++, m1.increment())
+    {
+        lin_indices.insert(pair<string, u_int>(hash_print(m1.get()), i));
+    }
+
+    mat results = mat(var.size(), vec(var.size(), 0));
+    for (i = 0, m1.reset(); i < var.size(); i++, m1.increment())
+    {
+        for (j = 0, m2.reset(); j < var.size(); j++, m2.increment())
+        {
+            if (m1[direction] == 0)
+            {
+               continue;
+            }
+
+            ivec diff_m1 = m1.get();
+            diff_m1[direction] -= 1;
+            u_int id = lin_indices[hash_print(diff_m1)];
+            results[i][j] = sqrt(m1[direction])*var[id][j];
+        }
+    }
+    return results;
 }
 
 }

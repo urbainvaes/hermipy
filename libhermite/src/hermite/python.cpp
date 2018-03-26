@@ -74,8 +74,9 @@ BOOST_PYTHON_MODULE(hermite)
     def("discretize", discretize_from_string);
     def("integrate", integrate);
     def("transform", transform);
-    def("triple_products", triple_products);
+    def("triple_products", triple_products_1d);
     def("varf", varf);
+    def("dvarf", dvarf);
 }
 
 }

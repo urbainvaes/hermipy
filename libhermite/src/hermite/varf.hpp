@@ -12,5 +12,12 @@ std::mat varf(
         std::vec const & input,
         std::mat const & nodes,
         std::mat const & weights);
+
+std::mat dvarf(
+        std::u_int dim,
+        std::u_int degree,
+        std::u_int direction,
+        std::mat const & var);
 }
+
 #endif

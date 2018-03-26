@@ -123,6 +123,12 @@ class Quad:
         f_grid = self.discretize(function)
         return hm.varf(degree, f_grid, self.nodes, self.weights)
 
+    def dvarf(self, function, degree, directions):
+        var = self.varf(function, degree)
+        for dir in directions:
+            var = hm.dvarf(self.dim, degree, dir, var)
+        return var
+
 
 class CompQuad:
     def __init__(self, quads, weights):

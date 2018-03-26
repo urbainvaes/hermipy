@@ -3,12 +3,17 @@ import time
 import numpy as np
 from libhermite import hermite as hm
 import importlib
+
 importlib.reload(sp)
 importlib.reload(hm)
-cube = hm.triple_products(5)
-c=sp.convert_to_numpy_cube(hm.triple_products(3))
-quad = sp.Quad(100)
-quad.varf('1', 1)
+
+quad = sp.Quad.gauss_hermite(50, dim=1)
+print(quad.varfdiff('1', 4, 0))
+
+# cube = hm.triple_products(5)
+# c=sp.convert_to_numpy_cube(hm.triple_products(3))
+# quad = sp.Quad(100)
+# quad.varf('1', 1)
 
 
 

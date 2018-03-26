@@ -67,3 +67,8 @@ def triple_products(degree):
 @convert_to_cpp('fgrid', 'nodes', 'weights')
 def varf(degree, fgrid, nodes, weights):
     return np.array(hm.varf(degree, fgrid, nodes, weights))
+
+
+@convert_to_cpp('var')
+def dvarf(dim, degree, direction, var):
+    return np.array(hm.dvarf(dim, degree, direction, var))

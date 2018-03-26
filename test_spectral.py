@@ -111,3 +111,29 @@ class TestHermiteTransform(unittest.TestCase):
         series1 = quad_1.transform('x', degree)
         series2 = quad_2.transform('x', degree)
         assert(la.norm(series1.coeffs - series2.coeffs, 2) < 1e-3)
+
+class TestHermiteVarf(unittest.TestCase):
+
+    def test_simple_varf(self):
+        n_points = 100
+        degree = 30
+        quad = sp.Quad.gauss_hermite(n_points, dim=2)
+        var = quad.varf('1', degree)
+        self.assertAlmostEqual(la.norm(var - np.eye(len(var)), 2), 0)
+
+    def test_simple_varfdiff(self):
+        n_points = 100
+        degree = 10
+        quad = sp.Quad.gauss_hermite(n_points)
+        var = quad.varf('1', degree)
+        self.assertAlmostEqual(la.norm(var - np.eye(len(var)), 2), 0)
+
+from libhermite import hermite_python as hm
+
+import unittest
+import numpy as np
+import spectral as sp
+import numpy.polynomial.hermite_e as herm
+import numpy.linalg as la
+import math
+

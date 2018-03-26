@@ -1,6 +1,7 @@
 #ifndef HERMITE_ITERATORS_H
 #define HERMITE_ITERATORS_H
 
+#include <string>
 #include "hermite/types.hpp"
 
 namespace hermite {
@@ -9,11 +10,11 @@ class Vector_iterator {
 
     protected:
 
-    public:
-
     unsigned int dim;
     std::ivec multi_index;
     bool full;
+
+    public:
 
     const std::ivec& get() const {
         return multi_index;
@@ -21,6 +22,10 @@ class Vector_iterator {
 
     int operator[](int i) {
         return multi_index[i];
+    }
+
+    std::ivec get() {
+        return multi_index;
     }
 
     bool isFull() const {

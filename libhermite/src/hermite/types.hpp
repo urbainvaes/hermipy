@@ -2,6 +2,7 @@
 #define HERMITE_TYPES_H
 
 #include <vector>
+#include <string>
 
 namespace std {
 
