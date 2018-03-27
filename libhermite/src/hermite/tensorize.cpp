@@ -2,6 +2,7 @@
 
 #include "hermite/iterators.hpp"
 #include "hermite/tensorize.hpp"
+#include "hermite/templates.hpp"
 
 using namespace std;
 using boost::math::binomial_coefficient;
@@ -48,14 +49,11 @@ mat tensorize_mat(mat input, u_int dim, u_int dir)
     u_int i,j;
     for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
     {
-        if (isAligned(m1.get(), dir))
+        for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
         {
-            for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
+            if (isAligned(m2.get() - m1.get(), dir))
             {
-                if (isAligned(m2.get(), dir))
-                {
-                    results[i][j] = input[m1[dir]][m2[dir]];
-                }
+                results[i][j] = input[m1[dir]][m2[dir]];
             }
         }
     }
