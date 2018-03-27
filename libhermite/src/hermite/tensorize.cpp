@@ -38,6 +38,26 @@ vec tensorize_vec(vec input, u_int dim, u_int dir)
     return results;
 }
 
+vec project_vec(vec input, u_int dim, u_int dir)
+{
+    u_int degree = 0, n_polys = input.size();
+    while ((u_int) binomial_coefficient<double> (degree + dim, dim) != n_polys)
+    {
+        degree++;
+    }
+    vec results(degree + 1, 0.);
+
+    Multi_index_iterator m(dim, degree);
+    for (u_int i = 0; !m.isFull(); i++, m.increment())
+    {
+        if (isAligned(m.get(), dir))
+        {
+            results[m[dir]] = input[i];
+        }
+    }
+    return results;
+}
+
 mat tensorize_mat(mat input, u_int dim, u_int dir)
 {
     u_int degree = input.size() - 1;
