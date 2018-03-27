@@ -74,6 +74,7 @@ BOOST_PYTHON_MODULE(hermite)
 
     def("discretize", discretize_from_string);
     def("integrate", integrate);
+    def("project", project_vec);
     def("tensorize", tensorize_vec);
     def("tensorize", tensorize_mat);
     def("transform", transform);
