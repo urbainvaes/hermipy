@@ -59,7 +59,7 @@ cube triple_products_1d(int degree)
             for (k = j - i; k <= j + i; k++)
             {
                 products[i][j][k] = e_products[i][j][k];
-                products[i][i][k] = products[i][j][k];
+                products[j][i][k] = e_products[i][j][k];
             }
         }
     }
