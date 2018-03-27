@@ -4,8 +4,9 @@ import scipy.sparse.linalg as las
 import sympy as sy
 import sympy.printing as syp
 import numpy as np
-import spectral as sp
 import matplotlib.pyplot as plt
+
+from libhermite import hermite_python as sp
 sy.init_printing()
 # }}}
 # ABSTRACT SYMBOLIC CALCULATIONS {{{
