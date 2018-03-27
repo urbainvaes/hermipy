@@ -72,3 +72,8 @@ def varf(degree, fgrid, nodes, weights):
 @convert_to_cpp('var')
 def dvarf(dim, degree, direction, var):
     return np.array(hm.dvarf(dim, degree, direction, var))
+
+
+@convert_to_cpp('inp')
+def tensorize(inp, dim, direction):
+    return np.array(hm.tensorize(inp, dim, direction))

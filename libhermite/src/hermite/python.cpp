@@ -9,6 +9,7 @@
 #include "hermite/varf.hpp"
 #include "hermite/transform.hpp"
 #include "hermite/discretize.hpp"
+#include "hermite/tensorize.hpp"
 #include "hermite/types.hpp"
 #include "hermite/io.hpp"
 
@@ -73,6 +74,8 @@ BOOST_PYTHON_MODULE(hermite)
 
     def("discretize", discretize_from_string);
     def("integrate", integrate);
+    def("tensorize", tensorize_vec);
+    def("tensorize", tensorize_mat);
     def("transform", transform);
     def("triple_products", triple_products_1d);
     def("varf", varf);
