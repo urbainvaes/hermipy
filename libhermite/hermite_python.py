@@ -1,3 +1,6 @@
+#  TODO: Ensure directions match (urbain, Wed 28 Mar 2018 11:55:08 AM BST)
+#  TODO: Why does dvarf never produce error? (urbain, Wed 28 Mar 2018 12:41:14 PM BST)
+
 from libhermite import hermite as hm
 import numpy as np
 import inspect
@@ -6,6 +9,7 @@ import numpy.linalg as la
 import numpy.polynomial.hermite_e as herm
 import sympy as sy
 import re
+
 
 def convert_to_cpp_vec(vec):
     cpp_vec = hm.double_vec()
@@ -172,7 +176,7 @@ class Quad:
         function = stringify(f)
         if isinstance(function, str):
             function = discretize(function, self.nodes,
-                                     self.mean, self.factor)
+                                  self.mean, self.factor)
         return function
 
     def integrate(self, function):
@@ -182,7 +186,7 @@ class Quad:
     def transform(self, function, degree):
         f_grid = self.discretize(function)
         coeffs = transform(degree, f_grid, self.nodes,
-                              self.weights, forward=True)
+                           self.weights, forward=True)
         return Series(coeffs, self.dim, self.mean, self.cov)
 
     def eval(self, series, degree):
@@ -206,8 +210,10 @@ class Quad:
 
     def dvarf(self, function, degree, directions):
         var = self.varf(function, degree)
+        eigval, _ = la.eig(self.cov)
         for dir in directions:
             var = dvarf(self.dim, degree, dir, var)
+            var = var/np.sqrt(eigval[dir])
         return var
 
 

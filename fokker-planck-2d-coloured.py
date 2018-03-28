@@ -1,7 +1,9 @@
 # IMPORT MODULES {{{
 
+import itertools
 import numpy.linalg as la
 import scipy.sparse.linalg as las
+import scipy.special
 import sympy as sy
 import sympy.printing as syp
 import numpy as np
@@ -42,14 +44,11 @@ u_xy = sy.Function('u')(x, y)
 u_x = sy.Function('u')(x)
 u_y = sy.Function('u')(y)
 
-# Mapped solution of Schrodinger equation
-v = sy.Function('v')(x, y, t)
-
 
 # Fokker-Planck operator associated with potential
 def forward(potential, f):
     d = sy.diff
-    drift_x = d(d(potential, x) * f, x) + (1 - gamma_a) * y * f / epsilon_a
+    drift_x = d(d(potential, x) * f + (1 - gamma_a) * y * f / epsilon_a, x)
     diff_x = gamma_a * (1/beta_xa) * d(d(f, x), x)
     drift_y = (1/epsilon_a**2) * d(d(potential_ya, y) * f, y)
     diff_y = (1/epsilon_a**2) * (1/beta_ya) * d(d(f, y), y)
@@ -61,71 +60,36 @@ factor_pa = sy.exp(- beta_ya * potential_ya/2) * \
             sy.exp(- beta_xa * potential_pa / 2)
 factor_qa = sy.exp(- beta_ya * potential_ya/2) * \
             sy.exp(- beta_xa * potential_qa / 2)
-
-# Mapping to L² space weighted by Gaussian
 factor_a = factor_pa * factor_qa
 
-# Fokker-Planck equation to solve (= 0)
+# Fokker-Planck and BK equations to solve (= 0)
 fk = sy.diff(r, t) - forward(potential_pa, r)
-
-# Backward Kolmogorov-like equation
 bk = sy.simplify(fk.subs(r, u*factor_a).doit()/factor_a)
-
-# Obtain RHS (if the left-hand side is the time derivative)
-operator_rhs = - bk.subs(u, u_xy).doit()
-
-# Obtain multiplication operator
-multiplication_a = operator_rhs.subs(u_xy, 1).doit()
-multiplication_ax, multiplication_ay = 0, 0
-
-for term in multiplication_a.args:
-    if x in term.free_symbols:
-        multiplication_ax += term
-    elif y in term.free_symbols:
-        multiplication_ay += term
-
-# Remainder
-operator_xa = operator_rhs.subs(u_xy, u_x).doit() - multiplication_ay * u_x
-operator_ya = operator_rhs.subs(u_xy, u_y).doit() - multiplication_ax * u_y
-operator_xa, operator_ya = operator_xa.simplify(), operator_ya.simplify()
-operator_xa, operator_ya = operator_xa.simplify(), operator_ya.simplify()
-
-remainder = sy.simplify(operator_rhs
-                        - operator_xa.subs(u_x, u_xy)
-                        - operator_ya.subs(u_y, u_xy))
-
-assert remainder == 0
+operator_rhs_a = - bk.subs(u, u_xy).doit()
 
 # }}}
 # PRINT TO STDOUT {{{
+
 print("Fokker-Planck equation to solve: ")
 syp.pprint(fk)
 
 print("Mapping to an equation with BK operator")
 syp.pprint(bk)
 
-print("Operator in the right-hand side")
-syp.pprint(operator_rhs)
-
-print("X part of the operator")
-syp.pprint(operator_xa)
-
-print("Y part of the operator")
-syp.pprint(operator_ya)
 # }}}
 # EVALUATE ABSTRACT EXPRESSIONS FOR PROBLEM AT HAND {{{
 
 beta_x = 2.
 beta_y = 0.5
-epsilon = 0.01
+epsilon = 0.1
 gamma = 1
 
 # Coefficient of the y drift
 alpha = alpha_a.subs(beta_xa, beta_x).subs(beta_ya, beta_y)
 
 # For numerical approximation
-mean_x = .2
-cov_x = .5
+mean_x = 0
+cov_x = 0.5
 
 # potential_p = x**2/2 + 10*sy.cos(x)
 potential_p = x**4/4 - x**2/2
@@ -155,24 +119,32 @@ for term in factor.args:
     elif y in term.free_symbols:
         factor_y *= term
 
-operator_x = evaluate(operator_xa).doit().expand()
-operator_y = evaluate(operator_ya).doit().expand()
+operator_rhs = evaluate(operator_rhs_a).doit()
+
+# }}}
+# SPLIT OF THE OPERATOR {{{
 
 
-def split_operator(op, func, var):
+def multi_indices(dim, deg_max, deg_min=0):
+    return [m for m in itertools.product(range(deg_max+1), repeat=dim) if
+            sum(m) <= deg_max and sum(m) >= deg_min]
+
+
+def split_operator(op, func, variables):
     result, rem, order = [], op, 2
-    for i in range(order + 1):
-        term = rem.subs(func, var**i/math.factorial(i)).doit()
-        rem = (rem - term*sy.diff(func, var, i)).simplify()
+    for m in multi_indices(len(variables), order):
+        test, der = 1, func
+        for i, v in zip(m, variables):
+            test *= v**i/math.factorial(i)
+            der = sy.diff(der, v, i)
+        term = rem.subs(func, test).doit()
+        rem = (rem - term*der).simplify()
         result.append(term.simplify())
+    assert rem == 0
     return result
 
 
-split_operator_x = split_operator(operator_x, u_x, x)
-split_operator_y = split_operator(operator_y, u_y, y)
-
-split_operator_y = [term.subs(y, x) for term in split_operator_y]
-factor_y = factor_y.subs(y, x)
+split_op = split_operator(operator_rhs, u_xy, (x, y))
 
 # }}}
 # DISCRETIZE VARIOUS FUNCTIONS ON GRID {{{
@@ -182,6 +154,8 @@ degree = 10
 degrees = np.arange(degree + 1)
 n_points_num = degree + 1
 new_q = hm.Quad.gauss_hermite
+mean, cov = [mean_x, 0], [[cov_x, 0], [0, cov_y]]
+quad_num = new_q(n_points_num, dim=2, mean=mean, cov=cov)
 quad_num_x = new_q(n_points_num, dim=1, mean=[mean_x], cov=[[cov_x]])
 quad_num_y = new_q(n_points_num, dim=1, mean=[0], cov=[[cov_y]])
 
@@ -214,32 +188,27 @@ ax.plot(x_visu, Eh)
 plt.show()
 
 # }}}
-
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
 
-mat_operator_x = np.zeros((degree + 1, degree + 1))
-for i in range(len(split_operator_x)):
-    coeff = split_operator_x[i]
-    mat_operator_x += quad_num_x.dvarf(coeff, degree, [0]*i)
-
-mat_operator_y = np.zeros((degree + 1, degree + 1))
-for i in range(len(split_operator_y)):
-    coeff = split_operator_y[i]
-    mat_operator_y += quad_num_y.dvarf(coeff, degree, [0]*i)
-
-tensor_operator_x = hm.tensorize(mat_operator_x, 2, 0)
-tensor_operator_y = hm.tensorize(mat_operator_y, 2, 1)
-total_op = tensor_operator_x + tensor_operator_y
+n_polys = int(scipy.special.binom(degree + dim, degree))
+mat_operator = np.zeros((n_polys, n_polys))
+mult = list(multi_indices(dim, 2))
+for m, coeff in zip(mult, split_op):
+    mat_operator += quad_num.dvarf(coeff, degree, [0]*m[0] + [1]*m[1])
 
 # Calculate eigenvector in kernel
-eigen_values, eigen_vectors = las.eigsh(total_op, k=1, which='SM')
-Hu_spec_stat = hm.project(eigen_vectors.T[0], 2, 0)
-series_spec_stat = hm.Series(Hu_spec_stat, mean=[mean_x], cov=[[cov_x]])
-u_spec_stat_visu = quad_visu.eval(series_spec_stat, degree)
+eigen_values, eigen_vectors = las.eigsh(mat_operator, k=1, which='SM')
+Hu_spec_stat_x = hm.project(eigen_vectors.T[0], 2, 0)
+Hu_spec_stat_y = hm.project(eigen_vectors.T[0], 2, 1)
+series_spec_stat_x = hm.Series(Hu_spec_stat_x, mean=[mean_x], cov=[[cov_x]])
+series_spec_stat_y = hm.Series(Hu_spec_stat_y, mean=[0], cov=[[cov_y]])
+u_spec_stat_visu_x = quad_visu.eval(series_spec_stat_x, degree)
+u_spec_stat_visu_y = quad_visu.eval(series_spec_stat_y, degree)
 
 # Comparison between exact solution and solution found using spectral method
-fig, ax = plt.subplots(1, 1)
-ax.plot(x_visu, abs(u_spec_stat_visu) * factor_visu)
+fig, (ax1, ax2) = plt.subplots(1, 2)
+ax1.plot(x_visu, abs(u_spec_stat_visu_x) * factor_visu)
+# ax2.plot(x_visu, abs(u_spec_stat_visu_y) * factor_visu)
 plt.show()
 
 # }}}

@@ -122,6 +122,7 @@ string hash_print(ivec v) {
     return hash;
 }
 
+// Only for cov = I!
 mat dvarf(
         u_int dim,
         u_int degree,
