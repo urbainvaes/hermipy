@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # IMPORT MODULES {{{
 
 import itertools
@@ -70,19 +72,23 @@ operator_rhs_a = - bk.subs(u, u_xy).doit()
 # }}}
 # PRINT TO STDOUT {{{
 
-print("Fokker-Planck equation to solve: ")
-syp.pprint(fk)
+print_out = False
 
-print("Mapping to an equation with BK operator")
-syp.pprint(bk)
+if print_out:
+
+    print("Fokker-Planck equation to solve: ")
+    syp.pprint(fk)
+
+    print("Mapping to an equation with BK operator")
+    syp.pprint(bk)
 
 # }}}
 # EVALUATE ABSTRACT EXPRESSIONS FOR PROBLEM AT HAND {{{
 
 beta_x = 2.
 beta_y = 0.5
-epsilon = 0.1
-gamma = 1
+epsilon = 2.**-4
+gamma = 0
 
 # Coefficient of the y drift
 alpha = alpha_a.subs(beta_xa, beta_x).subs(beta_ya, beta_y)
@@ -150,7 +156,7 @@ split_op = split_operator(operator_rhs, u_xy, (x, y))
 # DISCRETIZE VARIOUS FUNCTIONS ON GRID {{{
 
 # For numerics
-degree = 10
+degree = 40
 degrees = np.arange(degree + 1)
 n_points_num = degree + 1
 new_q = hm.Quad.gauss_hermite
@@ -172,6 +178,33 @@ x_visu = quad_visu.discretize('x')
 factor_visu = quad_visu.discretize(factor_x)
 
 # }}}
+# SPECTRAL METHOD FOR STATIONARY EQUATION {{{
+
+n_polys = int(scipy.special.binom(degree + dim, degree))
+mat_operator = np.zeros((n_polys, n_polys))
+mult = list(multi_indices(dim, 2))
+for m, coeff in zip(mult, split_op):
+    mat_operator += quad_num.dvarf(coeff, degree, [0]*m[0] + [1]*m[1])
+
+# Calculate eigenvector in kernel
+eigen_values, eigen_vectors = las.eigs(mat_operator, k=1, which='SM')
+solution = np.real(eigen_vectors.T[0])
+Hu_spec_stat_x = hm.project(solution, 2, 0)
+Hu_spec_stat_x = Hu_spec_stat_x * np.sign(Hu_spec_stat_x[0])
+Hu_spec_stat_y = hm.project(solution, 2, 1)
+series_spec_stat_x = hm.Series(Hu_spec_stat_x, mean=[mean_x], cov=[[cov_x]])
+series_spec_stat_y = hm.Series(Hu_spec_stat_y, mean=[0], cov=[[cov_y]])
+u_spec_stat_visu_x = quad_visu.eval(series_spec_stat_x, degree)
+u_spec_stat_visu_y = quad_visu.eval(series_spec_stat_y, degree)
+
+# Comparison between exact solution and solution found using spectral method
+fig, (ax1, ax2) = plt.subplots(1, 2)
+ax1.plot(x_visu, u_spec_stat_visu_x * factor_visu)
+ax2.plot(x_visu, np.exp(-beta_x * (x_visu**4/4 - x_visu**2/2)))
+plt.show()
+
+
+# }}}
 # PLOT HERMITE FUNCTION OF HIGHEST DEGREE {{{
 
 fig, ax = plt.subplots(1, 1)
@@ -185,30 +218,6 @@ h_i = hm.Series(h_i, mean=[mean_x], cov=[[cov_x]])
 # Eh = quad_visu.eval(h_i, degree) * np.sqrt(factor_visu)
 Eh = quad_visu.eval(h_i, degree) * factor_visu
 ax.plot(x_visu, Eh)
-plt.show()
-
-# }}}
-# SPECTRAL METHOD FOR STATIONARY EQUATION {{{
-
-n_polys = int(scipy.special.binom(degree + dim, degree))
-mat_operator = np.zeros((n_polys, n_polys))
-mult = list(multi_indices(dim, 2))
-for m, coeff in zip(mult, split_op):
-    mat_operator += quad_num.dvarf(coeff, degree, [0]*m[0] + [1]*m[1])
-
-# Calculate eigenvector in kernel
-eigen_values, eigen_vectors = las.eigsh(mat_operator, k=1, which='SM')
-Hu_spec_stat_x = hm.project(eigen_vectors.T[0], 2, 0)
-Hu_spec_stat_y = hm.project(eigen_vectors.T[0], 2, 1)
-series_spec_stat_x = hm.Series(Hu_spec_stat_x, mean=[mean_x], cov=[[cov_x]])
-series_spec_stat_y = hm.Series(Hu_spec_stat_y, mean=[0], cov=[[cov_y]])
-u_spec_stat_visu_x = quad_visu.eval(series_spec_stat_x, degree)
-u_spec_stat_visu_y = quad_visu.eval(series_spec_stat_y, degree)
-
-# Comparison between exact solution and solution found using spectral method
-fig, (ax1, ax2) = plt.subplots(1, 2)
-ax1.plot(x_visu, abs(u_spec_stat_visu_x) * factor_visu)
-# ax2.plot(x_visu, abs(u_spec_stat_visu_y) * factor_visu)
 plt.show()
 
 # }}}
