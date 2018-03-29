@@ -163,7 +163,7 @@ class Quad:
             weights_simpson[0], weights_simpson[-1] = .5, .5
             gaussian_weight = 1/np.sqrt(2*np.pi) * np.exp(-nodes[-1]**2/2.)
             weights.append(weights_simpson * gaussian_weight * mesh_size)
-            return cls(nodes, weights, mean=mean, cov=cov)
+        return cls(nodes, weights, mean=mean, cov=cov)
 
     def mapped_nodes(self):
         coords_nodes = []
