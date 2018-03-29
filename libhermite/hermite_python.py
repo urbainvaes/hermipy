@@ -200,7 +200,7 @@ class Quad:
             raise ValueError("Incompatible covariance matrices")
         mapped_nodes = self.nodes.copy()
         for i in range(len(self.nodes)):
-            mapped_nodes[i] = self.nodes[i] * factor[i][i] + translation
+            mapped_nodes[i] = self.nodes[i] * factor[i][i] + translation[i]
         return transform(degree, coeffs, mapped_nodes,
                          self.weights, forward=False)
 
