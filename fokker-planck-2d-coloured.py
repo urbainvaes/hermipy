@@ -26,22 +26,25 @@ degree = 20
 n_points_num = 2*degree + 1
 
 # Parameters of the stochastic system
-beta_x = 10
+beta_x = 3.
 beta_y = 2.
-epsilon = 2**-1
+epsilon = 2**0
 
 # noise = (1-gamma) * coloured + gamma * white
-gamma = 1
+gamma = .0
 
 # Parameters of the approximating Gaussian
-mean_x = 0.
-cov_x = .5
+mean_x = .2
+cov_x = .1
 
 # Potential
 x, y = sy.symbols('x y')
 potential_p = x**4/4 - x**2/2
 # potential_p = x*x/(2*beta_x*cov_x)
 # potential_p = x**2/2 + 10*sy.cos(x)
+
+# Mapping coefficient
+map_quad = 2
 
 # }}}
 # ABSTRACT SYMBOLIC CALCULATIONS {{{
@@ -87,11 +90,18 @@ def forward(potential, f):
 
 
 # Factors to map Fokker-Planck to backward Kolmogorov operator
-factor_pa = sy.exp(- beta_ya * potential_ya/2) * \
-            sy.exp(- beta_xa * potential_pa / 2)
-factor_qa = sy.exp(- beta_ya * potential_ya/2) * \
-            sy.exp(- beta_xa * potential_pa / 2)
-factor_a = factor_pa * factor_qa
+factor_ya = sy.exp(- beta_ya * potential_ya)
+factor_qa = sy.exp(- beta_xa * potential_qa)
+factor_pa = sy.exp(- beta_xa * potential_pa)
+
+if map_quad == 0:
+    factor_xa = sy.exp(- beta_xa * potential_pa)
+elif map_quad == 1:
+    factor_xa = sy.exp(- beta_xa * potential_qa)
+elif map_quad == 2:
+    factor_xa = sy.exp(- beta_xa/2 * (potential_qa + potential_pa))
+
+factor_a = factor_xa * factor_ya
 
 # Fokker-Planck and BK equations to solve (= 0)
 fk = sy.diff(r, t) - forward(potential_pa, r)
@@ -101,7 +111,7 @@ operator_rhs_a = - bk.subs(u, u_xy).doit()
 # }}}
 # PRINT TO STDOUT {{{
 
-print_out = False
+print_out = True
 
 if print_out:
 
@@ -133,17 +143,9 @@ def evaluate(sym):
 
 cov_y = float(evaluate(cov_ya))
 
-factor_p = evaluate(factor_pa)
-factor_q = evaluate(factor_qa)
-factor = factor_q*factor_p
-
-factor_x, factor_y = 1, 1
-for term in factor.args:
-    if x in term.free_symbols:
-        factor_x *= term
-    elif y in term.free_symbols:
-        factor_y *= term
-factor_y = factor_y.subs(y, x)
+factor_x = evaluate(factor_xa)
+factor_y = evaluate(factor_ya)
+factor = evaluate(factor_a)
 
 operator_rhs = evaluate(operator_rhs_a).doit()
 
@@ -207,9 +209,15 @@ solution_xy = solution * np.sign(solution[0])
 solution_x = hm.project(solution_xy, 2, 0)
 solution_y = hm.project(solution_xy, 2, 1)
 
+solution_xy = solution_xy / la.norm(solution_xy, 2)
+solution_x = solution_x / la.norm(solution_x, 2)
+solution_y = solution_y / la.norm(solution_y, 2)
+
 series_xy = hm.Series(solution_xy, mean=mean_xy, cov=cov_xy)
 series_x = hm.Series(solution_x, mean=[mean_x], cov=[[cov_x]])
 series_y = hm.Series(solution_y, mean=[0], cov=[[cov_y]])
+
+assert(la.norm(series_y.coeffs[1:], 2) < 1e-3)
 
 # }}}
 # QUADRATURES FOR VISUALIZATION {{{
@@ -219,19 +227,27 @@ nv = 200
 # bounds_x, bounds_y = 5*np.sqrt(cov_x), 5*np.sqrt(cov_y)
 bounds_x, bounds_y = 3, 4
 
+quad_num_x = new_q(n_points_num, dim=1, mean=[mean_x], cov=[[cov_x]])
 quad_visu_xy = hm.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y])
 quad_visu_x = hm.Quad.newton_cotes([nv], [bounds_x])
 quad_visu_y = hm.Quad.newton_cotes([nv], [bounds_y])
 
 factor_visu_xy = quad_visu_xy.discretize(factor)
 factor_visu_x = quad_visu_x.discretize(factor_x)
-factor_visu_y = quad_visu_y.discretize(factor_y)
+factor_visu_y = quad_visu_y.discretize(factor_y.subs(y, x))
 
 x_visu = quad_visu_x.discretize('x')
 y_visu = quad_visu_y.discretize('x')  # x is the default variable name
 
 # }}}
 # PLOT OF THE SOLUTION OF STATIONARY FP {{{
+
+white_sol = sy.exp(- beta_x * potential_p)
+series_white_sol = quad_num_x.transform(white_sol/factor_x, degree)
+norm_white_sol = la.norm(series_white_sol.coeffs, 2)
+series_white_sol.coeffs = series_white_sol.coeffs / norm_white_sol
+white_solution_visu = quad_visu_x.eval(series_white_sol, degree)*factor_visu_x
+disc_white_sol = quad_visu_x.discretize(white_sol/norm_white_sol)
 
 solution_visu_xy = quad_visu_xy.eval(series_xy, degree)*factor_visu_xy
 solution_visu_xy = solution_visu_xy.reshape(nv, nv).T
@@ -240,14 +256,19 @@ solution_visu_y = quad_visu_y.eval(series_y, degree) * factor_visu_y
 
 fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
 
-ax11.plot(x_visu, solution_visu_x * factor_visu_x)
-ax11.set_title("Solution found using Hermite spectral method")
+ax11.plot(x_visu, solution_visu_x, label="Coloured noise")
+ax11.plot(x_visu, disc_white_sol, label="White noise")
+ax11.set_title("Comparison of the solutions")
+ax11.legend()
 
-ax12.plot(x_visu, np.exp(- beta_x * (x_visu**4/4 - x_visu**2/2)))
-ax12.set_title("Solution to the problem with white noise")
+ax12.bar(degrees, series_x.coeffs)
+ax12.set_title("Hermite coefficients of numerical solution")
 
-ax21.plot(y_visu, solution_visu_y * factor_visu_y)
-ax21.set_title("Probability density of noise")
+ax21.bar(degrees, series_x.coeffs - series_white_sol.coeffs)
+ax21.set_title("Difference between Hermite coefficients")
+
+# ax21.plot(y_visu, solution_visu_y)
+# ax21.set_title("Probability density of noise")
 
 cont = ax22.contourf(x_visu, y_visu, solution_visu_xy, 20)
 ax22.set_title("SM eigenvalues: " + str(eigen_values))

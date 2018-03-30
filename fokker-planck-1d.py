@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # IMPORT MODULES {{{
 import numpy.linalg as la
 import scipy.sparse.linalg as las
@@ -174,17 +176,20 @@ factor_visu = quad_visu.discretize(factor)
 # }}}
 # PLOT HERMITE FUNCTION OF HIGHEST DEGREE {{{
 
-fig, ax = plt.subplots(1, 1)
-ax.set_title("Hermite function of degree " + str(degree))
-ax.axvline(x=x_min)
-ax.axvline(x=x_max)
-ax.set_ylim((-2, 2))
-h_i = np.zeros(degree + 1)
-h_i[degree] = 1
-h_i = sp.Series(h_i, mean=[mean], cov=[[cov]])
-Eh = quad_visu.eval(h_i, degree) * factor_q_visu
-ax.plot(x_visu, Eh)
-plt.show()
+plot_eig = False
+if plot_eig:
+
+    fig, ax = plt.subplots(1, 1)
+    ax.set_title("Hermite function of degree " + str(degree))
+    ax.axvline(x=x_min)
+    ax.axvline(x=x_max)
+    ax.set_ylim((-2, 2))
+    h_i = np.zeros(degree + 1)
+    h_i[degree] = 1
+    h_i = sp.Series(h_i, mean=[mean], cov=[[cov]])
+    Eh = quad_visu.eval(h_i, degree) * factor_q_visu
+    ax.plot(x_visu, Eh)
+    plt.show()
 
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
@@ -210,6 +215,11 @@ ax.plot(x_visu, abs(u_spec_stat_visu) * factor_q_visu)
 plt.show()
 
 # }}}
+# SIMULATION OF TIME-DEPENDENT EQUATION {{{
+
+time_dep = False
+if not time_dep:
+    exit()
 
 # Time step and number of iterations
 dt = 2e-4*cov
@@ -270,3 +280,4 @@ for i in range(n_iter):
 
 import importlib
 importlib.reload(sp)
+# }}}
