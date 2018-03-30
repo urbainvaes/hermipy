@@ -66,6 +66,11 @@ class Hyper_cube_iterator : public Vector_iterator {
     void reset();
     Hyper_cube_iterator(const std::ivec & upper_bounds):
         Vector_iterator(upper_bounds.size()), upper_bounds(upper_bounds) {}
-};}
+};
+
+std::imat list_multi_indices(u_int dim, u_int upper_bound);
+std::imat list_cube_indices(const std::ivec & upper_bounds);
+
+}
 
 #endif

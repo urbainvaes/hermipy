@@ -6,6 +6,7 @@ import itertools
 import numpy.linalg as la
 import scipy.sparse.linalg as las
 import scipy.special
+import scipy.sparse
 import sympy as sy
 import sympy.printing as syp
 import numpy as np
@@ -16,13 +17,41 @@ from libhermite import hermite_python as hm
 sy.init_printing()
 
 # }}}
+# PARAMETERS FOR NUMERICAL SIMULATION {{{
+
+# Degree of approximation
+degree = 20
+
+# Number of points in quadrature (*2 for varf)
+n_points_num = 2*degree + 1
+
+# Parameters of the stochastic system
+beta_x = 10
+beta_y = 2.
+epsilon = 2**-1
+
+# noise = (1-gamma) * coloured + gamma * white
+gamma = 1
+
+# Parameters of the approximating Gaussian
+mean_x = 0.
+cov_x = .5
+
+# Potential
+x, y = sy.symbols('x y')
+potential_p = x**4/4 - x**2/2
+# potential_p = x*x/(2*beta_x*cov_x)
+# potential_p = x**2/2 + 10*sy.cos(x)
+
+# }}}
 # ABSTRACT SYMBOLIC CALCULATIONS {{{
 
 # Number of space dimensions
 dim = 2
 
-# Space variable, time variable and inverse temperature
-x, y, t, beta_xa, beta_ya, gamma_a, epsilon_a = sy.symbols('x y t βx βy γ ε')
+# Time, inverse temperatures, fraction of noise that is white, and parameter
+# determining how close to white noise we are
+t, beta_xa, beta_ya, gamma_a, epsilon_a = sy.symbols('t βx βy γ ε')
 
 # Use correct scaling
 alpha_a = sy.sqrt(beta_xa/beta_ya)
@@ -61,7 +90,7 @@ def forward(potential, f):
 factor_pa = sy.exp(- beta_ya * potential_ya/2) * \
             sy.exp(- beta_xa * potential_pa / 2)
 factor_qa = sy.exp(- beta_ya * potential_ya/2) * \
-            sy.exp(- beta_xa * potential_qa / 2)
+            sy.exp(- beta_xa * potential_pa / 2)
 factor_a = factor_pa * factor_qa
 
 # Fokker-Planck and BK equations to solve (= 0)
@@ -85,20 +114,10 @@ if print_out:
 # }}}
 # EVALUATE ABSTRACT EXPRESSIONS FOR PROBLEM AT HAND {{{
 
-beta_x = 2.
-beta_y = 0.5
-epsilon = 2.**-4
-gamma = 0
-
 # Coefficient of the y drift
 alpha = alpha_a.subs(beta_xa, beta_x).subs(beta_ya, beta_y)
 
-# For numerical approximation
-mean_x = 0
-cov_x = 0.5
-
-# potential_p = x**2/2 + 10*sy.cos(x)
-potential_p = x**4/4 - x**2/2
+# Quadratic potential for approximation
 potential_q = (x - mean_x)*(x - mean_x)/(2*beta_x*cov_x)
 
 
@@ -112,7 +131,7 @@ def evaluate(sym):
     return sym
 
 
-cov_y = evaluate(cov_ya)
+cov_y = float(evaluate(cov_ya))
 
 factor_p = evaluate(factor_pa)
 factor_q = evaluate(factor_qa)
@@ -124,11 +143,12 @@ for term in factor.args:
         factor_x *= term
     elif y in term.free_symbols:
         factor_y *= term
+factor_y = factor_y.subs(y, x)
 
 operator_rhs = evaluate(operator_rhs_a).doit()
 
 # }}}
-# SPLIT OF THE OPERATOR {{{
+# SPLITTING OF THE OPERATOR {{{
 
 
 def multi_indices(dim, deg_max, deg_min=0):
@@ -146,36 +166,27 @@ def split_operator(op, func, variables):
         term = rem.subs(func, test).doit()
         rem = (rem - term*der).simplify()
         result.append(term.simplify())
-    assert rem == 0
+    # assert rem == 0
     return result
 
 
 split_op = split_operator(operator_rhs, u_xy, (x, y))
 
 # }}}
-# DISCRETIZE VARIOUS FUNCTIONS ON GRID {{{
+# DEFINE QUADRATURE FOR NUMERICS {{{
 
 # For numerics
-degree = 40
 degrees = np.arange(degree + 1)
-n_points_num = degree + 1
 new_q = hm.Quad.gauss_hermite
-mean, cov = [mean_x, 0], [[cov_x, 0], [0, cov_y]]
-quad_num = new_q(n_points_num, dim=2, mean=mean, cov=cov)
-quad_num_x = new_q(n_points_num, dim=1, mean=[mean_x], cov=[[cov_x]])
-quad_num_y = new_q(n_points_num, dim=1, mean=[0], cov=[[cov_y]])
+mean_xy, cov_xy = [mean_x, 0], [[cov_x, 0], [0, cov_y]]
+quad_num = new_q(n_points_num, dim=2, mean=mean_xy, cov=cov_xy)
 
 # Calculate limits of resolution
 band_width = np.sqrt(2) * np.sqrt(2*degree + 1)
 x_min = mean_x - band_width * np.sqrt(cov_x)
 x_max = mean_x + band_width * np.sqrt(cov_x)
-
-# Parameters for visualization
-n_points_visu, extrema_visu, cov_visu = [1000], [band_width], cov_x
-quad_visu = hm.Quad.newton_cotes(n_points_visu, extrema_visu,
-                                 mean=[mean_x], cov=[[cov_visu]])
-x_visu = quad_visu.discretize('x')
-factor_visu = quad_visu.discretize(factor_x)
+y_min = 0 - band_width * np.sqrt(cov_y)
+y_max = 0 + band_width * np.sqrt(cov_y)
 
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
@@ -184,43 +195,101 @@ n_polys = int(scipy.special.binom(degree + dim, degree))
 mat_operator = np.zeros((n_polys, n_polys))
 mult = list(multi_indices(dim, 2))
 for m, coeff in zip(mult, split_op):
-    mat_operator += quad_num.dvarf(coeff, degree, [0]*m[0] + [1]*m[1])
+    mat_operator += quad_num.dvarf(coeff, degree, [x]*m[0] + ['y']*m[1])
 
 # Calculate eigenvector in kernel
+print("Solving the eigenvalue problem...")
+sparse_operator = scipy.sparse.csr_matrix(mat_operator)
 eigen_values, eigen_vectors = las.eigs(mat_operator, k=1, which='SM')
-solution = np.real(eigen_vectors.T[0])
-Hu_spec_stat_x = hm.project(solution, 2, 0)
-Hu_spec_stat_x = Hu_spec_stat_x * np.sign(Hu_spec_stat_x[0])
-Hu_spec_stat_y = hm.project(solution, 2, 1)
-series_spec_stat_x = hm.Series(Hu_spec_stat_x, mean=[mean_x], cov=[[cov_x]])
-series_spec_stat_y = hm.Series(Hu_spec_stat_y, mean=[0], cov=[[cov_y]])
-u_spec_stat_visu_x = quad_visu.eval(series_spec_stat_x, degree)
-u_spec_stat_visu_y = quad_visu.eval(series_spec_stat_y, degree)
+solution = np.real(eigen_vectors.T[-1])
 
-# Comparison between exact solution and solution found using spectral method
-fig, (ax1, ax2) = plt.subplots(1, 2)
-ax1.plot(x_visu, u_spec_stat_visu_x * factor_visu)
-ax2.plot(x_visu, np.exp(-beta_x * (x_visu**4/4 - x_visu**2/2)))
+solution_xy = solution * np.sign(solution[0])
+solution_x = hm.project(solution_xy, 2, 0)
+solution_y = hm.project(solution_xy, 2, 1)
+
+series_xy = hm.Series(solution_xy, mean=mean_xy, cov=cov_xy)
+series_x = hm.Series(solution_x, mean=[mean_x], cov=[[cov_x]])
+series_y = hm.Series(solution_y, mean=[0], cov=[[cov_y]])
+
+# }}}
+# QUADRATURES FOR VISUALIZATION {{{
+
+nv = 200
+# bounds_x, bounds_y = band_width*np.sqrt(cov_x), band_width*np.sqrt(cov_y)
+# bounds_x, bounds_y = 5*np.sqrt(cov_x), 5*np.sqrt(cov_y)
+bounds_x, bounds_y = 3, 4
+
+quad_visu_xy = hm.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y])
+quad_visu_x = hm.Quad.newton_cotes([nv], [bounds_x])
+quad_visu_y = hm.Quad.newton_cotes([nv], [bounds_y])
+
+factor_visu_xy = quad_visu_xy.discretize(factor)
+factor_visu_x = quad_visu_x.discretize(factor_x)
+factor_visu_y = quad_visu_y.discretize(factor_y)
+
+x_visu = quad_visu_x.discretize('x')
+y_visu = quad_visu_y.discretize('x')  # x is the default variable name
+
+# }}}
+# PLOT OF THE SOLUTION OF STATIONARY FP {{{
+
+solution_visu_xy = quad_visu_xy.eval(series_xy, degree)*factor_visu_xy
+solution_visu_xy = solution_visu_xy.reshape(nv, nv).T
+solution_visu_x = quad_visu_x.eval(series_x, degree) * factor_visu_x
+solution_visu_y = quad_visu_y.eval(series_y, degree) * factor_visu_y
+
+fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
+
+ax11.plot(x_visu, solution_visu_x * factor_visu_x)
+ax11.set_title("Solution found using Hermite spectral method")
+
+ax12.plot(x_visu, np.exp(- beta_x * (x_visu**4/4 - x_visu**2/2)))
+ax12.set_title("Solution to the problem with white noise")
+
+ax21.plot(y_visu, solution_visu_y * factor_visu_y)
+ax21.set_title("Probability density of noise")
+
+cont = ax22.contourf(x_visu, y_visu, solution_visu_xy, 20)
+ax22.set_title("SM eigenvalues: " + str(eigen_values))
+
+plt.colorbar(cont)
+
+if x_visu[0] < x_min:
+    ax11.axvline(x=x_min)
+    ax22.axvline(x=x_min)
+
+if x_visu[-1] > x_max:
+    ax11.axvline(x=x_max)
+    ax22.axvline(x=x_max)
+
+if y_visu[0] < y_min:
+    ax22.axhline(y=y_min)
+    ax21.axvline(x=y_min)
+
+if y_visu[-1] > y_max:
+    ax21.axvline(x=y_max)
+    ax22.axhline(y=y_max)
+
 plt.show()
-
 
 # }}}
 # PLOT HERMITE FUNCTION OF HIGHEST DEGREE {{{
 
-fig, ax = plt.subplots(1, 1)
-ax.set_title("Hermite function of degree " + str(degree))
-ax.axvline(x=x_min)
-ax.axvline(x=x_max)
-ax.set_ylim((-2, 2))
-h_i = np.zeros(degree + 1)
-h_i[degree] = 1
-h_i = hm.Series(h_i, mean=[mean_x], cov=[[cov_x]])
-# Eh = quad_visu.eval(h_i, degree) * np.sqrt(factor_visu)
-Eh = quad_visu.eval(h_i, degree) * factor_visu
-ax.plot(x_visu, Eh)
-plt.show()
+# fig, ax = plt.subplots(1, 1)
+# ax.set_title("Hermite function of degree " + str(degree))
+# ax.axvline(x=x_min)
+# ax.axvline(x=x_max)
+# ax.set_ylim((-2, 2))
+# h_i = np.zeros(degree + 1)
+# h_i[degree] = 1
+# h_i = hm.Series(h_i, mean=[mean_x], cov=[[cov_x]])
+# # Eh = quad_visu.eval(h_i, degree) * np.sqrt(factor_visu)
+# Eh = quad_visu_x.eval(h_i, degree) * factor_visu_x
+# ax.plot(x_visu, Eh)
+# plt.show()
 
 # }}}
+# SOLUTION OF TIME-DEPENDENT EQUATION {{{
 
 # # Time step and number of iterations
 # dt = 2e-4*cov
@@ -281,3 +350,4 @@ plt.show()
 
 # import importlib
 # importlib.reload(hm)
+# }}}

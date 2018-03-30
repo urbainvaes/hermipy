@@ -6,12 +6,13 @@
 #include <boost/math/special_functions/binomial.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
-#include "hermite/varf.hpp"
-#include "hermite/transform.hpp"
 #include "hermite/discretize.hpp"
-#include "hermite/tensorize.hpp"
-#include "hermite/types.hpp"
 #include "hermite/io.hpp"
+#include "hermite/iterators.hpp"
+#include "hermite/tensorize.hpp"
+#include "hermite/transform.hpp"
+#include "hermite/types.hpp"
+#include "hermite/varf.hpp"
 
 using namespace std;
 
@@ -74,7 +75,10 @@ BOOST_PYTHON_MODULE(hermite)
 
     def("discretize", discretize_from_string);
     def("integrate", integrate);
+    def("list_cube_indices", list_cube_indices);
+    def("list_multi_indices", list_multi_indices);
     def("project", project_vec);
+    def("project", project_mat);
     def("tensorize", tensorize_vec);
     def("tensorize", tensorize_mat);
     def("transform", transform);

@@ -11,6 +11,22 @@ import sympy as sy
 import re
 
 
+def convert(conv_func, *names):
+    def convert(function):
+        sig = inspect.signature(function)
+
+        def wrapper(*args, **kwargs):
+            ba = sig.bind(*args, **kwargs)
+            args_od = ba.arguments
+            for key in args_od:
+                if key in names:
+                    arg = args_od[key]
+                    args_od[key] = conv_func(arg)
+            return function(**args_od)
+        return wrapper
+    return convert
+
+
 def convert_to_cpp_vec(vec):
     cpp_vec = hm.double_vec()
     cpp_vec.extend(vec)
@@ -24,7 +40,7 @@ def convert_to_cpp_mat(mat):
     return cpp_mat
 
 
-def convert_to_cpp_array(array):
+def to_cpp_array(array):
     dim = 0
     if type(array) in (list, np.ndarray):
         dim = 1
@@ -37,33 +53,17 @@ def convert_to_cpp_array(array):
     return array
 
 
-def convert_to_cpp(*names):
-    def convert(function):
-        sig = inspect.signature(function)
-
-        def wrapper(*args, **kwargs):
-            ba = sig.bind(*args, **kwargs)
-            args_od = ba.arguments
-            for key in args_od:
-                if key in names:
-                    arg = args_od[key]
-                    args_od[key] = convert_to_cpp_array(arg)
-            return function(**args_od)
-        return wrapper
-    return convert
-
-
-@convert_to_cpp('nodes', 'translation', 'dilation')
+@convert(to_cpp_array, 'nodes', 'translation', 'dilation')
 def discretize(function, nodes, translation, dilation):
     return np.array(hm.discretize(function, nodes, translation, dilation))
 
 
-@convert_to_cpp('fgrid', 'nodes', 'weights')
+@convert(to_cpp_array, 'fgrid', 'nodes', 'weights')
 def integrate(fgrid, nodes, weights):
     return hm.integrate(fgrid, nodes, weights)
 
 
-@convert_to_cpp('fgrid', 'nodes', 'weights')
+@convert(to_cpp_array, 'fgrid', 'nodes', 'weights')
 def transform(degree, fgrid, nodes, weights, forward):
     return np.array(hm.transform(degree, fgrid, nodes, weights, forward))
 
@@ -72,24 +72,35 @@ def triple_products(degree):
     return np.array(hm.triple_products(degree))
 
 
-@convert_to_cpp('fgrid', 'nodes', 'weights')
+@convert(to_cpp_array, 'fgrid', 'nodes', 'weights')
 def varf(degree, fgrid, nodes, weights):
     return np.array(hm.varf(degree, fgrid, nodes, weights))
 
 
-@convert_to_cpp('var')
+@convert(to_cpp_array, 'var')
 def dvarf(dim, degree, direction, var):
     return np.array(hm.dvarf(dim, degree, direction, var))
 
 
-@convert_to_cpp('inp')
+@convert(to_cpp_array, 'inp')
 def tensorize(inp, dim, direction):
     return np.array(hm.tensorize(inp, dim, direction))
 
 
-@convert_to_cpp('inp')
+@convert(to_cpp_array, 'inp')
 def project(inp, dim, direction):
     return np.array(hm.project(inp, dim, direction))
+
+
+def to_numeric(var):
+    if isinstance(var, list):
+        return [to_numeric(v) for v in var]
+    if var == 'x' or var == sy.Symbol('x'):
+        return 0
+    elif var == 'y' or var == sy.Symbol('y'):
+        return 1
+    elif var == 'z' or var == sy.Symbol('z'):
+        return 2
 
 
 def stringify(function):
@@ -208,6 +219,7 @@ class Quad:
         f_grid = self.discretize(function)
         return varf(degree, f_grid, self.nodes, self.weights)
 
+    @convert(to_numeric, 'directions')
     def dvarf(self, function, degree, directions):
         var = self.varf(function, degree)
         eigval, _ = la.eig(self.cov)

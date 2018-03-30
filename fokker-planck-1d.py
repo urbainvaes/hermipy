@@ -112,7 +112,7 @@ syp.pprint(generator_ou)
 # EVALUATE ABSTRACT EXPRESSIONS FOR PROBLEM AT HAND {{{
 
 # Parameter in diffusion
-beta = 2.
+beta = 10.
 
 # For numerical approximation
 mean = .2
@@ -150,7 +150,7 @@ Hu_sol = quad_precise.transform(u_sol, n_precise - 1)
 # DISCRETIZE VARIOUS FUNCTIONS ON GRID {{{
 
 # For numerics
-degree = 50
+degree = 20
 degrees = np.arange(degree + 1)
 n_points_num = degree + 1
 quad_num = sp.Quad.gauss_hermite(n_points_num, dim=1, mean=[mean], cov=[[cov]])

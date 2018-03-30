@@ -14,6 +14,8 @@ namespace std {
     typedef vector<mat> cube;
 
     typedef vector<unsigned int> ivec;
+    typedef vector<ivec> imat;
+    typedef vector<imat> icube;
 
     // Functions
     // typedef boost::function<double(vec const &)> s_func;
