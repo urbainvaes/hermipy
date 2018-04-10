@@ -31,7 +31,7 @@ beta_y = 2.
 epsilon = 2**0
 
 # noise = (1-gamma) * coloured + gamma * white
-gamma = .0
+gamma = 1
 
 # Parameters of the approximating Gaussian
 mean_x = .2
@@ -54,10 +54,10 @@ dim = 2
 
 # Time, inverse temperatures, fraction of noise that is white, and parameter
 # determining how close to white noise we are
-t, beta_xa, beta_ya, gamma_a, epsilon_a = sy.symbols('t βx βy γ ε')
+t, beta_xa, beta_ya, gamma_a, epsilon_a = sy.symbols('t βx βy γ ε', real=True, positive=True)
 
 # Use correct scaling
-alpha_a = sy.sqrt(beta_xa/beta_ya)
+alpha_a = sy.sqrt(2/beta_ya)
 
 # Potential of interest
 potential_pa = sy.Function('V')(x)
@@ -67,7 +67,7 @@ potential_qa = sy.Function('Vq')(x)
 
 # Potential for coloured noise
 cov_ya = 1/(alpha_a*beta_ya)
-potential_ya = y*y/(2*beta_ya*cov_ya)
+potential_ya = sy.Function('Vy')(y)
 
 # Solution of the Fokker-Planck equation
 r = sy.Function('ρ')(x, y, t)
@@ -82,7 +82,7 @@ u_y = sy.Function('u')(y)
 # Fokker-Planck operator associated with potential
 def forward(potential, f):
     d = sy.diff
-    drift_x = d(d(potential, x) * f + (1 - gamma_a) * y * f / epsilon_a, x)
+    drift_x = d(d(potential, x) * f + sy.sqrt(2 / beta_xa) * (1 - gamma_a) * y * f / epsilon_a, x)
     diff_x = gamma_a * (1/beta_xa) * d(d(f, x), x)
     drift_y = (1/epsilon_a**2) * d(d(potential_ya, y) * f, y)
     diff_y = (1/epsilon_a**2) * (1/beta_ya) * d(d(f, y), y)
@@ -130,6 +130,8 @@ alpha = alpha_a.subs(beta_xa, beta_x).subs(beta_ya, beta_y)
 # Quadratic potential for approximation
 potential_q = (x - mean_x)*(x - mean_x)/(2*beta_x*cov_x)
 
+# Potential of y process
+potential_y = y*y/(2*beta_y*cov_ya)
 
 def evaluate(sym):
     sym = sym.subs(beta_xa, beta_x)
@@ -138,6 +140,7 @@ def evaluate(sym):
     sym = sym.subs(epsilon_a, epsilon)
     sym = sym.subs(potential_pa, potential_p)
     sym = sym.subs(potential_qa, potential_q)
+    sym = sym.subs(potential_ya, potential_y)
     return sym
 
 
@@ -217,7 +220,7 @@ series_xy = hm.Series(solution_xy, mean=mean_xy, cov=cov_xy)
 series_x = hm.Series(solution_x, mean=[mean_x], cov=[[cov_x]])
 series_y = hm.Series(solution_y, mean=[0], cov=[[cov_y]])
 
-assert(la.norm(series_y.coeffs[1:], 2) < 1e-3)
+assert(la.norm(series_y.coeffs[1:], 2) < 1e-2)
 
 # }}}
 # QUADRATURES FOR VISUALIZATION {{{
