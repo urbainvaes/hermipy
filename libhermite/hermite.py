@@ -1,7 +1,7 @@
 #  TODO: Ensure directions match (urbain, Wed 28 Mar 2018 11:55:08 AM BST)
 #  TODO: Why does dvarf never produce error? (urbain, Wed 28 Mar 2018 12:41:14 PM BST)
 
-from libhermite import hermite as hm
+import hermite_cpp as hm
 import numpy as np
 import inspect
 
@@ -101,6 +101,8 @@ def to_numeric(var):
         return 1
     elif var == 'z' or var == sy.Symbol('z'):
         return 2
+    else:
+        return var
 
 
 def stringify(function):
@@ -235,9 +237,6 @@ class CompQuad:
         self.weights = weights
 
     # def integrate(f):
-
-
-
 
     # def eval(self, degree, nodes):
     #     return eval_simple_quad(self.coeffs, degree, nodes)
