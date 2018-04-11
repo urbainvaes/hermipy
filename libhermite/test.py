@@ -1,5 +1,4 @@
-from libhermite import hermite_python as hm
-
+import hermite as hm
 import unittest
 import numpy as np
 import numpy.polynomial.hermite_e as herm
@@ -153,13 +152,3 @@ class TestTensorize(unittest.TestCase):
         tensorized_varf_1d = hm.tensorize(varf_1d, 2, 0)
         diff = (la.norm(varf_2d - tensorized_varf_1d, 2))
         self.assertAlmostEqual(diff, 0)
-
-
-from libhermite import hermite_python as hm
-
-import unittest
-import numpy as np
-import numpy.polynomial.hermite_e as herm
-import numpy.linalg as la
-import math
-
