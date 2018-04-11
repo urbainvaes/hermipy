@@ -1,4 +1,4 @@
-import hermite as hm
+from . import hermite as hm
 import unittest
 import numpy as np
 import numpy.polynomial.hermite_e as herm

@@ -1,7 +1,7 @@
 #  TODO: Ensure directions match (urbain, Wed 28 Mar 2018 11:55:08 AM BST)
 #  TODO: Why does dvarf never produce error? (urbain, Wed 28 Mar 2018 12:41:14 PM BST)
 
-import hermite_cpp as hm
+from .cpp import hermite_cpp as hm
 import numpy as np
 import inspect
 
