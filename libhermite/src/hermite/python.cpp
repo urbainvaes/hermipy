@@ -57,7 +57,7 @@ vec discretize_from_string(
 
 
 // ---- PYTHON API ----
-BOOST_PYTHON_MODULE(hermite)
+BOOST_PYTHON_MODULE(hermite_cpp)
 {
     using namespace boost::python;
 
