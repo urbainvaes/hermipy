@@ -162,16 +162,24 @@ def multi_indices(dim, deg_max, deg_min=0):
 
 
 def split_operator(op, func, variables):
-    result, rem, order = [], op, 2
+    result, rem, order = [], op.expand(), 2
     for m in multi_indices(len(variables), order):
+        if rem == 0:
+            continue
         test, der = 1, func
         for i, v in zip(m, variables):
             test *= v**i/math.factorial(i)
             der = sy.diff(der, v, i)
-        term = rem.subs(func, test).doit()
-        rem = (rem - term*der).simplify()
+        remargs = rem.args if isinstance(rem, sy.add.Add) else [rem]
+        term, rem = 0, 0
+        for arg in remargs:  # Convoluted to avoid rounding errors
+            termarg = arg.subs(func, test).doit()
+            if termarg == 0:
+                rem += arg
+            else:
+                term += termarg
         result.append(term.simplify())
-    # assert rem == 0
+    assert rem == 0
     return result
 
 
