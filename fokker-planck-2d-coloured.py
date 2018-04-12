@@ -2,25 +2,31 @@
 
 # IMPORT MODULES {{{
 
-import itertools
-import numpy.linalg as la
-import scipy.sparse.linalg as las
-import scipy.special
-import scipy.sparse
+import math
 import sympy as sy
 import sympy.printing as syp
 import numpy as np
+import numpy.linalg as la
+import scipy.sparse
+import scipy.sparse.linalg as las
 import matplotlib.pyplot as plt
-import math
 
 from libhermite import hermite as hm
 sy.init_printing()
 
 # }}}
-# PARAMETERS FOR NUMERICAL SIMULATION {{{
+# DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
+
+# Potential
+x, y = sy.symbols('x y')
+# potential_p = x**4/4
+potential_p = x**4/4 - x**2/2
+# potential_p = x*x/(2*beta_x*cov_x)
+# potential_p = x**2/2 + 10*sy.cos(x)
 
 # Degree of approximation
-degree = 15
+degree = 30
+# degree = 15
 
 # Number of points in quadrature (*2 for varf)
 n_points_num = 2*degree + 1
@@ -28,20 +34,14 @@ n_points_num = 2*degree + 1
 # Parameters of the stochastic system
 beta_x = 3.
 beta_y = 2.
-epsilon = 2**0
+epsilon = 2**2
 
 # noise = (1-gamma) * coloured + gamma * white
 gamma = 0
 
 # Parameters of the approximating Gaussian
 mean_x = .2
-cov_x = .3
-
-# Potential
-x, y = sy.symbols('x y')
-potential_p = x**4/4 - x**2/2
-# potential_p = x*x/(2*beta_x*cov_x)
-# potential_p = x**2/2 + 10*sy.cos(x)
+cov_x = .1
 
 # Mapping coefficient
 map_quad = 2
@@ -139,7 +139,6 @@ def evaluate(sym):
     sym = sym.subs(potential_ya, potential_y)
     sym = sym.subs(beta_xa, beta_x)
     sym = sym.subs(beta_ya, beta_y)
-    sym = sym.subs(gamma_a, gamma)
     sym = sym.subs(epsilon_a, epsilon)
     return sym
 
@@ -150,7 +149,10 @@ factor_x = evaluate(factor_xa)
 factor_y = evaluate(factor_ya)
 factor = evaluate(factor_a)
 
-operator_rhs = evaluate(operator_rhs_a).doit()
+operator_rhs = evaluate(operator_rhs_a)
+operator_white = operator_rhs.subs(gamma_a, 1).doit()
+operator_coloured = operator_rhs.subs(gamma_a, 0).doit()
+operator_rhs = operator_coloured
 
 # }}}
 # DEFINE QUADRATURE FOR NUMERICS {{{
@@ -169,32 +171,7 @@ y_min = 0 - band_width * np.sqrt(cov_y)
 y_max = 0 + band_width * np.sqrt(cov_y)
 
 # }}}
-# SPECTRAL METHOD FOR STATIONARY EQUATION {{{
-
-mat_operator = quad_num.discretize_op(operator_rhs, u_xy, degree, 2)
-
-# Calculate eigenvector in kernel
-print("Solving the eigenvalue problem...")
-sparse_operator = scipy.sparse.csr_matrix(mat_operator)
-eigen_values, eigen_vectors = las.eigs(mat_operator, k=1, which='SM')
-solution = np.real(eigen_vectors.T[-1])
-
-solution_xy = solution * np.sign(solution[0])
-solution_x = hm.project(solution_xy, 2, 0)
-solution_y = hm.project(solution_xy, 2, 1)
-
-solution_xy = solution_xy / la.norm(solution_xy, 2)
-solution_x = solution_x / la.norm(solution_x, 2)
-solution_y = solution_y / la.norm(solution_y, 2)
-
-series_xy = hm.Series(solution_xy, mean=mean_xy, cov=cov_xy)
-series_x = hm.Series(solution_x, mean=[mean_x], cov=[[cov_x]])
-series_y = hm.Series(solution_y, mean=[0], cov=[[cov_y]])
-
-# assert(la.norm(series_y.coeffs[1:], 2) < 1e-2)
-
-# }}}
-# QUADRATURES FOR VISUALIZATION {{{
+# DEFINE QUADRATURES FOR VISUALIZATION {{{
 
 nv = 200
 # bounds_x, bounds_y = band_width*np.sqrt(cov_x), band_width*np.sqrt(cov_y)
@@ -214,57 +191,80 @@ x_visu = quad_visu_x.discretize('x')
 y_visu = quad_visu_y.discretize('x')  # x is the default variable name
 
 # }}}
-# PLOT OF THE SOLUTION OF STATIONARY FP {{{
+# Calculate asymptotic solution {{{
+asymptotic_sol = sy.exp(- beta_x * potential_p)
+series_asymptotic_sol = quad_num_x.transform(asymptotic_sol/factor_x, degree)
+norm_asymptotic_sol = la.norm(series_asymptotic_sol.coeffs, 2)
+series_asymptotic_sol.coeffs = series_asymptotic_sol.coeffs / norm_asymptotic_sol
+asymptotic_solution_visu = quad_visu_x.eval(series_asymptotic_sol, degree)*factor_visu_x
+disc_asymptotic_sol = quad_visu_x.discretize(asymptotic_sol/norm_asymptotic_sol)
+# }}}
+# SPECTRAL METHOD FOR STATIONARY EQUATION {{{
 
-white_sol = sy.exp(- beta_x * potential_p)
-series_white_sol = quad_num_x.transform(white_sol/factor_x, degree)
-norm_white_sol = la.norm(series_white_sol.coeffs, 2)
-series_white_sol.coeffs = series_white_sol.coeffs / norm_white_sol
-white_solution_visu = quad_visu_x.eval(series_white_sol, degree)*factor_visu_x
-disc_white_sol = quad_visu_x.discretize(white_sol/norm_white_sol)
+solutions_visu = []
 
-solution_visu_xy = quad_visu_xy.eval(series_xy, degree)*factor_visu_xy
-solution_visu_xy = solution_visu_xy.reshape(nv, nv).T
-solution_visu_x = quad_visu_x.eval(series_x, degree) * factor_visu_x
-solution_visu_y = quad_visu_y.eval(series_y, degree) * factor_visu_y
+for operator_rhs in (operator_coloured, operator_white):
+    mat_operator =  quad_num.discretize_op(operator_rhs, u_xy, degree, 2)
 
-fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
+    # Calculate eigenvector in kernel
+    print("Solving the eigenvalue problem...")
+    sparse_operator = scipy.sparse.csr_matrix(mat_operator)
+    eigen_values, eigen_vectors = las.eigs(mat_operator, k=1, which='SM')
+    solution = np.real(eigen_vectors.T[-1])
 
-ax11.plot(x_visu, solution_visu_x, label="Coloured noise")
-ax11.plot(x_visu, disc_white_sol, label="White noise")
-ax11.set_title("Comparison of the solutions")
-ax11.legend()
+    solution_xy = solution * np.sign(solution[0])
+    solution_x = hm.project(solution_xy, 2, 0)
+    solution_y = hm.project(solution_xy, 2, 1)
 
-ax12.bar(degrees, series_x.coeffs)
-ax12.set_title("Hermite coefficients of numerical solution")
+    series_xy = hm.Series(solution_xy, mean=mean_xy, cov=cov_xy, norm=True)
+    series_x = hm.Series(solution_x, mean=[mean_x], cov=[[cov_x]], norm=True)
+    series_y = hm.Series(solution_y, mean=[0], cov=[[cov_y]], norm=True)
 
-ax21.bar(degrees, series_x.coeffs - series_white_sol.coeffs)
-ax21.set_title("Difference between Hermite coefficients")
+    solution_visu_xy = quad_visu_xy.eval(series_xy, degree)*factor_visu_xy
+    solution_visu_xy = solution_visu_xy.reshape(nv, nv).T
+    solution_visu_x = quad_visu_x.eval(series_x, degree) * factor_visu_x
+    solution_visu_y = quad_visu_y.eval(series_y, degree) * factor_visu_y
+    solutions_visu.append(solution_visu_xy)
 
-# ax21.plot(y_visu, solution_visu_y)
-# ax21.set_title("Probability density of noise")
+    fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
 
-cont = ax22.contourf(x_visu, y_visu, solution_visu_xy, 20)
-ax22.set_title("SM eigenvalues: " + str(eigen_values))
+    ax11.plot(x_visu, solution_visu_x, label="Coloured noise")
+    ax11.plot(x_visu, disc_asymptotic_sol, label="Asymptotic solution")
+    ax11.set_title("Comparison of the solutions")
+    ax11.legend()
 
+    ax12.bar(degrees, series_x.coeffs)
+    ax12.set_title("Hermite coefficients of numerical solution")
+
+    ax21.bar(degrees, series_x.coeffs - series_asymptotic_sol.coeffs)
+    ax21.set_title("Difference between Hermite coefficients")
+
+    cont = ax22.contourf(x_visu, y_visu, solution_visu_xy, 20)
+    ax22.set_title("SM eigenvalues: " + str(eigen_values))
+
+    plt.colorbar(cont)
+
+    if x_visu[0] < x_min:
+        ax11.axvline(x=x_min)
+        ax22.axvline(x=x_min)
+
+    if x_visu[-1] > x_max:
+        ax11.axvline(x=x_max)
+        ax22.axvline(x=x_max)
+
+    if y_visu[0] < y_min:
+        ax22.axhline(y=y_min)
+        ax21.axvline(x=y_min)
+
+    if y_visu[-1] > y_max:
+        ax21.axvline(x=y_max)
+        ax22.axhline(y=y_max)
+
+    plt.show()
+
+fig, ax = plt.subplots(1, 1)
+cont = ax.contourf(x_visu, y_visu, solutions_visu[0] - solutions_visu[1], 20)
 plt.colorbar(cont)
-
-if x_visu[0] < x_min:
-    ax11.axvline(x=x_min)
-    ax22.axvline(x=x_min)
-
-if x_visu[-1] > x_max:
-    ax11.axvline(x=x_max)
-    ax22.axvline(x=x_max)
-
-if y_visu[0] < y_min:
-    ax22.axhline(y=y_min)
-    ax21.axvline(x=y_min)
-
-if y_visu[-1] > y_max:
-    ax21.axvline(x=y_max)
-    ax22.axhline(y=y_max)
-
 plt.show()
 
 # }}}
