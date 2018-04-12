@@ -166,7 +166,9 @@ def split_operator(op, func, order, dim):
                 rem += arg
             else:
                 term += termarg
-        result.append(term.simplify())
+        if isinstance(term, tuple(sy.core.all_classes)):
+            term = sy.simplify(term)
+        result.append(term)
     assert rem == 0
     return result
 
