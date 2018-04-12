@@ -173,8 +173,8 @@ def split_operator(op, func, order, dim):
 
 class Series:
 
-    def __init__(self, coeffs, dim=1, mean=None, cov=None):
-        self.coeffs = coeffs
+    def __init__(self, coeffs, dim=1, mean=None, cov=None, norm=False):
+        self.coeffs = coeffs/la.norm(coeffs, 2) if norm else coeffs
 
         self.dim = dim
         self.mean = np.zeros(self.dim) if mean is None \
