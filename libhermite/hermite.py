@@ -4,11 +4,15 @@
 from .cpp import hermite_cpp as hm
 import numpy as np
 import inspect
+import itertools
 
 import numpy.linalg as la
 import numpy.polynomial.hermite_e as herm
 import sympy as sy
 import re
+import math
+
+from scipy.special import binom
 
 
 def convert(conv_func, *names):
@@ -106,6 +110,8 @@ def to_numeric(var):
 
 
 def stringify(function):
+    if isinstance(function, int) or isinstance(function, float):
+        return str(function)
     if isinstance(function, sy.Expr):
         function = sy.ccode(function)
     if isinstance(function, str):
@@ -126,6 +132,43 @@ def hermegauss_nd(n_points):
         nodes_multidim.append(nodes_1d)
         weights_multidim.append(weights_1d)
     return nodes_multidim, weights_multidim
+
+
+#  TODO: Ensure consistency (urbain, Thu 12 Apr 2018 09:16:39 AM BST)
+def multi_indices(dim, deg_max, deg_min=0):
+    return [m for m in itertools.product(range(deg_max+1), repeat=dim) if
+            sum(m) <= deg_max and sum(m) >= deg_min]
+
+
+def split_operator(op, func, order, dim):
+    x, y, z = sy.symbols('x y z')
+    assert dim <= 3
+    if dim == 1:
+        variables = (x)
+    elif dim == 2:
+        variables = (x, y)
+    elif dim == 3:
+        variables = (x, y, z)
+    result, rem, order = [], op.expand(), 2
+    for m in multi_indices(len(variables), order):
+        if rem == 0:
+            result.append(0)
+            continue
+        test, der = 1, func
+        for i, v in zip(m, variables):
+            test *= v**i/math.factorial(i)
+            der = sy.diff(der, v, i)
+        remargs = rem.args if isinstance(rem, sy.add.Add) else [rem]
+        term, rem = 0, 0
+        for arg in remargs:  # Convoluted to avoid rounding errors
+            termarg = arg.subs(func, test).doit()
+            if termarg == 0:
+                rem += arg
+            else:
+                term += termarg
+        result.append(term.simplify())
+    assert rem == 0
+    return result
 
 
 class Series:
@@ -229,6 +272,16 @@ class Quad:
             var = dvarf(self.dim, degree, dir, var)
             var = var/np.sqrt(eigval[dir])
         return var
+
+    #  TODO: Improvement: tensorize when possible
+    def discretize_op(self, op, func, degree, order):
+        npolys = int(binom(degree + self.dim, degree))
+        mat_operator = np.zeros((npolys, npolys))
+        mult = list(multi_indices(self.dim, order))
+        splitop = split_operator(op, func, order, self.dim)
+        for m, coeff in zip(mult, splitop):
+            mat_operator += self.dvarf(coeff, degree, ['x']*m[0] + ['y']*m[1])
+        return mat_operator
 
 
 class CompQuad:

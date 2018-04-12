@@ -153,39 +153,6 @@ factor = evaluate(factor_a)
 operator_rhs = evaluate(operator_rhs_a).doit()
 
 # }}}
-# SPLITTING OF THE OPERATOR {{{
-
-
-def multi_indices(dim, deg_max, deg_min=0):
-    return [m for m in itertools.product(range(deg_max+1), repeat=dim) if
-            sum(m) <= deg_max and sum(m) >= deg_min]
-
-
-def split_operator(op, func, variables):
-    result, rem, order = [], op.expand(), 2
-    for m in multi_indices(len(variables), order):
-        if rem == 0:
-            continue
-        test, der = 1, func
-        for i, v in zip(m, variables):
-            test *= v**i/math.factorial(i)
-            der = sy.diff(der, v, i)
-        remargs = rem.args if isinstance(rem, sy.add.Add) else [rem]
-        term, rem = 0, 0
-        for arg in remargs:  # Convoluted to avoid rounding errors
-            termarg = arg.subs(func, test).doit()
-            if termarg == 0:
-                rem += arg
-            else:
-                term += termarg
-        result.append(term.simplify())
-    assert rem == 0
-    return result
-
-
-split_op = split_operator(operator_rhs, u_xy, (x, y))
-
-# }}}
 # DEFINE QUADRATURE FOR NUMERICS {{{
 
 # For numerics
@@ -204,11 +171,7 @@ y_max = 0 + band_width * np.sqrt(cov_y)
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
 
-n_polys = int(scipy.special.binom(degree + dim, degree))
-mat_operator = np.zeros((n_polys, n_polys))
-mult = list(multi_indices(dim, 2))
-for m, coeff in zip(mult, split_op):
-    mat_operator += quad_num.dvarf(coeff, degree, [x]*m[0] + ['y']*m[1])
+mat_operator = quad_num.discretize_op(operator_rhs, u_xy, degree, 2)
 
 # Calculate eigenvector in kernel
 print("Solving the eigenvalue problem...")
