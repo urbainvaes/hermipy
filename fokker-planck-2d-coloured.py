@@ -38,29 +38,28 @@ params, functions = {}, {}
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
 
 # Degree of approximation
-degree = 30
+degree = 10
 
 # Number of points in quadrature (*2 for varf)
 n_points_num = 2*degree + 1
 
 # Real parameters of the stochastic system
-params[beta_x]  = sy.Rational(3)
-params[beta_y]  = sy.Rational(2)
-params[epsilon] = sy.Rational(2**2)
+params[beta_x]  = sy.Rational(1)
+params[beta_y]  = sy.Rational(1)
+params[epsilon] = sy.Rational(1)
 params[gamma]   = 0
 
 # Potential
-mean_p, cov_p =  sy.symbols('mx sx')
-# params[mean_p] = 0
-# params[cov_p] = sy.Rational(1, 2)
-# functions[potential_p] = sy.Rational(1, 2)*(x-mean_p)*(x-mean_p)/(beta_x*cov_p)
-functions[potential_p] = x**4/4 - x**2/2
+cov_p =  sy.symbols('sx')
+params[cov_p] = sy.Rational(1, 1)
+functions[potential_p] = sy.Rational(1, 2)*(x)*(x)/(beta_x*cov_p)
+# functions[potential_p] = x**4/4 - x**2/2
 # potential_p = x**2/2 + 10*sy.cos(x)
 
 # Parameters for approximating potential
 mean_x, cov_x = sy.symbols('μx σx')
-params[mean_x] = sy.Rational(1, 5)
-params[cov_x] = sy.Rational(1, 10)
+params[mean_x] = 0  # sy.Rational(1, 5)
+params[cov_x] =  1  # sy.Rational(1, 10)
 functions[potential_q] = sy.Rational(0.5)*(x - mean_x)*(x - mean_x)/(beta_x*cov_x)
 
 # Potential of y process (Use scaling such that the coefficient of the asymptotic noise is 1)
@@ -118,7 +117,7 @@ operator = - bk.subs(u, u_xy).doit()
 # {{{ CALCULATE THE EXACT SOLUTION
 
 def solve():
-    if f[potential_p].diff(x, x, x) != 0:
+    if functions[potential_p].diff(x, x, x) != 0:
         return False
     cx, cxy, cy = sy.symbols('cx cxy cy')
     def fk_expand(f):
@@ -130,7 +129,7 @@ def solve():
     coeffs_list = list(coeffs_dict[k] for k in coeffs_dict)
     (sol_cx, sol_cxy, sol_cy) = sy.solve(coeffs_list, cx, cxy, cy)[0]
     solution = ansatz.subs([(cx, sol_cx), (cxy, sol_cxy), (cy, sol_cy)])
-    assert fkp.subs(f, solution).doit().expand() == 0
+    assert fk_expand(solution).doit().expand() == 0
     return solution
 
 # }}}
@@ -163,10 +162,10 @@ for key in functions:
     functions[key] = functions[key].subs(functional_params).subs(real_params)
 
 
-# solution = solve()
-# if solution:
-#     solution = evaluate(solution)
-#     splot.plot3d(solution)
+solution = solve()
+if solution:
+    solution = solution.subs(real_params)
+    splot.plot3d(solution.subs(real_params), (x, -1, 1), (y, -1, 1))
 
 # }}}
 # DEFINE QUADRATURE FOR NUMERICS {{{
@@ -215,8 +214,7 @@ disc_asymptotic_sol = quad_visu_x.discretize(asymptotic_sol/norm_asymptotic_sol)
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
 
-syp.pprint(operator)
-mat_operator =  quad_num.discretize_op(operator, u_xy, degree, 2)
+mat_operator =  quad_num.discretize_op(operator, u_xy, degree, 2).T
 
 # Calculate eigenvector in kernel
 print("Solving the eigenvalue problem...")
@@ -243,6 +241,11 @@ ax11.plot(x_visu, solution_visu_x, label="Coloured noise")
 ax11.plot(x_visu, disc_asymptotic_sol, label="Asymptotic solution")
 ax11.set_title("Comparison of the solutions")
 ax11.legend()
+
+# solution = solve()
+# if solution:
+#     ax12 = splot.plot3d(solution.subs(real_params), (x, -1, 1), (y, -1, 1))
+# else:
 
 ax12.bar(degrees, series_x.coeffs)
 ax12.set_title("Hermite coefficients of numerical solution")
