@@ -140,15 +140,8 @@ def multi_indices(dim, deg_max, deg_min=0):
             sum(m) <= deg_max and sum(m) >= deg_min]
 
 
-def split_operator(op, func, order, dim):
-    x, y, z = sy.symbols('x y z')
-    assert dim <= 3
-    if dim == 1:
-        variables = (x)
-    elif dim == 2:
-        variables = (x, y)
-    elif dim == 3:
-        variables = (x, y, z)
+def split_operator(op, func, order):
+    variables = list(func.free_symbols)
     result, rem, order = [], op.expand(), 2
     for m in multi_indices(len(variables), order):
         if rem == 0:
@@ -280,7 +273,7 @@ class Quad:
         npolys = int(binom(degree + self.dim, degree))
         mat_operator = np.zeros((npolys, npolys))
         mult = list(multi_indices(self.dim, order))
-        splitop = split_operator(op, func, order, self.dim)
+        splitop = split_operator(op, func, order)
         for m, coeff in zip(mult, splitop):
             mat_operator += self.dvarf(coeff, degree, ['x']*m[0] + ['y']*m[1])
         return mat_operator
