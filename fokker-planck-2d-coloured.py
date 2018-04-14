@@ -38,7 +38,7 @@ params, functions = {}, {}
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
 
 # Degree of approximation
-degree = 10
+degree = 30
 
 # Number of points in quadrature (*2 for varf)
 n_points_num = 2*degree + 1
@@ -46,20 +46,20 @@ n_points_num = 2*degree + 1
 # Real parameters of the stochastic system
 params[beta_x]  = sy.Rational(1)
 params[beta_y]  = sy.Rational(1)
-params[epsilon] = sy.Rational(1)
+params[epsilon] = sy.Rational(1, 1)
 params[gamma]   = 0
 
 # Potential
 cov_p =  sy.symbols('sx')
-params[cov_p] = sy.Rational(1, 1)
-functions[potential_p] = sy.Rational(1, 2)*(x)*(x)/(beta_x*cov_p)
-# functions[potential_p] = x**4/4 - x**2/2
+# params[cov_p] = sy.Rational(1, 1)
+# functions[potential_p] = sy.Rational(1, 2)*(x)*(x)/(beta_x*cov_p)
+functions[potential_p] = x**4/4 - x**2/2
 # potential_p = x**2/2 + 10*sy.cos(x)
 
 # Parameters for approximating potential
 mean_x, cov_x = sy.symbols('μx σx')
-params[mean_x] = 0  # sy.Rational(1, 5)
-params[cov_x] =  1  # sy.Rational(1, 10)
+params[mean_x] = sy.Rational(1, 5)
+params[cov_x] = sy.Rational(1, 10)
 functions[potential_q] = sy.Rational(0.5)*(x - mean_x)*(x - mean_x)/(beta_x*cov_x)
 
 # Potential of y process (Use scaling such that the coefficient of the asymptotic noise is 1)
@@ -219,7 +219,7 @@ mat_operator =  quad_num.discretize_op(operator, u_xy, degree, 2).T
 # Calculate eigenvector in kernel
 print("Solving the eigenvalue problem...")
 sparse_operator = scipy.sparse.csr_matrix(mat_operator)
-eigen_values, eigen_vectors = las.eigs(mat_operator, k=1, which='SM')
+eigen_values, eigen_vectors = las.eigs(mat_operator, k=1, which='SM', tol=1e-5)
 solution = np.real(eigen_vectors.T[-1])
 
 solution_xy = solution * np.sign(solution[0])
@@ -234,6 +234,11 @@ solution_visu_xy = quad_visu_xy.eval(series_xy, degree)*factor_visu_xy
 solution_visu_xy = solution_visu_xy.reshape(nv, nv).T
 solution_visu_x = quad_visu_x.eval(series_x, degree) * factor_visu_x
 solution_visu_y = quad_visu_y.eval(series_y, degree) * factor_visu_y
+
+cont = plt.contourf(x_visu, y_visu, solution_visu_xy, 40)
+plt.title("SM eigenvalues: " + str(eigen_values))
+plt.colorbar(cont)
+plt.show()
 
 fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
 
