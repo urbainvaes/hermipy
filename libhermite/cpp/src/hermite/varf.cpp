@@ -153,7 +153,8 @@ mat dvarf(
             ivec diff_m1 = m1.get();
             diff_m1[direction] -= 1;
             u_int id = lin_indices[hash_print(diff_m1)];
-            results[i][j] = sqrt(m1[direction])*var[id][j];
+            results[j][i] = sqrt(m1[direction])*var[id][j];
+            // Entry i,j correspond to < A h_j, h_i >
         }
     }
     return results;
