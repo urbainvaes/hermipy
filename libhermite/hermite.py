@@ -234,11 +234,11 @@ class Quad:
         f_grid = self.discretize(function)
         return integrate(f_grid, self.nodes, self.weights)
 
-    def transform(self, function, degree):
+    def transform(self, function, degree, norm=False):
         f_grid = self.discretize(function)
         coeffs = transform(degree, f_grid, self.nodes,
                            self.weights, forward=True)
-        return Series(coeffs, self.dim, self.mean, self.cov)
+        return Series(coeffs, self.dim, self.mean, self.cov, norm=norm)
 
     def eval(self, series, degree):
         if type(series) is np.ndarray:
