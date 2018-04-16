@@ -12,61 +12,37 @@ import scipy.sparse
 import scipy.sparse.linalg as las
 import matplotlib.pyplot as plt
 
-from libhermite import hermite as hm
 import equation
+from libhermite import hermite as hm
+from config import glob, params, sym_params, functions, numerics
+
 
 sym.init_printing()
 
 # }}}
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
 
-# Variables and function
-x, y, f = equation.x, equation.y, equation.f
-
 # Short-hand notation
 r = sym.Rational
 
+# Variables and function
+x, y, f = equation.x, equation.y, equation.f
+
 # Real and functional parameters
-sym_params, params, sym_functions, functions = {}, {}, {}, {}
+sym_functions = {}
 equation.fill_params(sym_params, sym_functions)
 sp, p = sym_params, params
-
-# Configuration of numerical method
-degree = 50  # degree of approximation
-n_points_num = 2*degree + 1  # (*2 for varf)
-
-# Real parameters of the stochastic system
-params['βx'] = r(1)
-params['βy'] = r(1)
-params['ε']  = r(.5)
-params['γ']  = r(0)
-params['θ']  = r(0)
-
-def gaussian(mean, var):
-    return r(.5)*(x - mean)*(x - mean)/(var)
-
-# Parameters of the potential in the x equation
-sym_params['mx'] = sym.symbols('mx', real=True)
-sym_params['sx'] = sym.symbols('sx', real=True, positive=True)
-params['mx'] = 0
-params['sx'] = 1
-functions['Vp'] =  gaussian(sp['mx'], sp['sx'])/sp['βx']
-functions['Vp'] = x**4/4 - x**2/2
-
-# Parameters of approximating potential
-sym_params['μx'] = sym.symbols('μx', real=True)
-sym_params['σx'] = sym.symbols('σx', real=True, positive=True)
-params['μx'] = r(1, 5)
-params['σx'] = r(1, 10)
-functions['Vq'] = gaussian(sp['μx'], sp['σx'])/sp['βx']
 
 # Parameters of potential in y equation
 alpha = sym.sqrt(2/sp['βy'])
 cov_y = 1/(alpha*sp['βy'])
 functions['Vy'] = y*y/(2*sp['βy']*cov_y)
 
+degree = numerics['degree']
+n_points_num = numerics['n_points_num']
+
 # Use cache
-cache = False
+cache = glob['cache']
 fastsym = True
 
 # }}}
