@@ -47,7 +47,7 @@ n_points_num = 2*degree + 1
 
 # Real parameters of the stochastic system
 params[beta_x]  = sy.Rational(1)
-params[theta]   = sy.Rational(1)
+params[theta]   = sy.Rational(0)
 params[beta_y]  = sy.Rational(1)
 params[epsilon] = sy.Rational(1, 2)
 params[gamma]   = 0
@@ -222,15 +222,16 @@ disc_asymptotic_sol = quad_visu_x.discretize(asymptotic_sol/norm_asymptotic_sol)
 m_mat_operator =  quad_num.discretize_op(m_operator, u_xy, degree, 2)
 r_mat_operator =  quad_num.discretize_op(r_operator, u_xy, degree, 2)
 
-sparse_operator = scipy.sparse.csr_matrix(mat_operator)
+m_values = np.linspace(-1, 1, 11)
 
-m_num = 0
-for i in range(10):
-    total_mat = r_mat_operator + m_num * m_mat_operator
+# m_num = 0
+# for i in range(10):
+#     total_mat = r_mat_operator + m_num * m_mat_operator
 
 
 # Calculate eigenvector in kernel
 print("Solving the eigenvalue problem...")
+mat_operator = r_mat_operator
 sparse_operator = scipy.sparse.csr_matrix(mat_operator)
 asymptotic_sol_2d = sy.exp(- params[beta_x] * functions[potential_p]
                            - params[beta_y] * functions[potential_y])

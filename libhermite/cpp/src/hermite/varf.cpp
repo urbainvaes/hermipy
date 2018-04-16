@@ -122,7 +122,7 @@ string hash_print(ivec v) {
     return hash;
 }
 
-// Only for cov = I!
+// Only for cov = D!
 mat dvarf(
         u_int dim,
         u_int degree,
@@ -145,15 +145,15 @@ mat dvarf(
     {
         for (j = 0, m2.reset(); j < var.size(); j++, m2.increment())
         {
-            if (m1[direction] == 0)
+            if (m2[direction] == 0)
             {
                continue;
             }
 
-            ivec diff_m1 = m1.get();
-            diff_m1[direction] -= 1;
-            u_int id = lin_indices[hash_print(diff_m1)];
-            results[j][i] = sqrt(m1[direction])*var[id][j];
+            ivec diff_m2 = m2.get();
+            diff_m2[direction] -= 1;
+            u_int id = lin_indices[hash_print(diff_m2)];
+            results[i][j] = sqrt(m1[direction])*var[i][id];
             // Entry i,j correspond to < A h_j, h_i >
         }
     }
