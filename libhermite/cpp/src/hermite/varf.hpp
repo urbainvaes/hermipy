@@ -13,7 +13,7 @@ std::mat varf(
         std::mat const & nodes,
         std::mat const & weights);
 
-std::mat dvarf(
+std::mat varfd(
         std::u_int dim,
         std::u_int degree,
         std::u_int direction,

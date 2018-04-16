@@ -84,7 +84,7 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     def("transform", transform);
     def("triple_products", triple_products_1d);
     def("varf", varf);
-    def("dvarf", dvarf);
+    def("varfd", varfd);
 }
 
 }

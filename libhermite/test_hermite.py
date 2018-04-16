@@ -124,7 +124,7 @@ class TestHermiteVarf(unittest.TestCase):
         n_points = 100
         degree = 10
         quad = hm.Quad.gauss_hermite(n_points)
-        bk_ou = quad.dvarf('1', degree, [0, 0]) - quad.dvarf('x', degree, [0])
+        bk_ou = quad.varfd('1', degree, [0, 0]) - quad.varfd('x', degree, [0])
         off_diag = bk_ou - np.diag(np.diag(bk_ou))
         self.assertAlmostEqual(la.norm(off_diag, 2), 0)
 

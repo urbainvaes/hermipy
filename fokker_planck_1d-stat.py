@@ -166,7 +166,7 @@ n_polys = int(scipy.special.binom(degree + dim, degree))
 mat_operator = np.zeros((n_polys, n_polys))
 mult = list(multi_indices(dim, 2))
 for m, coeff in zip(mult, split_op):
-    mat_operator += quad_num.dvarf(coeff, degree, [x]*m[0])
+    mat_operator += quad_num.varfd(coeff, degree, [x]*m[0])
 
 # Calculate eigenvector in kernel
 print("Solving the eigenvalue problem...")

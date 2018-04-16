@@ -123,7 +123,7 @@ string hash_print(ivec v) {
 }
 
 // Only for cov = D!
-mat dvarf(
+mat varfd(
         u_int dim,
         u_int degree,
         u_int direction,

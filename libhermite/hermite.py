@@ -1,5 +1,5 @@
 #  TODO: Ensure directions match (urbain, Wed 28 Mar 2018 11:55:08 AM BST)
-#  TODO: Why does dvarf never produce error? (urbain, Wed 28 Mar 2018 12:41:14 PM BST)
+#  TODO: Why does varfd never produce error? (urbain, Wed 28 Mar 2018 12:41:14 PM BST)
 
 from .cpp import hermite_cpp as hm
 import numpy as np
@@ -82,8 +82,8 @@ def varf(degree, fgrid, nodes, weights):
 
 
 @convert(to_cpp_array, 'var')
-def dvarf(dim, degree, direction, var):
-    return np.array(hm.dvarf(dim, degree, direction, var))
+def varfd(dim, degree, direction, var):
+    return np.array(hm.varfd(dim, degree, direction, var))
 
 
 @convert(to_cpp_array, 'inp')
@@ -260,11 +260,11 @@ class Quad:
         return varf(degree, f_grid, self.nodes, self.weights)
 
     @convert(to_numeric, 'directions')
-    def dvarf(self, function, degree, directions):
+    def varfd(self, function, degree, directions):
         var = self.varf(function, degree)
         eigval, _ = la.eig(self.cov)
         for dir in directions:
-            var = dvarf(self.dim, degree, dir, var)
+            var = varfd(self.dim, degree, dir, var)
             var = var/np.sqrt(eigval[dir])
         return var
 
@@ -275,7 +275,7 @@ class Quad:
         mult = list(multi_indices(self.dim, order))
         splitop = split_operator(op, func, order)
         for m, coeff in zip(mult, splitop):
-            mat_operator += self.dvarf(coeff, degree, ['x']*m[0] + ['y']*m[1])
+            mat_operator += self.varfd(coeff, degree, ['x']*m[0] + ['y']*m[1])
         return mat_operator
 
 
