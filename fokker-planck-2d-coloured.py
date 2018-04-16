@@ -47,7 +47,7 @@ n_points_num = 2*degree + 1
 
 # Real parameters of the stochastic system
 params[beta_x]  = sy.Rational(1)
-params[theta]   = sy.Rational(0)
+params[theta]   = sy.Rational(1)
 params[beta_y]  = sy.Rational(1)
 params[epsilon] = sy.Rational(1, 2)
 params[gamma]   = 0
@@ -164,11 +164,13 @@ for key in params:
 for key in functions:
     functions[key] = functions[key].subs(functional_params).subs(real_params)
 
-
 solution = solve()
 if solution:
     solution = solution.subs(real_params)
     splot.plot3d(solution.subs(real_params), (x, -1, 1), (y, -1, 1))
+
+m_operator = operator.diff(m)
+r_operator = (operator - m * m_operator).cancel()
 
 # }}}
 # DEFINE QUADRATURE FOR NUMERICS {{{
@@ -217,7 +219,15 @@ disc_asymptotic_sol = quad_visu_x.discretize(asymptotic_sol/norm_asymptotic_sol)
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
 
-mat_operator =  quad_num.discretize_op(operator, u_xy, degree, 2)
+m_mat_operator =  quad_num.discretize_op(m_operator, u_xy, degree, 2)
+r_mat_operator =  quad_num.discretize_op(r_operator, u_xy, degree, 2)
+
+sparse_operator = scipy.sparse.csr_matrix(mat_operator)
+
+m_num = 0
+for i in range(10):
+    total_mat = r_mat_operator + m_num * m_mat_operator
+
 
 # Calculate eigenvector in kernel
 print("Solving the eigenvalue problem...")
