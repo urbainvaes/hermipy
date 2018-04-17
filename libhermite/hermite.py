@@ -11,6 +11,7 @@ import numpy.polynomial.hermite_e as herm
 import sympy as sy
 import re
 import math
+import matplotlib.pyplot as plt
 
 from scipy.special import binom
 
@@ -57,6 +58,19 @@ def to_cpp_array(array):
     return array
 
 
+def to_numeric(var):
+    if isinstance(var, list):
+        return [to_numeric(v) for v in var]
+    if var == 'x' or var == sy.Symbol('x'):
+        return 0
+    elif var == 'y' or var == sy.Symbol('y'):
+        return 1
+    elif var == 'z' or var == sy.Symbol('z'):
+        return 2
+    else:
+        return var
+
+
 @convert(to_cpp_array, 'nodes', 'translation', 'dilation')
 def discretize(function, nodes, translation, dilation):
     return np.array(hm.discretize(function, nodes, translation, dilation))
@@ -91,22 +105,11 @@ def tensorize(inp, dim, direction):
     return np.array(hm.tensorize(inp, dim, direction))
 
 
+@convert(to_numeric, 'direction')
 @convert(to_cpp_array, 'inp')
 def project(inp, dim, direction):
     return np.array(hm.project(inp, dim, direction))
 
-
-def to_numeric(var):
-    if isinstance(var, list):
-        return [to_numeric(v) for v in var]
-    if var == 'x' or var == sy.Symbol('x'):
-        return 0
-    elif var == 'y' or var == sy.Symbol('y'):
-        return 1
-    elif var == 'z' or var == sy.Symbol('z'):
-        return 2
-    else:
-        return var
 
 
 def stringify(function):
@@ -277,6 +280,33 @@ class Quad:
         for m, coeff in zip(mult, splitop):
             mat_operator += self.varfd(coeff, degree, ['x']*m[0] + ['y']*m[1])
         return mat_operator
+
+    def plot(self, series, degree, factor, ax=None):
+        factor = self.discretize(factor)
+        if la.norm(self.cov - np.diag(np.diag(self.cov)), 2) > 1e-10:
+            raise ValueError("Covariance matrix must be diagonal!")
+        n_nodes = []
+        r_nodes = []
+        for i in range(self.dim):
+            coord = 'v[{}]'.format(i)
+            n_nodes.append(len(self.nodes[i]))
+            r_nodes.append(self.project(i).discretize('x'))
+        solution = self.eval(series, degree)*factor
+        solution = solution.reshape(*n_nodes).T
+        if self.dim == 1:
+            return ax.plot(*r_nodes, solution, 100)
+        elif self.dim == 2:
+            return ax.contourf(*r_nodes, solution, 100)
+
+    @convert(to_numeric, 'direction')
+    def project(self, direction):
+        return Quad([self.nodes[direction]],
+                    [self.weights[direction]],
+                    mean=[self.mean[direction]],
+                    cov=[[self.cov[direction][direction]]])
+
+    def series(self, coeffs, norm=False):
+        return Series(coeffs, dim=self.dim, mean=self.mean, cov=self.cov)
 
 
 class CompQuad:

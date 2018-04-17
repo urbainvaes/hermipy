@@ -12,6 +12,7 @@ import scipy.sparse
 import scipy.sparse.linalg as las
 import matplotlib.pyplot as plt
 
+import plot
 import equation
 from libhermite import hermite as hm
 from config import glob, params, sym_params, functions, numerics
@@ -21,11 +22,23 @@ sym.init_printing()
 # }}}
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
 
+config_dict = {**params, **functions, **numerics}
+hash_config = hash(frozenset(config_dict.items()))
+
 # Short-hand notation
 r = sym.Rational
 
 # Variables and function
 x, y, f = equation.x, equation.y, equation.f
+
+# Parameters of approximating potential
+def gaussian(mean, var):
+    return r(.5)*(x - mean)*(x - mean)/(var)
+
+
+sym_params['μx'] = sym.symbols('μx', real=True)
+sym_params['σx'] = sym.symbols('σx', real=True, positive=True)
+functions['Vq'] = gaussian(sym_params['μx'], sym_params['σx'])/sym_params['βx']
 
 # Real and functional parameters
 sym_functions = {}
@@ -51,11 +64,13 @@ fastsym = True
 equation.fill_params(params, functions)
 
 # Conversion lists
-real_params = [(sym_params[k], params[k]) for k in params]
+all_params = { **params, **numerics }
+real_params = [(sym_params[k], all_params[k]) for k in sym_params]
 functional_params = [(sym_functions[k], functions[k]) for k in functions]
 
 # Evaluate parameters in functions
 for key in functions:
+    functions[key] = functions[key].subs(real_params)
     functions[key] = functions[key].subs(real_params)
 
 # Operator
@@ -72,6 +87,9 @@ for key in params:
     if key is not 'm':
         params[key] = float(params[key])
 
+for key in numerics:
+    numerics[key] = float(numerics[key])
+
 if functions['Vp'].diff(x, x, x) == 0:
     solution = equation.solve_gaussian(forward)
     splot.plot3d(solution.subs(real_params), (x, -1, 1), (y, -1, 1))
@@ -83,15 +101,14 @@ r_operator = (backward - sp['m']*m_operator).cancel()
 # DEFINE QUADRATURE FOR NUMERICS {{{
 
 # For numerics
-degrees = np.arange(degree + 1)
 new_q = hm.Quad.gauss_hermite
-mean_xy, cov_xy = [p['μx'], 0], [[p['σx'], 0], [0, cov_y]]
+mean_xy, cov_xy = [numerics['μx'], 0], [[numerics['σx'], 0], [0, cov_y]]
 quad_num = new_q(n_points_num, dim=2, mean=mean_xy, cov=cov_xy)
 
 # Calculate limits of resolution
 band_width = np.sqrt(2) * np.sqrt(2*degree + 1)
-x_min = params['μx'] - band_width * np.sqrt(params['σx'])
-x_max = params['μx'] + band_width * np.sqrt(params['σx'])
+x_min = numerics['μx'] - band_width * np.sqrt(numerics['σx'])
+x_max = numerics['μx'] + band_width * np.sqrt(numerics['σx'])
 y_min = 0 - band_width * np.sqrt(cov_y)
 y_max = 0 + band_width * np.sqrt(cov_y)
 
@@ -103,7 +120,7 @@ nv = 200
 # bounds_x, bounds_y = 5*np.sqrt('σx'), 5*np.sqrt(cov_y)
 bounds_x, bounds_y = 3, 4
 
-quad_num_x = new_q(n_points_num, dim=1, mean=[params['μx']], cov=[[params['σx']]])
+quad_num_x = new_q(n_points_num, dim=1, mean=[numerics['μx']], cov=[[numerics['σx']]])
 quad_visu_xy = hm.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y])
 quad_visu_x = hm.Quad.newton_cotes([nv], [bounds_x])
 quad_visu_y = hm.Quad.newton_cotes([nv], [bounds_y])
@@ -125,8 +142,6 @@ asymptotic_solution_visu = quad_visu_x.eval(series_asymptotic_sol, degree)*facto
 disc_asymptotic_sol = quad_visu_x.discretize(asymptotic_sol/norm_asymptotic_sol)
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
-
-hash_config = hash(frozenset({**params, **functions}.items()))
 
 if cache:
     try:
@@ -163,29 +178,37 @@ sparse_operator = scipy.sparse.csr_matrix(mat_operator)
 asymptotic_sol_2d = sym.exp(- params['βx'] * functions['Vp']
                             - params['βy'] * functions['Vy'])
 v0 = quad_num.transform(asymptotic_sol_2d/factor, degree, norm=True).coeffs
-eigen_values, eigen_vectors = las.eigs(mat_operator, v0=v0, k=3, which='LR', ncv=10)
+eigen_values, eigen_vectors = las.eigs(mat_operator, v0=v0, k=4, which='LR', ncv=10)
 print(eigen_values)
 
-for eigen_value, eigen_vector in zip(eigen_values, eigen_vectors.T):
-    solution = np.real(eigen_vector)
+degrees = np.arange(degree + 1)
 
-    solution_xy = solution * np.sign(solution[0])
-    solution_x = hm.project(solution_xy, 2, 0)
-    solution_y = hm.project(solution_xy, 2, 1)
+# Plot of the eigenvectors
+fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
 
-    series_xy = hm.Series(solution_xy, mean=mean_xy, cov=cov_xy, norm=True)
-    series_x = hm.Series(solution_x, mean=[params['μx']], cov=[[params['σx']]], norm=True)
-    series_y = hm.Series(solution_y, mean=[0], cov=[[cov_y]], norm=True)
+axes = (ax11, ax12, ax21, ax22)
+for e_val, e_vec, ax in zip(eigen_values, eigen_vectors.T, axes):
+    e_vec = np.real(e_vec) * np.sign(np.real(e_vec[0]))
+    series = quad_num.series(e_vec, norm=True)
+    cont = quad_visu_xy.plot(series, degree, factor, ax)
+    ax.set_title("Eigenvalue: " + str(e_val))
+    plt.colorbar(cont, ax=ax)
 
-    solution_visu_xy = quad_visu_xy.eval(series_xy, degree)*factor_visu_xy
-    solution_visu_xy = solution_visu_xy.reshape(nv, nv).T
-    solution_visu_x = quad_visu_x.eval(series_x, degree) * factor_visu_x
-    solution_visu_y = quad_visu_y.eval(series_y, degree) * factor_visu_y
+plt.show()
 
-    cont = plt.contourf(x_visu, y_visu, solution_visu_xy, 100)
-    plt.title("Eigenvalue: " + str(eigen_value) + ", Minimum: " + str(np.min(solution_visu_xy)))
-    plt.colorbar(cont)
-    plt.show()
+    # series_xy = hm.Series(solution_xy, mean=mean_xy, cov=cov_xy, norm=True)
+    # series_x = hm.Series(solution_x, mean=[numerics['μx']], cov=[[numerics['σx']]], norm=True)
+    # series_y = hm.Series(solution_y, mean=[0], cov=[[cov_y]], norm=True)
+
+    # solution_visu_xy = quad_visu_xy.eval(series_xy, degree)*factor_visu_xy
+    # solution_visu_xy = solution_visu_xy.reshape(nv, nv).T
+    # solution_visu_x = quad_visu_x.eval(series_x, degree) * factor_visu_x
+    # solution_visu_y = quad_visu_y.eval(series_y, degree) * factor_visu_y
+
+    # cont = plt.contourf(x_visu, y_visu, solution_visu_xy, 100)
+    # plt.title("Eigenvalue: " + str(eigen_value) + ", Minimum: " + str(np.min(solution_visu_xy)))
+    # plt.colorbar(cont)
+    # plt.show()
 
 fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
 
@@ -222,11 +245,6 @@ if y_visu[-1] > y_max:
     ax22.axhline(y=y_max)
 
 plt.show()
-
-# fig, ax = plt.subplots(1, 1)
-# cont = ax.contourf(x_visu, y_visu, solutions_visu[0] - solutions_visu[1], 20)
-# plt.colorbar(cont)
-# plt.show()
 
 # }}}
 # PLOT HERMITE FUNCTION OF HIGHEST DEGREE {{{
