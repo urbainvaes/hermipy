@@ -16,7 +16,6 @@ import equation
 from libhermite import hermite as hm
 from config import glob, params, sym_params, functions, numerics
 
-
 sym.init_printing()
 
 # }}}
