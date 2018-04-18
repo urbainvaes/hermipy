@@ -1,23 +1,29 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 from libhermite import hermite as hm
 
-global quad
+def plot_hf(degrees, quad_num, quad_visu, ax):
+    dim = len(degrees)
+    adim_width = [np.sqrt(2) * np.sqrt(2*d + 1) for d in degrees]
+    mean, cov, bounds = quad_num.mean, quad_num.cov, []
+    for i in range(dim):
+        width = adim_width[i] * np.sqrt(cov[i][i])
+        bounds.append([mean[i] - width, mean[i] + width])
+    if dim >= 1:
+        ax.axvline(x=bounds[0][0])
+        ax.axvline(x=bounds[0][1])
+    if dim == 2:
+        ax.axhline(y=bounds[1][0])
+        ax.axhline(y=bounds[1][1])
+    deg_max = sum(degrees)
+    all_indices = hm.multi_indices(dim, deg_max)
+    hf = np.zeros(len(all_indices))
+    hf[all_indices.index(tuple(degrees))] = 1
+    hf = quad_num.series(hf)
+    factor = quad_num.factor_mapping()
+    return quad_visu.plot(hf, deg_max, factor, ax)
 
-def plot_with_quad(series, factor, quad, degree):
-
-    x_visu = quad_visu_x.discretize('x')
-    y_visu = quad_visu_y.discretize('x')
-
-    nnodes = [len(nodes_dir) for nodes_dir in quad.nodes]
-
-    solution = quad.eval(series, degree)*factor
-    solution_visu_xy = solution.reshape(*nnodes).T
-
-    cont = plt.contourf(x_visu, y_visu, solution_visu_xy, 100)
-    plt.title("Eigenvalue: " + str(eigen_value) + ", Minimum: " + str(np.min(solution_visu_xy)))
-    plt.colorbar(cont)
-    plt.show()
 
 def plot_projections(series, quad, factor, degree):
     degrees = np.arange(degree + 1)
