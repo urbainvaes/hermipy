@@ -1,5 +1,7 @@
 #  TODO: Ensure directions match (urbain, Wed 28 Mar 2018 11:55:08 AM BST)
 #  TODO: Why does varfd never produce error? (urbain, Wed 28 Mar 2018 12:41:14 PM BST)
+#  TODO: Add degree to series attributes
+
 
 from .cpp import hermite_cpp as hm
 import numpy as np
@@ -8,7 +10,7 @@ import itertools
 
 import numpy.linalg as la
 import numpy.polynomial.hermite_e as herm
-import sympy as sy
+import sympy as sym
 import re
 import math
 import matplotlib.pyplot as plt
@@ -61,11 +63,11 @@ def to_cpp_array(array):
 def to_numeric(var):
     if isinstance(var, list):
         return [to_numeric(v) for v in var]
-    if var == 'x' or var == sy.Symbol('x'):
+    if var == 'x' or var == sym.Symbol('x'):
         return 0
-    elif var == 'y' or var == sy.Symbol('y'):
+    elif var == 'y' or var == sym.Symbol('y'):
         return 1
-    elif var == 'z' or var == sy.Symbol('z'):
+    elif var == 'z' or var == sym.Symbol('z'):
         return 2
     else:
         return var
@@ -106,17 +108,20 @@ def tensorize(inp, dim, direction):
 
 
 @convert(to_numeric, 'direction')
-@convert(to_cpp_array, 'inp')
-def project(inp, dim, direction):
+def _project(inp, dim, direction):
     return np.array(hm.project(inp, dim, direction))
 
+
+@convert(to_cpp_array, 'inp')
+def project(inp, dim, direction):
+    return _project(inp, dim, direction)
 
 
 def stringify(function):
     if isinstance(function, int) or isinstance(function, float):
         return str(function)
-    if isinstance(function, sy.Expr):
-        function = sy.ccode(function)
+    if isinstance(function, sym.Expr):
+        function = sym.ccode(function)
     if isinstance(function, str):
         function = re.sub(r'\bx\b', 'v[0]', function)
         function = re.sub(r'\by\b', 'v[1]', function)
@@ -153,8 +158,8 @@ def split_operator(op, func, order):
         test, der = 1, func
         for i, v in zip(m, variables):
             test *= v**i/math.factorial(i)
-            der = sy.diff(der, v, i)
-        remargs = rem.args if isinstance(rem, sy.add.Add) else [rem]
+            der = sym.diff(der, v, i)
+        remargs = rem.args if isinstance(rem, sym.add.Add) else [rem]
         term, rem = 0, 0
         for arg in remargs:  # Convoluted to avoid rounding errors
             termarg = arg.subs(func, test).doit()
@@ -162,8 +167,8 @@ def split_operator(op, func, order):
                 rem += arg
             else:
                 term += termarg
-        if isinstance(term, tuple(sy.core.all_classes)):
-            term = sy.simplify(term)
+        if isinstance(term, tuple(sym.core.all_classes)):
+            term = sym.simplify(term)
         result.append(term)
     assert rem == 0
     return result
@@ -182,6 +187,13 @@ class Series:
 
         eigval, eigvec = la.eig(self.cov)
         self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
+
+    @convert(to_numeric, 'direction')
+    def project(self, direction):
+        p_coeffs = project(self.coeffs, self.dim, direction)
+        return Series(p_coeffs,
+                      mean=[self.mean[direction]],
+                      cov=[[self.cov[direction][direction]]])
 
 
 class Quad:
@@ -294,9 +306,20 @@ class Quad:
         solution = self.eval(series, degree)*factor
         solution = solution.reshape(*n_nodes).T
         if self.dim == 1:
-            return ax.plot(*r_nodes, solution, 100)
+            return ax.plot(*r_nodes, solution)
         elif self.dim == 2:
             return ax.contourf(*r_nodes, solution, 100)
+
+    def factor_mapping(self):
+        var = [sym.symbols('v'+ str(i)) for i in range(self.dim)]
+        inv_cov = la.inv(self.cov)
+        potential = 0
+        for i in range(self.dim):
+            for j in range(self.dim):
+                potential += 0.5 * inv_cov[i][j] \
+                              * (var[i] - self.mean[i]) \
+                              * (var[j] - self.mean[j])
+        return sym.exp(-potential/2)
 
     @convert(to_numeric, 'direction')
     def project(self, direction):
@@ -306,7 +329,11 @@ class Quad:
                     cov=[[self.cov[direction][direction]]])
 
     def series(self, coeffs, norm=False):
-        return Series(coeffs, dim=self.dim, mean=self.mean, cov=self.cov)
+        return Series(coeffs,
+                      dim=self.dim,
+                      mean=self.mean,
+                      cov=self.cov,
+                      norm=norm)
 
 
 class CompQuad:

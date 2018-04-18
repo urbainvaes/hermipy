@@ -42,5 +42,5 @@ params['θ']  = r(0)
 functions['Vp'] = x**4/4 - x**2/2
 
 # Miscellaneous parameters
-glob['cache'] = False
+glob['cache'] = True
 glob['symbolic'] = False

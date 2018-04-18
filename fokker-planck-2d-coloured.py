@@ -79,7 +79,7 @@ forward, backward, factor_x, factor_y, factor = \
         equation.operators(params, functions, param_factor)
 
 # Print operator to output
-syp.pprint(backward)
+# syp.pprint(backward)
 
 cov_y = float(cov_y.subs(real_params))
 
@@ -120,40 +120,27 @@ nv = 200
 # bounds_x, bounds_y = 5*np.sqrt('σx'), 5*np.sqrt(cov_y)
 bounds_x, bounds_y = 3, 4
 
-quad_num_x = new_q(n_points_num, dim=1, mean=[numerics['μx']], cov=[[numerics['σx']]])
-quad_visu_xy = hm.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y])
-quad_visu_x = hm.Quad.newton_cotes([nv], [bounds_x])
-quad_visu_y = hm.Quad.newton_cotes([nv], [bounds_y])
-
-factor_visu_xy = quad_visu_xy.discretize(factor)
-factor_visu_x = quad_visu_x.discretize(factor_x)
-factor_visu_y = quad_visu_y.discretize(factor_y.subs(y, x))
-
-x_visu = quad_visu_x.discretize('x')
-y_visu = quad_visu_y.discretize('x')  # x is the default variable name
+quad_visu = hm.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y])
 
 # }}}
 # CALCULATE ASYMPTOTIC SOLUTION {{{
-asymptotic_sol = sym.exp(- params['βx'] * functions['Vp'])
-series_asymptotic_sol = quad_num_x.transform(asymptotic_sol/factor_x, degree)
-norm_asymptotic_sol = la.norm(series_asymptotic_sol.coeffs, 2)
-series_asymptotic_sol.coeffs = series_asymptotic_sol.coeffs / norm_asymptotic_sol
-asymptotic_solution_visu = quad_visu_x.eval(series_asymptotic_sol, degree)*factor_visu_x
-disc_asymptotic_sol = quad_visu_x.discretize(asymptotic_sol/norm_asymptotic_sol)
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
 
 def compute_with_cache(cache):
 
-    def call_discretize():
-        m_mat =  quad_num.discretize_op(m_operator, f, degree, 2)
-        r_mat =  quad_num.discretize_op(r_operator, f, degree, 2)
-        return m_mat, r_mat
-
     args_m = [m_operator, f, degree, 2]
     args_r = [r_operator, f, degree, 2]
 
+    for e in args_m + args_r:
+        print(hash(e))
+
     hash_config = hash(frozenset(args_m + args_r))
+
+    def call_discretize():
+        m_mat =  quad_num.discretize_op(*args_m)
+        r_mat =  quad_num.discretize_op(*args_r)
+        return m_mat, r_mat
 
     try:
         m_mat_cache = np.load('cache/m_mat-' + str(hash_config) + '.npy')
@@ -202,6 +189,7 @@ def plot_eigenfunctions():
         cont = quad_visu.plot(series, degree, factor, ax)
         ax.set_title("Eigenvalue: " + str(e_val))
         plt.colorbar(cont, ax=ax)
+    plt.show()
 
 
 def plot_hermite_functions():
@@ -240,10 +228,10 @@ def plot_discretization_error():
     plt.show()
 
 
-plot_hermite_functions()
 plot_eigenfunctions()
-plot_ground_state()
-plot_discretization_error()
-plot_comparison_with_asym()
+# plot_hermite_functions()
+# plot_ground_state()
+# plot_discretization_error()
+# plot_comparison_with_asym()
 
 # }}}
