@@ -246,20 +246,59 @@ if y_visu[-1] > y_max:
 
 plt.show()
 
-# }}}
-# PLOT HERMITE FUNCTION OF HIGHEST DEGREE {{{
+## PLOTS {{{
 
-# fig, ax = plt.subplots(1, 1)
-# ax.set_title("Hermite function of degree " + str(degree))
-# ax.axvline(x=x_min)
-# ax.axvline(x=x_max)
-# ax.set_ylim((-2, 2))
-# h_i = np.zeros(degree + 1)
-# h_i[degree] = 1
-# h_i = hm.Series(h_i, mean=['μx'], cov=[['σx']])
-# # Eh = quad_visu.eval(h_i, degree) * np.sqrt(factor_visu)
-# Eh = quad_visu_x.eval(h_i, degree) * factor_visu_x
-# ax.plot(x_visu, Eh)
-# plt.show()
+def plot_eigenfunctions():
+    fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
+    axes = (ax11, ax12, ax21, ax22)
+    for e_val, e_vec, ax in zip(eigen_values, eigen_vectors.T, axes):
+        e_vec = np.real(e_vec) * np.sign(np.real(e_vec[0]))
+        series = quad_num.series(e_vec, norm=True)
+        cont = quad_visu.plot(series, degree, factor, ax)
+        ax.set_title("Eigenvalue: " + str(e_val))
+        plt.colorbar(cont, ax=ax)
+
+
+def plot_hermite_functions():
+    fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
+    plot.plot_hf((degree, 0), quad_num, quad_visu, ax11)
+    plot.plot_hf((0, degree), quad_num, quad_visu, ax12)
+    plot.plot_hf((degree // 2, degree // 2), quad_num, quad_visu, ax21)
+    plt.show()
+
+
+def plot_ground_state():
+    ground_state = np.real(eigen_vectors.T[0])
+    ground_series = quad_num.series(ground_state, norm=True)
+    plot.plot_projections(ground_series, quad_visu, factor, degree)
+    plt.show()
+
+
+def plot_comparison_with_asym():
+    fig, ax = plt.subplots(1, 1)
+    as_sol = sym.exp(- params['βx'] * functions['Vp'])/factor_x
+    as_series = quad_num.project('x').transform(as_sol, degree, norm=True)
+    quad_visu.project('x').plot(as_series, degree, factor_x, ax)
+    plt.show()
+
+
+def plot_discretization_error():
+    fig, ax = plt.subplots(1, 2)
+    quad_visu_x = quad_visu.project('x')
+    as_sol = sym.exp(- params['βx'] * functions['Vp'])
+    as_series = quad_num.project('x').transform(as_sol/factor_x, degree)
+    norm_as = la.norm(as_series.coeffs, 2)
+    as_series.coeffs = as_series.coeffs / norm_as
+    quad_visu_x.plot(as_series, degree, factor_x, ax[0])
+    sol_x = quad_visu_x.discretize(as_sol)
+    ax[0].plot(quad_visu_x.discretize('x'), sol_x/norm_as)
+    plt.show()
+
+
+plot_hermite_functions()
+plot_eigenfunctions()
+plot_ground_state()
+plot_discretization_error()
+plot_comparison_with_asym()
 
 # }}}
