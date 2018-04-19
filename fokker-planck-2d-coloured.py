@@ -2,6 +2,7 @@
 
 # IMPORT MODULES {{{
 
+import hashlib
 import math
 import sympy as sym
 import sympy.printing as syp
@@ -21,9 +22,6 @@ sym.init_printing()
 
 # }}}
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
-
-config_dict = {**params, **functions, **numerics}
-hash_config = hash(frozenset(config_dict.items()))
 
 # Short-hand notation
 r = sym.Rational
@@ -98,7 +96,7 @@ m_operator = backward.diff(sp['m'])
 r_operator = (backward - sp['m']*m_operator).cancel()
 
 # }}}
-# DEFINE QUADRATURE FOR NUMERICS {{{
+# DEFINE QUADRATURES {{{
 
 # For numerics
 new_q = hm.Quad.gauss_hermite
@@ -112,18 +110,13 @@ x_max = numerics['μx'] + band_width * np.sqrt(numerics['σx'])
 y_min = 0 - band_width * np.sqrt(cov_y)
 y_max = 0 + band_width * np.sqrt(cov_y)
 
-# }}}
-# DEFINE QUADRATURES FOR VISUALIZATION {{{
-
+# For visualization
 nv = 200
 # bounds_x, bounds_y = band_width*np.sqrt('σx'), band_width*np.sqrt(cov_y)
 # bounds_x, bounds_y = 5*np.sqrt('σx'), 5*np.sqrt(cov_y)
 bounds_x, bounds_y = 3, 4
 
 quad_visu = hm.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y])
-
-# }}}
-# CALCULATE ASYMPTOTIC SOLUTION {{{
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
 
@@ -151,7 +144,9 @@ def compute_with_cache(cache):
         np.save('cache/r_mat-' + str(hash_config), r_mat)
         return m_mat, r_mat
 
-    if not cache:
+    if cache:
+        return m_mat_cache, r_mat_cache
+    else:
         m_mat, r_mat = call_discretize()
         assert la.norm(m_mat - m_mat_cache, 2) < 1e-10
         assert la.norm(r_mat - r_mat_cache, 2) < 1e-10
@@ -160,22 +155,34 @@ def compute_with_cache(cache):
 
 m_mat, r_mat = compute_with_cache(glob['cache'])
 
-# m_values = np.linspace(-1, 1, 11)
 
-
-m_num = 0
-# for i in range(10):
-#     total_mat = r_mat + m_num * m_mat
-
-
-# Calculate eigenvalues of largest real part
-print("Solving the eigenvalue problem...")
-mat_operator = r_mat
-sparse_operator = scipy.sparse.csr_matrix(mat_operator)
 asymptotic_sol_2d = sym.exp(- params['βx'] * functions['Vp']
                             - params['βy'] * functions['Vy'])
 v0 = quad_num.transform(asymptotic_sol_2d/factor, degree, norm=True).coeffs
-eigen_values, eigen_vectors = las.eigs(mat_operator, v0=v0, k=4, which='LR', ncv=10)
+
+# m_values = np.linspace(-1, 1, 11)
+m_values = [0]
+images = []
+x_series = quad_num.transform('x', degree)
+print(x_series)
+for m_val in m_values:
+    mat_operator = r_mat + m_val * m_mat
+    # Take dilation into account
+    print("Solving the eigenvalue problem...")
+    eigen_values, eigen_vectors = las.eigs(mat_operator, k=1, which='LR')
+    ground_state = np.real(eigen_vectors.T[0])
+    ground_state_series = quad_num.series(ground_state)
+    ground_state_x = ground_state_series.project('x')
+    quad_x = quad_num.project('x')
+    factor_quad = quad_x.factor_mapping()
+    grid_value = quad_x.discretize(x*factor_x/factor_quad**2)
+    eval_ground_state = quad_x.eval(ground_state_series, degree)
+    value = quad_x.integrate(grid_value*eval_ground_state)
+    print(value)
+
+
+# Calculate eigenvalues of largest real part
+# sparse_operator = scipy.sparse.csr_matrix(mat_operator)
 
 ## PLOTS {{{
 

@@ -1,5 +1,4 @@
 #  TODO: Ensure directions match (urbain, Wed 28 Mar 2018 11:55:08 AM BST)
-#  TODO: Why does varfd never produce error? (urbain, Wed 28 Mar 2018 12:41:14 PM BST)
 #  TODO: Add degree to series attributes
 
 

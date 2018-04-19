@@ -29,9 +29,9 @@ numerics['σx'] = r(1, 10)
 # Parameters of the equation
 params['βx'] = r(1)
 params['βy'] = r(1)
-params['ε']  = r(.5)
+params['ε']  = r(1)
 params['γ']  = r(0)
-params['θ']  = r(0)
+params['θ']  = r(1)
 
 # Parameters of the potential in the x equation
 # sym_params['mx'] = sym.symbols('mx', real=True)
