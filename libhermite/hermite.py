@@ -149,7 +149,7 @@ def multi_indices(dim, deg_max, deg_min=0):
 
 
 def split_operator(op, func, order):
-    variables = list(func.free_symbols)
+    variables = func.args
     result, rem, order = [], op.expand(), 2
     for m in multi_indices(len(variables), order):
         if rem == 0:
