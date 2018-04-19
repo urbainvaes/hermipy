@@ -132,10 +132,9 @@ def compute_with_cache(cache):
     args_m = [m_operator, f, degree, 2]
     args_r = [r_operator, f, degree, 2]
 
-    for e in args_m + args_r:
-        print(hash(e))
-
-    hash_config = hash(frozenset(args_m + args_r))
+    str_args = [str(e).encode('utf-8') for e in args_m + args_r]
+    hash_args = '-'.join(hashlib.md5(s).hexdigest() for s in str_args)
+    hash_config = hashlib.md5(hash_args.encode('utf-8')).hexdigest()
 
     def call_discretize():
         m_mat =  quad_num.discretize_op(*args_m)
