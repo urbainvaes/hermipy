@@ -175,7 +175,23 @@ def split_operator(op, func, order):
 
 class Series:
 
-    def __init__(self, coeffs, dim=1, mean=None, cov=None, norm=False):
+    @staticmethod
+    def natural_bissect(func, x1=0, x2=1000):
+        f1, f2 = func(x1), func(x2)
+        if f1 is 0:
+            return x1
+        elif f2 is 0:
+            return x2
+        assert f1*f2 < 0
+        x3 = (x1+x2)//2
+        f3 = func(x3)
+        replace_arg = 'x2' if f1*f3 <= 0 else 'x1'
+        new_args = {'x1': x1, 'x2': x2}
+        new_args[replace_arg] = x3
+        return Series.natural_bissect(func, **new_args)
+
+    def __init__(self, coeffs, dim=1, mean=None, cov=None,
+                 degree=None, norm=False):
         self.coeffs = coeffs/la.norm(coeffs, 2) if norm else coeffs
 
         self.dim = dim
@@ -186,6 +202,13 @@ class Series:
 
         eigval, eigvec = la.eig(self.cov)
         self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
+
+        if degree is None:
+            def obj(x):
+                return int(binom(x + self.dim, x)) - len(self.coeffs)
+            self.degree = Series.natural_bissect(obj)
+        else:
+            self.degree = degree
 
     @convert(to_numeric, 'direction')
     def project(self, direction):
@@ -252,12 +275,13 @@ class Quad:
         f_grid = self.discretize(function)
         coeffs = transform(degree, f_grid, self.nodes,
                            self.weights, forward=True)
-        return Series(coeffs, self.dim, self.mean, self.cov, norm=norm)
+        return Series(coeffs, self.dim, self.mean, self.cov,
+                      norm=norm, degree=degree)
 
-    def eval(self, series, degree):
+    def eval(self, series):
         if type(series) is np.ndarray:
             series = Series(series, self.dim, self.mean, self.cov)
-        coeffs = series.coeffs
+        degree, coeffs = series.degree, series.coeffs
         inv = la.inv(series.factor)
         translation = inv.dot(self.mean - series.mean)
         factor = inv * self.factor

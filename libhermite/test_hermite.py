@@ -77,7 +77,7 @@ class TestHermiteTransform(unittest.TestCase):
             coeffs[i] = 1
             factor = math.sqrt(math.factorial(i))
             hi_nodes_scipy = herm.hermeval(nodes_scipy, coeffs)
-            hi_nodes = quad.eval(coeffs, degree)
+            hi_nodes = quad.eval(coeffs)
             diff = sum(abs(hi_nodes_scipy/factor - hi_nodes))
             self.assertAlmostEqual(diff, 0)
 
@@ -85,7 +85,7 @@ class TestHermiteTransform(unittest.TestCase):
         degree = 10
         quad = hm.Quad.gauss_hermite(degree + 1)
         f_hermite = np.random.random(degree + 1)
-        f_grid = quad.eval(f_hermite, degree)
+        f_grid = quad.eval(f_hermite)
         f_hermite_new = quad.transform(f_grid, degree).coeffs
         diff = sum(abs(f_hermite - f_hermite_new))
         self.assertAlmostEqual(diff, 0)
@@ -96,7 +96,7 @@ class TestHermiteTransform(unittest.TestCase):
         quad_1 = hm.Quad.gauss_hermite(n_points, mean=[2.], cov=[[2.]])
         quad_2 = hm.Quad.gauss_hermite(n_points, mean=[-1.], cov=[[.1]])
         series = quad_1.transform('x', degree)
-        evaluation = quad_2.eval(series, degree)
+        evaluation = quad_2.eval(series)
         discretization = quad_2.discretize('x')
         self.assertAlmostEqual(la.norm(evaluation - discretization, 2), 0)
 
