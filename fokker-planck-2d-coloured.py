@@ -3,122 +3,198 @@
 # IMPORT MODULES {{{
 
 import hashlib
-import math
 import sympy as sym
 import sympy.printing as syp
 import sympy.plotting as splot
 import numpy as np
 import numpy.linalg as la
-import scipy.sparse
+# import scipy.sparse
 import scipy.sparse.linalg as las
 import matplotlib.pyplot as plt
 
 import plot
 import equation
+import config
 from libhermite import hermite as hm
-from config import glob, params, sym_params, functions, numerics
 
 sym.init_printing()
 
 # }}}
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
 
-# Short-hand notation
-r = sym.Rational
-
 # Variables and function
 x, y, f = equation.x, equation.y, equation.f
 
-# Parameters of approximating potential
-def gaussian(mean, var):
-    return r(.5)*(x - mean)*(x - mean)/(var)
+# Parameters
+params = {}
 
 
-sym_params['μx'] = sym.symbols('μx', real=True)
-sym_params['σx'] = sym.symbols('σx', real=True, positive=True)
-functions['Vq'] = gaussian(sym_params['μx'], sym_params['σx'])/sym_params['βx']
+class Parameter():
 
-# Real and functional parameters
-sym_functions = {}
-equation.fill_params(sym_params, sym_functions)
-sp, p = sym_params, params
+    def __init__(self, symbol, value, params={}, type="main"):
+        self.symbol = symbol
+        self.value = value
+        self.params = params
+        self.type = type
 
-# Parameters of potential in y equation
-alpha = sym.sqrt(2/sp['βy'])
-cov_y = 1/(alpha*sp['βy'])
-functions['Vy'] = y*y/(2*sp['βy']*cov_y)
+    def eval(self):
+        value = self.value
+        print(value)
+        sym_val = {params[k].symbol: params[k].value for k in params}
+        while value.free_symbols - {x, y, params['m'].symbol} != set():
+            for symbol in self.value.free_symbols:
+                if symbol in sym_val:
+                    value = value.subs(symbol, sym_val[symbol])
+        if value.free_symbols == set():
+            value = float(value)
+        print(value)
+        return value
 
-degree = numerics['degree']
-n_points_num = numerics['n_points_num']
 
-# Use cache
-cache = glob['cache']
-fastsym = True
+def eq_params():
+    eq_params = {}
+    for key, symbol in equation.forward_params().items():
+        value = config.eq[key] if key in config.eq else symbol
+        eq_params[key] = Parameter(symbol, value, type='equation')
+    return eq_params
 
-# }}}
-# ABSTRACT SYMBOLIC CALCULATIONS {{{
 
-# Fill missing params with symbolic values
-equation.fill_params(params, functions)
+def vy():
+    alpha = sym.sqrt(2/params['βy'].symbol)
+    σy = Parameter(sym.symbols('σy', real=True, positive=True),
+                   1/(alpha*params['βy'].symbol),
+                   type='equation')
+    Vy = Parameter(sym.Function('Vy')(y),
+                   y*y/(2*params['βy'].symbol*σy.symbol),
+                   type='equation')
+    return {'σy': σy, 'Vy': Vy}
 
-# Conversion lists
-all_params = { **params, **numerics }
-real_params = [(sym_params[k], all_params[k]) for k in sym_params]
-functional_params = [(sym_functions[k], functions[k]) for k in functions]
 
-# Evaluate parameters in functions
-for key in functions:
-    functions[key] = functions[key].subs(real_params)
-    functions[key] = functions[key].subs(real_params)
+def vq():
+    r = sym.Rational
+    symb = sym.symbols
+    μx = Parameter(symb('μx', real=True), config.num['μx'])
+    σx = Parameter(symb('σx', real=True, positive=True), config.num['σx'])
+    Vq = Parameter(sym.Function('Vq')(x),
+                   r(1, 2)*(x - μx.symbol)*(x - μx.symbol)/σx.symbol)
+    return {'μx': μx, 'σx': σx, 'Vq': Vq}
 
-# Operator
-param_factor = r(.5)
-forward, backward, factor_x, factor_y, factor = \
-        equation.operators(params, functions, param_factor)
 
-# Print operator to output
-# syp.pprint(backward)
+# Forward operator
+def forward_op(symbolic):
+    eq_params = {}
+    for k in params:
+        if params[k].type != 'equation':
+            continue
+        if symbolic == 2:
+            value = params[k].symbol
+        elif symbolic == 1:
+            is_func = params[k].value.free_symbols != set()
+            value = params[k].value if is_func else params[k].symbol
+        elif symbolic == 0:
+            value = params[k].eval()
+        eq_params[k] = value
+    return equation.forward(eq_params)
 
-cov_y = float(cov_y.subs(real_params))
+
+def factors(symbolic, λ):
+    βx = params['βx'].value if symbolic == 0 else params['βx'].symbol
+    βy = params['βy'].value if symbolic == 0 else params['βy'].symbol
+    if symbolic == 2:
+        Vy = params['Vy'].symbol
+        Vp = params['Vp'].symbol
+        Vq = params['Vq'].symbol
+    elif symbolic == 1:
+        Vy = params['Vy'].value
+        Vp = params['Vp'].value
+        Vq = params['Vq'].value
+    elif symbolic == 0:
+        Vy = params['Vy'].eval()
+        Vp = params['Vp'].eval()
+        Vq = params['Vq'].eval()
+    factor_x = sym.exp(-βx*(λ*Vq + (1-λ)*Vp))
+    factor_y = sym.exp(-βy*Vy)
+    factor = factor_x * factor_y
+    return factor_x, factor_y, factor
+
+
+def evaluate(expressions):
+    subs_list = [(params[key].symbol, params[key].eval())
+                 for key in params]
+    print(subs_list)
+    result = []
+    for expr in expressions:
+        result.append(expr.subs(subs_list))
+    return result
+
+
+# Parameters
+params.update(eq_params())
+params.update({**vy(), **vq()})
+
+# Forward operator
+forward = forward_op(config.glob['symbolic'])
+
+syp.pprint(forward)
+
+# Mapped backward operator
+factor_x, factor_y, factor = factors(config.glob['symbolic'], config.num['λ'])
+backward = equation.map_operator(forward, factor)
+
+forward, backward = evaluate([forward, backward])
+factor_x, factor_y, factor = evaluate([factor_x, factor_y, factor])
+
+syp.pprint(backward)
 
 for key in params:
-    if key is not 'm':
-        params[key] = float(params[key])
+    params[key].value = params[key].eval()
 
-for key in numerics:
-    numerics[key] = float(numerics[key])
+degree = config.num['degree']
+n_points_num = config.num['n_points_num']
 
-if functions['Vp'].diff(x, x, x) == 0:
-    solution = equation.solve_gaussian(forward)
-    splot.plot3d(solution.subs(real_params), (x, -1, 1), (y, -1, 1))
+# print(r_operator)
 
-m_operator = backward.diff(sp['m'])
-r_operator = (backward - sp['m']*m_operator).cancel()
 
 # }}}
-# DEFINE QUADRATURES {{{
+# Quadratures {{{
 
-# For numerics
-new_q = hm.Quad.gauss_hermite
-mean_xy, cov_xy = [numerics['μx'], 0], [[numerics['σx'], 0], [0, cov_y]]
-quad_num = new_q(n_points_num, dim=2, mean=mean_xy, cov=cov_xy)
+if params['Vp'].value.diff(x, x, x) == 0:
+    solution = equation.solve_gaussian(forward)
+    splot.plot3d(solution, (x, -1, 1), (y, -1, 1))
 
-# Calculate limits of resolution
-band_width = np.sqrt(2) * np.sqrt(2*degree + 1)
-x_min = numerics['μx'] - band_width * np.sqrt(numerics['σx'])
-x_max = numerics['μx'] + band_width * np.sqrt(numerics['σx'])
-y_min = 0 - band_width * np.sqrt(cov_y)
-y_max = 0 + band_width * np.sqrt(cov_y)
+m_operator = backward.diff(params['m'].symbol)
+r_operator = (backward - params['m'].symbol*m_operator).cancel()
 
-# For visualization
-nv = 200
-# bounds_x, bounds_y = band_width*np.sqrt('σx'), band_width*np.sqrt(cov_y)
-# bounds_x, bounds_y = 5*np.sqrt('σx'), 5*np.sqrt(cov_y)
-bounds_x, bounds_y = 3, 4
 
-quad_visu = hm.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y])
+def compute_quads():
+    μx = params['μx'].value
+    σx = params['σx'].value
+    σy = params['σy'].value
+
+    quad_num = hm.Quad.gauss_hermite(
+            config.num['n_points_num'], dim=2,
+            mean=[μx, 0], cov=[[σx, 0], [0, σy]])
+
+    # Calculate limits of resolution
+    band_width = np.sqrt(2) * np.sqrt(2*degree + 1)
+    # x_min = μx - band_width * np.sqrt(σx)
+    # x_max = μx + band_width * np.sqrt(σx)
+    # y_min = 0 - band_width * np.sqrt(σy)
+    # y_max = 0 + band_width * np.sqrt(σy)
+
+    # For visualization
+    nv = 200
+    # bounds_x, bounds_y = band_width*np.sqrt('σx'), band_width*np.sqrt(cov_y)
+    # bounds_x, bounds_y = 5*np.sqrt('σx'), 5*np.sqrt(cov_y)
+    bounds_x, bounds_y = 3, 4
+    quad_visu = hm.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y])
+    return quad_num, quad_visu
+
+quad_num, quad_visu = compute_quads()
+
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
+
 
 def compute_with_cache(cache):
 
@@ -130,8 +206,8 @@ def compute_with_cache(cache):
     hash_config = hashlib.md5(hash_args.encode('utf-8')).hexdigest()
 
     def call_discretize():
-        m_mat =  quad_num.discretize_op(*args_m)
-        r_mat =  quad_num.discretize_op(*args_r)
+        m_mat = quad_num.discretize_op(*args_m)
+        r_mat = quad_num.discretize_op(*args_r)
         return m_mat, r_mat
 
     try:
@@ -153,38 +229,43 @@ def compute_with_cache(cache):
 
     return m_mat, r_mat
 
-m_mat, r_mat = compute_with_cache(glob['cache'])
+
+m_mat, r_mat = compute_with_cache(config.glob['cache'])
 
 
-asymptotic_sol_2d = sym.exp(- params['βx'] * functions['Vp']
-                            - params['βy'] * functions['Vy'])
+asymptotic_sol_2d = sym.exp(- params['βx'].value * params['Vp'].value
+                            - params['βy'].value * params['Vy'].value)
 v0 = quad_num.transform(asymptotic_sol_2d/factor, degree, norm=True).coeffs
 
-# m_values = np.linspace(-1, 1, 11)
+m_values = np.linspace(-1, 1, 11)
 m_values = [0]
 images = []
 x_series = quad_num.transform('x', degree)
 print(x_series)
 for m_val in m_values:
+
     mat_operator = r_mat + m_val * m_mat
     # Take dilation into account
     print("Solving the eigenvalue problem...")
     eigen_values, eigen_vectors = las.eigs(mat_operator, k=1, which='LR')
+
     ground_state = np.real(eigen_vectors.T[0])
-    ground_state_series = quad_num.series(ground_state)
-    ground_state_x = ground_state_series.project('x')
+    ground_series = quad_num.series(ground_state, norm=True)
     quad_x = quad_num.project('x')
-    factor_quad = quad_x.factor_mapping()
-    grid_value = quad_x.discretize(x*factor_x/factor_quad**2)
-    eval_ground_state = quad_x.eval(ground_state_series, degree)
-    value = quad_x.integrate(grid_value*eval_ground_state)
+    value = quad_x.integrate(quad_x.eval(ground_series.project('x'))
+                             * quad_x.discretize(x*factor_x
+                                                 / quad_x.factor_mapping()**2))
+    # x_val = quad_x.discretize('x')
+    # factor_d = quad_x.discretize(factor)
     print(value)
+    # plt.plot(x_val, eval_ground_state*factor_d)
+    # plt.show()
 
 
 # Calculate eigenvalues of largest real part
 # sparse_operator = scipy.sparse.csr_matrix(mat_operator)
 
-## PLOTS {{{
+# PLOTS {{{
 
 def plot_eigenfunctions():
     fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
@@ -209,7 +290,8 @@ def plot_hermite_functions():
 def plot_ground_state():
     ground_state = np.real(eigen_vectors.T[0])
     ground_series = quad_num.series(ground_state, norm=True)
-    plot.plot_projections(ground_series, quad_visu, factor, degree)
+    factors = {'x': factor_x, 'y': factor_y.subs(y, x)}
+    plot.plot_projections(ground_series, quad_visu, factors, degree)
     plt.show()
 
 
@@ -236,7 +318,7 @@ def plot_discretization_error():
 
 plot_eigenfunctions()
 # plot_hermite_functions()
-# plot_ground_state()
+plot_ground_state()
 # plot_discretization_error()
 # plot_comparison_with_asym()
 

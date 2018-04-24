@@ -326,7 +326,7 @@ class Quad:
             coord = 'v[{}]'.format(i)
             n_nodes.append(len(self.nodes[i]))
             r_nodes.append(self.project(i).discretize('x'))
-        solution = self.eval(series, degree)*factor
+        solution = self.eval(series)*factor
         solution = solution.reshape(*n_nodes).T
         if self.dim == 1:
             return ax.plot(*r_nodes, solution)
