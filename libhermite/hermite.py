@@ -45,8 +45,10 @@ def convert_to_cpp_mat(mat):
     return cpp_mat
 
 
-def to_cpp_array(array):
-    dim = 0
+def to_cpp_array(*args):
+    if len(args) > 1:
+        return (to_cpp_array(arg) for arg in args)
+    array, dim = args[0], 0
     if type(array) in (list, np.ndarray):
         dim = 1
         if type(array[0]) in (list, np.ndarray):
@@ -71,18 +73,18 @@ def to_numeric(var):
         return var
 
 
-@convert(to_cpp_array, 'nodes', 'translation', 'dilation')
 def discretize(function, nodes, translation, dilation):
+    nodes, translation, dilation = to_cpp_array(nodes, translation, dilation)
     return np.array(hm.discretize(function, nodes, translation, dilation))
 
 
-@convert(to_cpp_array, 'fgrid', 'nodes', 'weights')
 def integrate(fgrid, nodes, weights):
+    fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
     return hm.integrate(fgrid, nodes, weights)
 
 
-@convert(to_cpp_array, 'fgrid', 'nodes', 'weights')
 def transform(degree, fgrid, nodes, weights, forward):
+    fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
     return np.array(hm.transform(degree, fgrid, nodes, weights, forward))
 
 
@@ -90,29 +92,25 @@ def triple_products(degree):
     return np.array(hm.triple_products(degree))
 
 
-@convert(to_cpp_array, 'fgrid', 'nodes', 'weights')
 def varf(degree, fgrid, nodes, weights):
+    fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
     return np.array(hm.varf(degree, fgrid, nodes, weights))
 
 
-@convert(to_cpp_array, 'var')
 def varfd(dim, degree, direction, var):
+    var = to_cpp_array(var)
     return np.array(hm.varfd(dim, degree, direction, var))
 
 
-@convert(to_cpp_array, 'inp')
 def tensorize(inp, dim, direction):
+    inp = to_cpp_array(inp)
     return np.array(hm.tensorize(inp, dim, direction))
 
 
-@convert(to_numeric, 'direction')
-def _project(inp, dim, direction):
-    return np.array(hm.project(inp, dim, direction))
-
-
-@convert(to_cpp_array, 'inp')
 def project(inp, dim, direction):
-    return _project(inp, dim, direction)
+    inp = to_cpp_array(inp)
+    direction = to_numeric(direction)
+    return np.array(hm.project(inp, dim, direction))
 
 
 def stringify(function):
@@ -209,8 +207,8 @@ class Series:
         else:
             self.degree = degree
 
-    @convert(to_numeric, 'direction')
     def project(self, direction):
+        direction = to_numeric(direction)
         p_coeffs = project(self.coeffs, self.dim, direction)
         return Series(p_coeffs,
                       mean=[self.mean[direction]],
@@ -303,8 +301,8 @@ class Quad:
         f_grid = self.discretize(function)
         return varf(degree, f_grid, self.nodes, self.weights)
 
-    @convert(to_numeric, 'directions')
     def varfd(self, function, degree, directions):
+        directions = to_numeric(directions)
         var = self.varf(function, degree)
         eigval, _ = la.eig(self.cov)
         for dir in directions:
@@ -349,8 +347,8 @@ class Quad:
                               * (var[j] - self.mean[j])
         return sym.exp(-potential)
 
-    @convert(to_numeric, 'direction')
     def project(self, direction):
+        direction = to_numeric(direction)
         return Quad([self.nodes[direction]],
                     [self.weights[direction]],
                     mean=[self.mean[direction]],
