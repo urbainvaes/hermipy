@@ -219,8 +219,8 @@ class Series:
 
 class Quad:
     def __init__(self, nodes, weights, mean=None, cov=None):
-        self.nodes = nodes
-        self.weights = weights
+        self.nodes = np.asarray(nodes, float)
+        self.weights = np.asarray(weights, float)
 
         self.dim = len(self.nodes)
         self.mean = np.zeros(self.dim) if mean is None \
@@ -233,10 +233,10 @@ class Quad:
 
         self.hash = hash(frozenset({
             self.dim,
-            hash(frozenset(np.flatten(self.nodes))),
-            hash(frozenset(np.flatten(self.weights))),
-            hash(frozenset(np.flatten(self.mean))),
-            hash(frozenset(np.flatten(self.cov)))}))
+            hash(frozenset(self.nodes.flatten())),
+            hash(frozenset(self.weights.flatten())),
+            hash(frozenset(self.mean.flatten())),
+            hash(frozenset(self.cov.flatten()))}))
 
     @classmethod
     def gauss_hermite(cls, n_points, dim=None, mean=None, cov=None):
