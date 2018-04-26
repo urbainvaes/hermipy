@@ -30,8 +30,8 @@ num['λ'] = r(1, 2)
 eq['βx'] = r(1)
 eq['βy'] = r(1)
 eq['ε'] = r(1)
-eq['γ'] = r(1)
-eq['θ'] = r(1)
+eq['γ'] = r(0)
+eq['θ'] = r(0)
 
 # Functional parameters of the equation
 eq['Vp'] = x**4/4 - x**2/2
@@ -39,8 +39,8 @@ eq['Vp'] = x**4/4 - x**2/2
 # Parameters of the potential in the x equation
 # sym_params['mx'] = sym.symbols('mx', real=True)
 # sym_params['sx'] = sym.symbols('sx', real=True, positive=True)
-# equation['mx'] = 0
-# equation['sx'] = 1
+# eq['mx'] = 0
+# eq['sx'] = 1
 # functions['Vp'] = gaussian(sp['mx'], sp['sx'])/sp['βx']
 
 # Miscellaneous parameters

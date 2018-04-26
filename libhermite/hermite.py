@@ -1,5 +1,7 @@
 #  TODO: Ensure directions match (urbain, Wed 28 Mar 2018 11:55:08 AM BST)
 #  TODO: Improve consistency of order of multi_indices (urbain, Thu 26 Apr 2018 03:20:41 PM BST)
+#  TODO: Implement composite quadrature (urbain, Thu 26 Apr 2018 03:21:55 PM BST)
+
 
 from .cpp import hermite_cpp as hm
 from scipy.special import binom

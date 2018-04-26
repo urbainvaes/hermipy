@@ -22,6 +22,9 @@ sym.init_printing()
 # }}}
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
 
+# Set library option
+hm.rc['cache'] = config.glob['cache']
+
 # Variables and function
 x, y, f = equation.x, equation.y, equation.f
 
@@ -193,40 +196,6 @@ quad_num, quad_visu = compute_quads()
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
 
 
-def compute_with_cache(cache):
-
-    args_m = [m_operator, f, degree, 2]
-    args_r = [r_operator, f, degree, 2]
-
-    str_args = [str(e).encode('utf-8') for e in args_m + args_r]
-    hash_args = '-'.join(hashlib.md5(s).hexdigest() for s in str_args)
-    hash_config = hashlib.md5(hash_args.encode('utf-8')).hexdigest()
-
-    def call_discretize():
-        m_mat = quad_num.discretize_op(*args_m)
-        r_mat = quad_num.discretize_op(*args_r)
-        return m_mat, r_mat
-
-    try:
-        m_mat_cache = np.load('cache/m_mat-' + str(hash_config) + '.npy')
-        r_mat_cache = np.load('cache/r_mat-' + str(hash_config) + '.npy')
-
-    except IOError:
-        m_mat, r_mat = call_discretize()
-        np.save('cache/m_mat-' + str(hash_config), m_mat)
-        np.save('cache/r_mat-' + str(hash_config), r_mat)
-        return m_mat, r_mat
-
-    if cache:
-        return m_mat_cache, r_mat_cache
-    else:
-        m_mat, r_mat = call_discretize()
-        assert la.norm(m_mat - m_mat_cache, 2) < 1e-10
-        assert la.norm(r_mat - r_mat_cache, 2) < 1e-10
-
-    return m_mat, r_mat
-
-
 def compute_m(series):
     quad_x = quad_num.project('x')
     series_x = series.project('x')
@@ -239,8 +208,8 @@ def compute_m(series):
     return moment1 / moment0
 
 
-
-m_mat, r_mat = compute_with_cache(config.glob['cache'])
+m_mat = quad_num.discretize_op(m_operator, f, degree, 2)
+r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
 
 
 # asymptotic_sol_2d = sym.exp(- params['βx'].value * params['Vp'].value
@@ -256,8 +225,8 @@ print(x_series)
 for m_val in m_values:
     mat_operator = r_mat + m_val * m_mat
     print("Solving the eigenvalue problem...")
-    eigen_values, eigen_vectors = las.eigs(mat_operator, k=1, which='LR')
-    ground_state = np.real(eigen_vectors.T[0])
+    eig_vals, eig_vecs = hm.cache(las.eigs)(mat_operator, k=1, which='LR')
+    ground_state = np.real(eig_vecs.T[0])
     ground_series = quad_num.series(ground_state, norm=True)
     value = compute_m(ground_series)
     images.append(value)
@@ -275,7 +244,7 @@ ax.plot(m_values, images)
 def plot_eigenfunctions():
     fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
     axes = (ax11, ax12, ax21, ax22)
-    for e_val, e_vec, ax in zip(eigen_values, eigen_vectors.T, axes):
+    for e_val, e_vec, ax in zip(eig_vals, eig_vecs.T, axes):
         e_vec = np.real(e_vec) * np.sign(np.real(e_vec[0]))
         series = quad_num.series(e_vec, norm=True)
         cont = quad_visu.plot(series, degree, factor, ax)
@@ -293,7 +262,7 @@ def plot_hermite_functions():
 
 
 def plot_ground_state():
-    ground_state = np.real(eigen_vectors.T[0])
+    ground_state = np.real(eig_vecs.T[0])
     ground_series = quad_num.series(ground_state, norm=True)
     factors = {'x': factor_x, 'y': factor_y.subs(y, x)}
     plot.plot_projections(ground_series, quad_visu, factors, degree)
