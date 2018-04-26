@@ -12,7 +12,6 @@ import numpy.polynomial.hermite_e as herm
 import sympy as sym
 import re
 import math
-import matplotlib.pyplot as plt
 
 from scipy.special import binom
 
@@ -232,6 +231,13 @@ class Quad:
         eigval, eigvec = la.eig(self.cov)
         self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
 
+        self.hash = hash(frozenset({
+            self.dim,
+            hash(frozenset(np.flatten(self.nodes))),
+            hash(frozenset(np.flatten(self.weights))),
+            hash(frozenset(np.flatten(self.mean))),
+            hash(frozenset(np.flatten(self.cov)))}))
+
     @classmethod
     def gauss_hermite(cls, n_points, dim=None, mean=None, cov=None):
         if dim is not None:
@@ -323,7 +329,6 @@ class Quad:
         n_nodes = []
         r_nodes = []
         for i in range(self.dim):
-            coord = 'v[{}]'.format(i)
             n_nodes.append(len(self.nodes[i]))
             r_nodes.append(self.project(i).discretize('x'))
         solution = self.eval(series)*factor
@@ -333,8 +338,8 @@ class Quad:
         elif self.dim == 2:
             return ax.contourf(*r_nodes, solution, 100)
 
-    def factor_mapping(self):
-        var = [sym.symbols('v'+ str(i)) for i in range(self.dim)]
+    def weight(self):
+        var = [sym.symbols('v' + str(i)) for i in range(self.dim)]
         inv_cov = la.inv(self.cov)
         potential = 0
         for i in range(self.dim):
@@ -342,7 +347,7 @@ class Quad:
                 potential += 0.5 * inv_cov[i][j] \
                               * (var[i] - self.mean[i]) \
                               * (var[j] - self.mean[j])
-        return sym.exp(-potential/2)
+        return sym.exp(-potential)
 
     @convert(to_numeric, 'direction')
     def project(self, direction):

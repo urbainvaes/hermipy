@@ -37,17 +37,6 @@ class Parameter():
         self.params = params
         self.type = type
 
-    def eval(self):
-        value = self.value
-        sym_val = {params[k].symbol: params[k].value for k in params}
-        while value.free_symbols - {x, y, params['m'].symbol} != set():
-            for symbol in self.value.free_symbols:
-                if symbol in sym_val:
-                    value = value.subs(symbol, sym_val[symbol])
-        # if value.free_symbols == set():
-        #     value = float(value)
-        return value
-
 
 def eq_params():
     eq_params = {}
@@ -117,17 +106,22 @@ def factors(symbolic, λ):
 
 
 def evaluate(expressions):
-    subs_list = [(params[key].symbol, params[key].eval())
-                 for key in params]
+    full_params = params.copy()
+    for key in params:
+        full_params.update(params[key].params)
+
+    subs_list = [(full_params[key].symbol, full_params[key].eval())
+                 for key in full_params]
+    print(subs_list)
     result = []
     for expr in expressions:
-        result.append(expr.subs(subs_list).doit().expand())
+        result.append(expr.subs(subs_list))
     return result
 
 
 # Parameters
 params.update(eq_params())
-params.update({**vy(), **vq()})
+params.update({'Vy': vy(), 'Vq': vq()})
 
 # Forward operator
 forward = forward_op(config.glob['symbolic'])
@@ -151,8 +145,9 @@ n_points_num = config.num['n_points_num']
 
 # print(r_operator)
 
+
 # }}}
-# DEFINE QUADRATURES {{{
+# Quadratures {{{
 
 if params['Vp'].value.diff(x, x, x) == 0:
     solution = equation.solve_gaussian(forward)
@@ -163,9 +158,9 @@ r_operator = (backward - params['m'].symbol*m_operator).cancel()
 
 
 def compute_quads():
-    μx = params['μx'].value
-    σx = params['σx'].value
-    σy = params['σy'].value
+    μx = params['Vq'].params['μx'].eval()
+    σx = params['Vq'].params['σx'].eval()
+    σy = params['Vy'].params['σy'].eval()
 
     quad_num = hm.Quad.gauss_hermite(
             config.num['n_points_num'], dim=2,
@@ -185,7 +180,6 @@ def compute_quads():
     bounds_x, bounds_y = 3, 4
     quad_visu = hm.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y])
     return quad_num, quad_visu
-
 
 quad_num, quad_visu = compute_quads()
 
@@ -227,45 +221,37 @@ def compute_with_cache(cache):
     return m_mat, r_mat
 
 
-def compute_m(series):
-    quad_x = quad_num.project('x')
-    series_x = series.project('x')
-    x_d = quad_x.discretize('x')
-    factor_d = quad_x.discretize(factor_x)
-    solution_d = quad_x.eval(series_x) * factor_d
-    weight_d = quad_x.discretize(quad_x.weight())
-    moment0 = quad_x.integrate(solution_d/weight_d)
-    moment1 = quad_x.integrate(solution_d/weight_d*x_d)
-    return moment1 / moment0
-
-
-
 m_mat, r_mat = compute_with_cache(config.glob['cache'])
 
 
-# asymptotic_sol_2d = sym.exp(- params['βx'].value * params['Vp'].value
-#                             - params['βy'].value * params['Vy'].value)
-# v0 = quad_num.transform(asymptotic_sol_2d/factor, degree, norm=True).coeffs
+asymptotic_sol_2d = sym.exp(- params['βx'].value * params['Vp'].value
+                            - params['βy'].value * params['Vy'].value)
+v0 = quad_num.transform(asymptotic_sol_2d/factor, degree, norm=True).coeffs
 
 m_values = np.linspace(-1, 1, 11)
 m_values = [0]
 images = []
 x_series = quad_num.transform('x', degree)
 print(x_series)
-
 for m_val in m_values:
+
     mat_operator = r_mat + m_val * m_mat
+    # Take dilation into account
     print("Solving the eigenvalue problem...")
     eigen_values, eigen_vectors = las.eigs(mat_operator, k=1, which='LR')
+
     ground_state = np.real(eigen_vectors.T[0])
     ground_series = quad_num.series(ground_state, norm=True)
-    value = compute_m(ground_series)
-    images.append(value)
+    quad_x = quad_num.project('x')
+    value = quad_x.integrate(quad_x.eval(ground_series.project('x'))
+                             * quad_x.discretize(x*factor_x
+                                                 / quad_x.factor_mapping()**2))
+    # x_val = quad_x.discretize('x')
+    # factor_d = quad_x.discretize(factor)
     print(value)
+    # plt.plot(x_val, eval_ground_state*factor_d)
+    # plt.show()
 
-fig, ax = plt.subplots(1, 1)
-ax.plot(m_values, m_values)
-ax.plot(m_values, images)
 
 # Calculate eigenvalues of largest real part
 # sparse_operator = scipy.sparse.csr_matrix(mat_operator)

@@ -45,7 +45,7 @@ def forward(params):
 
     # Fokker planck operator
     return d(d(Vp, x)*f + θ*(x-m)*f + (1-γ)*sym.sqrt(2/βx)*y*f/ε, x) \
-        + γ * (1/ε) * d(d(f, x), x) \
+        + γ**2/βx * (1/ε) * d(d(f, x), x) \
         + (1/ε**2) * d(d(Vy, y) * f, y) \
         + (1/ε**2) * (1/βy) * d(d(f, y), y)
 

@@ -30,7 +30,7 @@ num['λ'] = r(1, 2)
 eq['βx'] = r(1)
 eq['βy'] = r(1)
 eq['ε'] = r(1)
-eq['γ'] = r(0)
+eq['γ'] = r(1)
 eq['θ'] = r(1)
 
 # Functional parameters of the equation
@@ -44,5 +44,5 @@ eq['Vp'] = x**4/4 - x**2/2
 # functions['Vp'] = gaussian(sp['mx'], sp['sx'])/sp['βx']
 
 # Miscellaneous parameters
-glob['cache'] = False
+glob['cache'] = True
 glob['symbolic'] = 2
