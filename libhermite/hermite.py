@@ -1,35 +1,69 @@
 #  TODO: Ensure directions match (urbain, Wed 28 Mar 2018 11:55:08 AM BST)
-#  TODO: Add degree to series attributes
-
+#  TODO: Improve consistency of order of multi_indices (urbain, Thu 26 Apr 2018 03:20:41 PM BST)
 
 from .cpp import hermite_cpp as hm
-import numpy as np
-import inspect
+from scipy.special import binom
+import hashlib
 import itertools
-
+import math
+import numpy as np
 import numpy.linalg as la
 import numpy.polynomial.hermite_e as herm
-import sympy as sym
 import re
-import math
+import sympy as sym
 
-from scipy.special import binom
+rc = {'cache': False}
 
 
-def convert(conv_func, *names):
-    def convert(function):
-        sig = inspect.signature(function)
+def cache(function):
 
-        def wrapper(*args, **kwargs):
-            ba = sig.bind(*args, **kwargs)
-            args_od = ba.arguments
-            for key in args_od:
-                if key in names:
-                    arg = args_od[key]
-                    args_od[key] = conv_func(arg)
-            return function(**args_od)
-        return wrapper
-    return convert
+    def my_hash(argument):
+        if isinstance(argument, str):
+            encoded_str = argument.encode('utf-8')
+            return hashlib.md5(encoded_str).hexdigest()
+        elif isinstance(argument, np.ndarray):
+            return hashlib.md5(argument).hexdigest()
+        if isinstance(argument, tuple(sym.core.all_classes)):
+            return my_hash(str(argument))
+        elif isinstance(argument, (list, dict)):
+            return my_hash(hash(frozenset(argument)))
+        elif isinstance(argument, (int, float)):
+            return my_hash(str(hash(argument)))
+        elif isinstance(argument, Quad):
+            return my_hash(str(hash(argument)))
+        else:
+            raise ValueError("Argument type not supported")
+
+    def wrapper(*args, **kwargs):
+        hashes = [my_hash(function.__name__)]
+        for arg in args:
+            hashes.append(my_hash(arg))
+        for kw in kwargs:
+            hashes.append(my_hash(kw))
+            hashes.append(my_hash(kwargs[kw]))
+        hash_args = my_hash(('-'.join(hashes)))
+
+        try:
+            result_cache = np.load('cache/' + str(hash_args) + '.npy')
+        except IOError:
+            result = function(*args, **kwargs)
+            np.save('cache/' + str(hash_args), result)
+            return result
+
+        if rc['cache']:
+            return result_cache
+        else:
+            result = function(*args, **kwargs)
+            if isinstance(result, (float, int)):
+                error = abs(result - result_cache)
+            elif isinstance(result, np.ndarray):
+                error = la.norm(result - result_cache, 2)
+            else:
+                raise ValueError("Invalid return type")
+            assert error < 1e-10
+            return result
+
+    return wrapper
 
 
 def convert_to_cpp_vec(vec):
@@ -73,40 +107,48 @@ def to_numeric(var):
         return var
 
 
+@cache
 def discretize(function, nodes, translation, dilation):
     nodes, translation, dilation = to_cpp_array(nodes, translation, dilation)
     return np.array(hm.discretize(function, nodes, translation, dilation))
 
 
+@cache
 def integrate(fgrid, nodes, weights):
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
     return hm.integrate(fgrid, nodes, weights)
 
 
+@cache
 def transform(degree, fgrid, nodes, weights, forward):
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
     return np.array(hm.transform(degree, fgrid, nodes, weights, forward))
 
 
+@cache
 def triple_products(degree):
     return np.array(hm.triple_products(degree))
 
 
+@cache
 def varf(degree, fgrid, nodes, weights):
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
     return np.array(hm.varf(degree, fgrid, nodes, weights))
 
 
+@cache
 def varfd(dim, degree, direction, var):
     var = to_cpp_array(var)
     return np.array(hm.varfd(dim, degree, direction, var))
 
 
+@cache
 def tensorize(inp, dim, direction):
     inp = to_cpp_array(inp)
     return np.array(hm.tensorize(inp, dim, direction))
 
 
+@cache
 def project(inp, dim, direction):
     inp = to_cpp_array(inp)
     direction = to_numeric(direction)
@@ -235,6 +277,9 @@ class Quad:
             hash(frozenset(self.weights.flatten())),
             hash(frozenset(self.mean.flatten())),
             hash(frozenset(self.cov.flatten()))}))
+
+    def __hash__(self):
+        return self.hash
 
     @classmethod
     def gauss_hermite(cls, n_points, dim=None, mean=None, cov=None):
