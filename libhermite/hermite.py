@@ -37,7 +37,7 @@ def cache(function):
             raise ValueError("Argument type not supported")
 
     def wrapper(*args, **kwargs):
-        hashes = [my_hash(function.__name__)]
+        hashes, prefix = [], function.__name__
         for arg in args:
             hashes.append(my_hash(arg))
         for kw in kwargs:
@@ -46,10 +46,11 @@ def cache(function):
         hash_args = my_hash(('-'.join(hashes)))
 
         try:
-            result_cache = np.load('cache/' + str(hash_args) + '.npy')
+            result_cache = np.load('cache/' + prefix + '-'
+                                   + str(hash_args) + '.npy')
         except IOError:
             result = function(*args, **kwargs)
-            np.save('cache/' + str(hash_args), result)
+            np.save('cache/' + prefix + '-' + str(hash_args), result)
             return result
 
         if rc['cache']:

@@ -23,7 +23,7 @@ sym.init_printing()
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
 
 # Set library option
-hm.rc['cache'] = config.glob['cache']
+hm.rc['cache'] = config.misc['cache']
 
 # Variables and function
 x, y, f = equation.x, equation.y, equation.f
@@ -74,10 +74,11 @@ def vy():
 def vq():
     r = sym.Rational
     symb = sym.symbols
+    βx = params['βx']
     μx = Parameter(symb('μx', real=True), config.num['μx'])
     σx = Parameter(symb('σx', real=True, positive=True), config.num['σx'])
-    Vq = Parameter(sym.Function('Vq')(x),
-                   r(1, 2)*(x - μx.symbol)*(x - μx.symbol)/σx.symbol)
+    Vq = Parameter(sym.Function('Vq')(x), r(1, 2) *
+                   (x - μx.symbol)*(x - μx.symbol)/(σx.symbol*βx.symbol))
     return {'μx': μx, 'σx': σx, 'Vq': Vq}
 
 
@@ -133,12 +134,12 @@ params.update(eq_params())
 params.update({**vy(), **vq()})
 
 # Forward operator
-forward = forward_op(config.glob['symbolic'])
+forward = forward_op(config.misc['symbolic'])
 
 syp.pprint(forward)
 
 # Mapped backward operator
-factor_x, factor_y, factor = factors(config.glob['symbolic'], config.num['λ'])
+factor_x, factor_y, factor = factors(config.misc['symbolic'], config.num['λ'])
 backward = equation.map_operator(forward, factor)
 
 forward, backward = evaluate([forward, backward])
@@ -151,8 +152,6 @@ for key in params:
 
 degree = config.num['degree']
 n_points_num = config.num['n_points_num']
-
-# print(r_operator)
 
 # }}}
 # DEFINE QUADRATURES {{{
@@ -216,18 +215,22 @@ r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
 #                             - params['βy'].value * params['Vy'].value)
 # v0 = quad_num.transform(asymptotic_sol_2d/factor, degree, norm=True).coeffs
 
-m_values = np.linspace(-1, 1, 11)
-m_values = [0]
+m_values = np.linspace(-2, 2, 41)
+# m_values = [0]
 images = []
 x_series = quad_num.transform('x', degree)
-print(x_series)
 
 for m_val in m_values:
     mat_operator = r_mat + m_val * m_mat
     print("Solving the eigenvalue problem...")
     eig_vals, eig_vecs = hm.cache(las.eigs)(mat_operator, k=1, which='LR')
     ground_state = np.real(eig_vecs.T[0])
+    ground_state = ground_state * np.sign(ground_state[0])
     ground_series = quad_num.series(ground_state, norm=True)
+    # fig, ax = plt.subplots(1, 1)
+    # cont = quad_visu.plot(ground_series, degree, factor, ax)
+    # plt.colorbar(cont, ax=ax)
+    # plt.show()
     value = compute_m(ground_series)
     images.append(value)
     print(value)
@@ -240,6 +243,7 @@ ax.plot(m_values, images)
 # sparse_operator = scipy.sparse.csr_matrix(mat_operator)
 
 # PLOTS {{{
+
 
 def plot_eigenfunctions():
     fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
@@ -263,6 +267,7 @@ def plot_hermite_functions():
 
 def plot_ground_state():
     ground_state = np.real(eig_vecs.T[0])
+    ground_state = ground_state * np.sign(ground_state[0])
     ground_series = quad_num.series(ground_state, norm=True)
     factors = {'x': factor_x, 'y': factor_y.subs(y, x)}
     plot.plot_projections(ground_series, quad_visu, factors, degree)
@@ -290,7 +295,7 @@ def plot_discretization_error():
     plt.show()
 
 
-plot_eigenfunctions()
+# plot_eigenfunctions()
 # plot_hermite_functions()
 plot_ground_state()
 # plot_discretization_error()
