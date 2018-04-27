@@ -1,17 +1,19 @@
 #!/usr/bin/env python
 
+#  TODO: Error with project (urbain, Fri 27 Apr 2018 05:23:07 PM BST)
+
+
 # IMPORT MODULES {{{
 
-import hashlib
+import argparse
 import sympy as sym
 import sympy.printing as syp
 import sympy.plotting as splot
+import multiprocessing
 import numpy as np
 import numpy.linalg as la
-# import scipy.sparse
 import scipy.sparse.linalg as las
 import matplotlib.pyplot as plt
-
 import plot
 import equation
 import config
@@ -19,11 +21,29 @@ from libhermite import hermite as hm
 
 sym.init_printing()
 
+# Parse options
+parser = argparse.ArgumentParser()
+parser.add_argument('-b', '--beta', type=str, help='Value of βx')
+parser.add_argument('-t', '--theta', type=str, help='Value of θ')
+parser.add_argument('-e', '--epsilon', type=str, help='Value of ε')
+parser.add_argument('-m', '--mass', type=str, help='Value of m')
+parser.add_argument('-v', '--verbose', action='store_true', \
+                    help='Enable verbose output')
+args = parser.parse_args()
+
+if args.beta:
+    config.eq['βx'] = sym.Rational(args.beta)
+if args.theta:
+    config.eq['θ'] = sym.Rational(args.theta)
+if args.epsilon:
+    config.eq['ε'] = sym.Rational(args.epsilon)
+
+
 # }}}
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
 
 # Set library option
-hm.rc['cache'] = config.misc['cache']
+hm.settings['cache'] = config.misc['cache']
 
 # Variables and function
 x, y, f = equation.x, equation.y, equation.f
@@ -57,6 +77,10 @@ def eq_params():
     for key, symbol in equation.forward_params().items():
         value = config.eq[key] if key in config.eq else symbol
         eq_params[key] = Parameter(symbol, value, type='equation')
+    extra_symbols = config.eq['Vp'].free_symbols - {x}
+    for symbol in extra_symbols:
+        key = str(symbol)
+        eq_params[key] = Parameter(symbol, config.eq[key], type='equation')
     return eq_params
 
 
@@ -136,7 +160,6 @@ params.update({**vy(), **vq()})
 # Forward operator
 forward = forward_op(config.misc['symbolic'])
 
-syp.pprint(forward)
 
 # Mapped backward operator
 factor_x, factor_y, factor = factors(config.misc['symbolic'], config.num['λ'])
@@ -145,7 +168,9 @@ backward = equation.map_operator(forward, factor)
 forward, backward = evaluate([forward, backward])
 factor_x, factor_y, factor = evaluate([factor_x, factor_y, factor])
 
-syp.pprint(backward)
+if args.verbose:
+    syp.pprint(forward)
+    syp.pprint(backward)
 
 for key in params:
     params[key].value = params[key].eval()
@@ -153,15 +178,9 @@ for key in params:
 degree = config.num['degree']
 n_points_num = config.num['n_points_num']
 
+
 # }}}
 # DEFINE QUADRATURES {{{
-
-if params['Vp'].value.diff(x, x, x) == 0:
-    solution = equation.solve_gaussian(forward)
-    splot.plot3d(solution, (x, -1, 1), (y, -1, 1))
-
-m_operator = backward.diff(params['m'].symbol)
-r_operator = (backward - params['m'].symbol*m_operator).cancel()
 
 
 def compute_quads():
@@ -194,7 +213,6 @@ quad_num, quad_visu = compute_quads()
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
 
-
 def compute_m(series):
     quad_x = quad_num.project('x')
     series_x = series.project('x')
@@ -207,37 +225,65 @@ def compute_m(series):
     return moment1 / moment0
 
 
+def compute_moment1(m_val):
+    if args.verbose:
+        print("Solving the eigenvalue problem for m = " + str(m_val) + ".")
+    mat_operator = r_mat + m_val * m_mat
+    eig_vals, eig_vecs = hm.cache(las.eigs)(mat_operator, k=1, which='LR')
+    ground_state = np.real(eig_vecs.T[0])
+    ground_state = ground_state * np.sign(ground_state[0])
+    ground_series = quad_num.series(ground_state, norm=True)
+    value = compute_m(ground_series)
+    if args.verbose:
+        print(value)
+    fig, ax = plt.subplots(1, 1)
+    cont = quad_visu.plot(ground_series, degree, factor, ax)
+    plt.colorbar(cont, ax=ax)
+    plt.show()
+    return value
+
+m_operator = backward.diff(params['m'].symbol)
+r_operator = (backward - params['m'].symbol*m_operator).cancel()
 m_mat = quad_num.discretize_op(m_operator, f, degree, 2)
 r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
 
+if args.mass:
+    print(compute_moment1(float(args.mass)))
+    exit(0)
+
+
+# def normalize(series):
+
+
+# def compare(m_val):
+#     mat_operator = r_mat + m_val * m_mat
+
+
+if params['Vp'].value.diff(x, x, x) == 0 and params['θ'].value == 0:
+    solution = equation.solve_gaussian(forward)
+    splot.plot3d(solution, (x, -1, 1), (y, -1, 1))
 
 # asymptotic_sol_2d = sym.exp(- params['βx'].value * params['Vp'].value
 #                             - params['βy'].value * params['Vy'].value)
 # v0 = quad_num.transform(asymptotic_sol_2d/factor, degree, norm=True).coeffs
 
 m_values = np.linspace(-2, 2, 41)
-# m_values = [0]
+m_values = [0]
 images = []
 x_series = quad_num.transform('x', degree)
 
-for m_val in m_values:
-    mat_operator = r_mat + m_val * m_mat
-    print("Solving the eigenvalue problem...")
-    eig_vals, eig_vecs = hm.cache(las.eigs)(mat_operator, k=1, which='LR')
-    ground_state = np.real(eig_vecs.T[0])
-    ground_state = ground_state * np.sign(ground_state[0])
-    ground_series = quad_num.series(ground_state, norm=True)
-    # fig, ax = plt.subplots(1, 1)
-    # cont = quad_visu.plot(ground_series, degree, factor, ax)
-    # plt.colorbar(cont, ax=ax)
-    # plt.show()
-    value = compute_m(ground_series)
-    images.append(value)
-    print(value)
+if config.misc['parallel']:
+    with multiprocessing.Pool() as p:
+        images = p.map(compute_moment1, m_values)
+else:
+    for m_val in m_values:
+        images.append(compute_moment1(m_val))
 
 fig, ax = plt.subplots(1, 1)
 ax.plot(m_values, m_values)
 ax.plot(m_values, images)
+plt.show()
+exit(0)
 
 # Calculate eigenvalues of largest real part
 # sparse_operator = scipy.sparse.csr_matrix(mat_operator)

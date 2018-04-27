@@ -51,12 +51,15 @@ def forward(params):
 
 
 def solve_gaussian(operator):
-    cx, cxy, cy = sym.symbols('cx cxy cy')
-    ansatz = sym.exp(-(cx*x*x + cxy*x*y + cy*y*y))
+    cx, cxy, cy = sym.symbols('sol_cx sol_cxy sol_cy')
+    ansatz = sym.exp(-sym.Rational(1, 2)*(cx*x*x + 2*cxy*x*y + cy*y*y))
     res = (operator.subs(f, ansatz)/ansatz).doit().cancel()
     coeffs_dict = res.as_poly(x, y).as_dict()
     coeffs_list = list(coeffs_dict[k] for k in coeffs_dict)
     (sol_cx, sol_cxy, sol_cy) = sym.solve(coeffs_list, cx, cxy, cy)[0]
     solution = ansatz.subs([(cx, sol_cx), (cxy, sol_cxy), (cy, sol_cy)])
     assert operator.subs(f, solution).doit().expand() == 0
+    determinant = sol_cx * sol_cy - sol_cxy * sol_cxy
+    factor = sym.sqrt(determinant) / (2*sym.pi)
+    solution = factor * solution
     return solution

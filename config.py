@@ -23,22 +23,21 @@ num['σx'] = r(1, 10)
 num['λ'] = r(1, 2)
 
 # Scalar parameters of the equation
-eq['βx'] = r(5)
+eq['βx'] = r(2)
 eq['βy'] = r(1)
 eq['ε'] = r(1)
 eq['γ'] = r(0)
-eq['θ'] = r(1)
+eq['θ'] = r(0)
 
 # Functional parameters of the equation
-eq['Vp'] = x**4/4 - x**2/2
+# eq['Vp'] = x**4/4 - x**2/2
 
-# Parameters of the potential in the x equation
-# sym_params['mx'] = sym.symbols('mx', real=True)
-# sym_params['sx'] = sym.symbols('sx', real=True, positive=True)
-# eq['mx'] = 0
-# eq['sx'] = 1
-# functions['Vp'] = gaussian(sp['mx'], sp['sx'])/sp['βx']
+mx = sym.symbols('mx', real=True)
+sx = sym.symbols('sx', real=True, positive=True)
+eq['sx'] = r(1)
+eq['Vp'] = r(.5)*x*x/sx
 
 # Miscellaneous parameters
 misc['cache'] = True
-misc['symbolic'] = 0  # Values 0, 1, 2
+misc['parallel'] = False
+misc['symbolic'] = 2  # Values 0, 1, 2

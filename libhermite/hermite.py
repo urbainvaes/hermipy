@@ -2,7 +2,6 @@
 #  TODO: Improve consistency of order of multi_indices (urbain, Thu 26 Apr 2018 03:20:41 PM BST)
 #  TODO: Implement composite quadrature (urbain, Thu 26 Apr 2018 03:21:55 PM BST)
 
-
 from .cpp import hermite_cpp as hm
 from scipy.special import binom
 import hashlib
@@ -14,7 +13,7 @@ import numpy.polynomial.hermite_e as herm
 import re
 import sympy as sym
 
-rc = {'cache': False}
+settings = {'cache': False}
 
 
 def cache(function):
@@ -53,7 +52,7 @@ def cache(function):
             np.save('cache/' + prefix + '-' + str(hash_args), result)
             return result
 
-        if rc['cache']:
+        if settings['cache']:
             return result_cache
         else:
             result = function(*args, **kwargs)
