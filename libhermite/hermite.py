@@ -1,5 +1,4 @@
 #  TODO: Ensure directions match (urbain, Wed 28 Mar 2018 11:55:08 AM BST)
-#  TODO: Improve consistency of order of multi_indices (urbain, Thu 26 Apr 2018 03:20:41 PM BST)
 #  TODO: Implement composite quadrature (urbain, Thu 26 Apr 2018 03:21:55 PM BST)
 
 from .cpp import hermite_cpp as hm
@@ -157,6 +156,11 @@ def project(inp, dim, direction):
     return np.array(hm.project(inp, dim, direction))
 
 
+def multi_indices(dim, degree):
+    result = hm.list_multi_indices(dim, degree)
+    return np.asarray(result, dtype=int)
+
+
 def stringify(function):
     if isinstance(function, int) or isinstance(function, float):
         return str(function)
@@ -180,11 +184,6 @@ def hermegauss_nd(n_points):
         nodes_multidim.append(nodes_1d)
         weights_multidim.append(weights_1d)
     return nodes_multidim, weights_multidim
-
-
-def multi_indices(dim, degree):
-    result = hm.list_multi_indices(dim, degree)
-    return np.asarray(result, dtype=int)
 
 
 def split_operator(op, func, order):
@@ -344,6 +343,9 @@ class Quad:
                          self.weights, forward=False)
 
     def varf(self, function, degree):
+        diag = la.norm(self.cov - np.diag(np.diag(self.cov)), 2) < 1e-10
+        if diag and isinstance(function, tuple(sym.core.all_classes)):
+            pass
         f_grid = self.discretize(function)
         return varf(degree, f_grid, self.nodes, self.weights)
 

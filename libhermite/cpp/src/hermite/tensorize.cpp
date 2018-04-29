@@ -21,6 +21,7 @@ bool isAligned(ivec m, u_int dir)
     return true;
 }
 
+// TODO: Tensorize two vectors (urbain, Sun 29 Apr 2018 09:18:08 PM BST)
 vec tensorize_vec(vec input, u_int dim, u_int dir)
 {
     u_int degree = input.size() - 1;
