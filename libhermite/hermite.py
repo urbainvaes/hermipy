@@ -182,10 +182,9 @@ def hermegauss_nd(n_points):
     return nodes_multidim, weights_multidim
 
 
-#  TODO: Ensure consistency (urbain, Thu 12 Apr 2018 09:16:39 AM BST)
-def multi_indices(dim, deg_max, deg_min=0):
-    return [m for m in itertools.product(range(deg_max+1), repeat=dim) if
-            sum(m) <= deg_max and sum(m) >= deg_min]
+def multi_indices(dim, degree):
+    result = hm.list_multi_indices(dim, degree)
+    return np.asarray(result, dtype=int)
 
 
 def split_operator(op, func, order):

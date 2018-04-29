@@ -16,6 +16,7 @@ namespace hermite {
             else
             {
                 sum += 1;
+                multi_index[dim - 1] = 0;
                 multi_index[0] = sum;
             }
             return;

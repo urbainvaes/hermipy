@@ -73,6 +73,14 @@ BOOST_PYTHON_MODULE(hermite_cpp)
         .def(vector_indexing_suite<cube>())
         ;
 
+    class_<ivec>("int_vec")
+        .def(vector_indexing_suite<ivec>())
+        ;
+
+    class_<imat>("int_mat")
+        .def(vector_indexing_suite<imat>())
+        ;
+
     def("discretize", discretize_from_string);
     def("integrate", integrate);
     def("list_cube_indices", list_cube_indices);
