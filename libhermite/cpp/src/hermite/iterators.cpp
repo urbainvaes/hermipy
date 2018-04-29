@@ -8,20 +8,23 @@ namespace hermite {
     void Multi_index_iterator::increment()
     {
         unsigned int i = dim - 1;
-        while(sum == upper_bound && i > 0)
+        while(multi_index[i] == 0 && i > 0)
         {
-            sum -= multi_index[i];
-            multi_index[i] = 0;
             i -= 1;
         }
-        if (i == 0 && sum == upper_bound)
+        if (i > 0)
         {
-            full = true;
+            multi_index[i-1] += multi_index[i];
+            multi_index[i] = 0;
+        }
+        else if (sum < upper_bound)
+        {
+            multi_index[0] += 1;
+            sum += 1;
         }
         else
         {
-            multi_index[i] += 1;
-            sum += 1;
+            full = true;
         }
     }
 

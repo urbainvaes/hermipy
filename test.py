@@ -1,3 +1,2 @@
-import sympy as sym
-x = sym.symbols('x')
-print(hash(x))
+def multi_indices(degree):
+    a = 1

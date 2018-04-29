@@ -2,7 +2,6 @@
 
 #  TODO: Error with project (urbain, Fri 27 Apr 2018 05:23:07 PM BST)
 
-
 # IMPORT MODULES {{{
 
 import argparse
@@ -27,7 +26,7 @@ parser.add_argument('-b', '--beta', type=str, help='Value of βx')
 parser.add_argument('-t', '--theta', type=str, help='Value of θ')
 parser.add_argument('-e', '--epsilon', type=str, help='Value of ε')
 parser.add_argument('-m', '--mass', type=str, help='Value of m')
-parser.add_argument('-v', '--verbose', action='store_true', \
+parser.add_argument('-v', '--verbose', action='store_true',
                     help='Enable verbose output')
 args = parser.parse_args()
 
@@ -178,7 +177,6 @@ for key in params:
 degree = config.num['degree']
 n_points_num = config.num['n_points_num']
 
-
 # }}}
 # DEFINE QUADRATURES {{{
 
@@ -288,6 +286,7 @@ exit(0)
 # Calculate eigenvalues of largest real part
 # sparse_operator = scipy.sparse.csr_matrix(mat_operator)
 
+# }}}
 # PLOTS {{{
 
 
