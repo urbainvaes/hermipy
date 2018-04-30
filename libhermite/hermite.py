@@ -25,7 +25,11 @@ def cache(function):
             return hashlib.md5(argument).hexdigest()
         if isinstance(argument, tuple(sym.core.all_classes)):
             return my_hash(str(argument))
-        elif isinstance(argument, (list, dict)):
+        elif isinstance(argument, list):
+            hashes = [my_hash(e) for e in argument]
+            return my_hash(hash(frozenset(hashes)))
+        elif isinstance(argument, dict):
+            hashes = {kw: my_hash(argument[kw]) for kw in argument}
             return my_hash(hash(frozenset(argument)))
         elif isinstance(argument, (int, float)):
             return my_hash(str(hash(argument)))
@@ -80,6 +84,13 @@ def convert_to_cpp_mat(mat):
     return cpp_mat
 
 
+def convert_to_cpp_cube(cube):
+    cpp_cube = hm.double_cube()
+    for mat in cube:
+        cpp_cube.append(convert_to_cpp_mat(mat))
+    return cpp_cube
+
+
 def to_cpp_array(*args):
     if len(args) > 1:
         return (to_cpp_array(arg) for arg in args)
@@ -88,10 +99,14 @@ def to_cpp_array(*args):
         dim = 1
         if type(array[0]) in (list, np.ndarray):
             dim = 2
+            if type(array[0][0]) in (list, np.ndarray):
+                dim = 3
     if dim is 1:
         array = convert_to_cpp_vec(array)
     elif dim is 2:
         array = convert_to_cpp_mat(array)
+    elif dim is 3:
+        array = convert_to_cpp_cube(array)
     return array
 
 
