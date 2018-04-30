@@ -235,30 +235,6 @@ def split_operator(op, func, order):
     return result
 
 
-def x_ify(function):
-    if not isinstance(function, tuple(sym.core.all_classes)):
-        return function
-    symbols = list(function.free_symbols)
-    if symbols == []:
-        return function
-    assert len(symbols) == 1
-    return function.subs(symbols[0], sym.symbols('x'))
-
-
-def split_product(expression, symbols):
-    is_mul = isinstance(expression, sym.mul.Mul)
-    args = expression.args if is_mul else [expression]
-    result = {str(s): sym.Rational('1') for s in symbols}
-    for arg in args:
-        str_symbols = [str(s) for s in arg.free_symbols]
-        if len(str_symbols) == 0:
-            result['x'] *= arg
-        elif len(str_symbols) == 1:
-            result[str_symbols[0]] *= x_ify(arg)
-        else:
-            return False
-    return result
-
 
 class Series:
 
@@ -329,6 +305,69 @@ class Quad:
     def __hash__(self):
         return self.hash
 
+    def tensorize_at(arg_num):
+        def x_ify(function):
+            if not isinstance(function, tuple(sym.core.all_classes)):
+                return function
+            symbols = list(function.free_symbols)
+            if symbols == []:
+                return function
+            assert len(symbols) == 1
+            return function.subs(symbols[0], sym.symbols('x'))
+
+        def split_product(expression, symbols):
+            is_mul = isinstance(expression, sym.mul.Mul)
+            args = expression.args if is_mul else [expression]
+            result = {str(s): sym.Rational('1') for s in symbols}
+            for arg in args:
+                str_symbols = [str(s) for s in arg.free_symbols]
+                if len(str_symbols) == 0:
+                    result['x'] *= arg
+                elif len(str_symbols) == 1:
+                    result[str_symbols[0]] *= x_ify(arg)
+                else:
+                    return False
+            return result
+
+        def tensorize_arg(func):
+            def wrapper(*args, **kwargs):
+                do_tensorize = True
+                if 'tensorize' in kwargs:
+                    do_tensorize = kwargs['tensorize']
+                    del kwargs['tensorize']
+                if not do_tensorize:
+                    return func(*args, **kwargs)
+                function = args[arg_num]
+                is_sym = isinstance(function, tuple(sym.core.all_classes))
+                if not is_sym:
+                    return func(*args, **kwargs)
+                quad, function = args[0], function.expand()
+                if isinstance(function, sym.add.Add):
+                    add_terms, results = function.args, []
+                    for term in add_terms:
+                        new_args = list(args).copy()
+                        new_args[arg_num] = term
+                        func_term = func(*new_args, **kwargs)
+                        results.append(func_term)
+                    return sum(results)
+                diag_cov = np.diag(np.diag(quad.cov))
+                is_diag = la.norm(quad.cov - diag_cov, 2) < 1e-10
+                if quad.dim > 1 and is_diag:
+                    dirs = (['x', 'y', 'z'])[0:quad.dim]
+                    split_term = split_product(function, dirs)
+                    if split_term is False:
+                        return func(*args, **kwargs)
+                    func_dirs = []
+                    for d in dirs:
+                        new_args = list(args).copy()
+                        new_args[0] = quad.project(d)
+                        new_args[arg_num] = split_term[d]
+                        func_dir = func(*new_args, **kwargs)
+                        func_dirs.append(func_dir)
+                    return tensorize(func_dirs)
+            return wrapper
+        return tensorize_arg
+
     @classmethod
     def gauss_hermite(cls, n_points, dim=None, mean=None, cov=None):
         if dim is not None:
@@ -390,28 +429,8 @@ class Quad:
         return transform(degree, coeffs, mapped_nodes,
                          self.weights, forward=False)
 
+    @tensorize_at(1)
     def varf(self, function, degree, split=2):
-        is_sym = isinstance(function, tuple(sym.core.all_classes))
-        if is_sym and split > 0:
-            function = function.expand()
-            if isinstance(function, sym.add.Add):
-                add_args, results = function.args, []
-                for arg in add_args:
-                    varf_arg = self.varf(arg, degree, split=split)
-                    results.append(varf_arg)
-                return sum(results)
-            is_diag = la.norm(self.cov - np.diag(np.diag(self.cov)), 2) < 1e-10
-            if self.dim > 1 and split > 1 and is_diag:
-                dirs = (['x', 'y', 'z'])[0:self.dim]
-                split_arg = split_product(function, dirs)
-                if split_arg is False:
-                    return self.varf(function, degree, project=False)
-                varf_dirs = []
-                for d in dirs:
-                    quad_dir = self.project(d)
-                    v_dir = quad_dir.varf(split_arg[d], degree, split=0)
-                    varf_dirs.append(v_dir)
-                return tensorize(varf_dirs)
         f_grid = self.discretize(function)
         return varf(degree, f_grid, self.nodes, self.weights)
 

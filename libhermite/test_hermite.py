@@ -135,10 +135,9 @@ class TestHermiteVarf(unittest.TestCase):
         quad = hm.Quad.gauss_hermite(n_points, dim=2)
         x, y = sym.symbols('x y')
         function = x*x*sym.cos(x) + sym.exp(y)*x + sym.sqrt(2) + 2
-        v1 = quad.varf(function, degree, split=0)
-        v2 = quad.varf(function, degree, split=1)
-        v3 = quad.varf(function, degree, split=2)
-        diff = la.norm(v1 - v2, 2) + la.norm(v2 - v3, 2)
+        v1 = quad.varf(function, degree, tensorize=False)
+        v2 = quad.varf(function, degree, tensorize=True)
+        diff = la.norm(v1 - v2, 2)
         self.assertAlmostEqual(diff, 0)
 
 
