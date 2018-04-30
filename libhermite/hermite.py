@@ -159,9 +159,13 @@ def varfd(dim, degree, direction, var):
 
 
 @cache
-def tensorize(inp, dim, direction):
+def tensorize(inp, dim=None, direction=None):
     inp = to_cpp_array(inp)
-    return np.array(hm.tensorize(inp, dim, direction))
+    if dim is not None and direction is not None:
+        args = [inp, dim, direction]
+    else:
+        args = [inp]
+    return np.array(hm.tensorize(*args))
 
 
 @cache

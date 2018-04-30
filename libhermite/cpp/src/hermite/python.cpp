@@ -87,6 +87,8 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     def("list_multi_indices", list_multi_indices);
     def("project", project_vec);
     def("project", project_mat);
+    def("tensorize", tensorize_vecs);
+    def("tensorize", tensorize_mats);
     def("tensorize", tensorize_vec);
     def("tensorize", tensorize_mat);
     def("transform", transform);

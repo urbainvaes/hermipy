@@ -22,10 +22,10 @@ bool isAligned(ivec m, u_int dir)
     return true;
 }
 
-vec tensorize_vecs(mat input)
+vec tensorize_vecs(mat inputs)
 {
-    u_int dim = input.size();
-    u_int degree = input[0].size() - 1;
+    u_int dim = inputs.size();
+    u_int degree = inputs[0].size() - 1;
     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
     vec results(n_polys, 0.);
 
@@ -36,7 +36,7 @@ vec tensorize_vecs(mat input)
         results[i] = 1;
         for (j = 0; j < dim; j++)
         {
-            results[i] *= input[j][m[j]];
+            results[i] *= inputs[j][m[j]];
         }
     }
     return results;
@@ -51,10 +51,10 @@ vec tensorize_vec(vec input, u_int dim, u_int dir)
     return tensorize_vecs(vecs);
 }
 
-mat tensorize_mats(cube input)
+mat tensorize_mats(cube inputs)
 {
-    u_int dim = input.size();
-    u_int degree = input[0].size() - 1;
+    u_int dim = inputs.size();
+    u_int degree = inputs[0].size() - 1;
     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
     mat results(n_polys, vec(n_polys, 0.));
 
@@ -68,7 +68,7 @@ mat tensorize_mats(cube input)
             results[i][j] = 1.;
             for (k = 0; k < dim; k++)
             {
-                results[i][j] *= input[k][m1[k]][m2[k]];
+                results[i][j] *= inputs[k][m1[k]][m2[k]];
             }
         }
     }

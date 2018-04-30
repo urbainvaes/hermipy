@@ -153,6 +153,32 @@ class TestTensorize(unittest.TestCase):
         diff = (la.norm(varf_2d - tensorized_varf_1d, 2))
         self.assertAlmostEqual(diff, 0)
 
+    def test_tensorize_vectors(self):
+        n_points = 200
+        degree = 10
+        f, fx, fy = 'exp(x) * (y*y*y)', 'exp(x)', 'x*x*x'
+        quad_1d = hm.Quad.gauss_hermite(n_points, dim=1)
+        quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
+        coeffs_x = quad_1d.transform(fx, degree).coeffs
+        coeffs_y = quad_1d.transform(fy, degree).coeffs
+        coeffs_2d = quad_2d.transform(f, degree).coeffs
+        tensorized_coeffs = hm.tensorize([coeffs_x, coeffs_y])
+        diff = la.norm(coeffs_2d - tensorized_coeffs, 2)
+        self.assertAlmostEqual(diff, 0)
+
+    def test_tensorize_matrices(self):
+        n_points = 200
+        degree = 10
+        f, fx, fy = 'exp(x) * (y*y*y)', 'exp(x)', 'x*x*x'
+        quad_1d = hm.Quad.gauss_hermite(n_points, dim=1)
+        quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
+        varf_x = quad_1d.varf(fx, degree)
+        varf_y = quad_1d.varf(fy, degree)
+        varf_2d = quad_2d.varf(f, degree)
+        tensorized_varf = hm.tensorize([varf_x, varf_y])
+        diff = la.norm(varf_2d - tensorized_varf, 2)
+        self.assertAlmostEqual(diff, 0)
+
     def test_project_vector(self):
         n_points = 200
         degree = 10
