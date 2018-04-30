@@ -1,10 +1,14 @@
-#  TODO: Ensure directions match (urbain, Wed 28 Mar 2018 11:55:08 AM BST)
-#  TODO: Implement composite quadrature (urbain, Thu 26 Apr 2018 03:21:55 PM BST)
+# TODO: Add support for sparse matrices
+# TODO: Implement composite quadrature
+# TODO: Ensure directions match
+# TODO: Improve separability
+# TODO: Ensure variables v[0] and x can be used interchangeably
+# TODO: Implement project to two dimensions
+# TODO: Add function class?
 
 from .cpp import hermite_cpp as hm
 from scipy.special import binom
 import hashlib
-import itertools
 import math
 import numpy as np
 import numpy.linalg as la
@@ -231,6 +235,31 @@ def split_operator(op, func, order):
     return result
 
 
+def x_ify(function):
+    if not isinstance(function, tuple(sym.core.all_classes)):
+        return function
+    symbols = list(function.free_symbols)
+    if symbols == []:
+        return function
+    assert len(symbols) == 1
+    return function.subs(symbols[0], sym.symbols('x'))
+
+
+def split_product(expression, symbols):
+    is_mul = isinstance(expression, sym.mul.Mul)
+    args = expression.args if is_mul else [expression]
+    result = {str(s): sym.Rational('1') for s in symbols}
+    for arg in args:
+        str_symbols = [str(s) for s in arg.free_symbols]
+        if len(str_symbols) == 0:
+            result['x'] *= arg
+        elif len(str_symbols) == 1:
+            result[str_symbols[0]] *= x_ify(arg)
+        else:
+            return False
+    return result
+
+
 class Series:
 
     @staticmethod
@@ -361,10 +390,28 @@ class Quad:
         return transform(degree, coeffs, mapped_nodes,
                          self.weights, forward=False)
 
-    def varf(self, function, degree):
-        diag = la.norm(self.cov - np.diag(np.diag(self.cov)), 2) < 1e-10
-        if diag and isinstance(function, tuple(sym.core.all_classes)):
-            pass
+    def varf(self, function, degree, split=2):
+        is_sym = isinstance(function, tuple(sym.core.all_classes))
+        if is_sym and split > 0:
+            function = function.expand()
+            if isinstance(function, sym.add.Add):
+                add_args, results = function.args, []
+                for arg in add_args:
+                    varf_arg = self.varf(arg, degree, split=split)
+                    results.append(varf_arg)
+                return sum(results)
+            is_diag = la.norm(self.cov - np.diag(np.diag(self.cov)), 2) < 1e-10
+            if self.dim > 1 and split > 1 and is_diag:
+                dirs = (['x', 'y', 'z'])[0:self.dim]
+                split_arg = split_product(function, dirs)
+                if split_arg is False:
+                    return self.varf(function, degree, project=False)
+                varf_dirs = []
+                for d in dirs:
+                    quad_dir = self.project(d)
+                    v_dir = quad_dir.varf(split_arg[d], degree, split=0)
+                    varf_dirs.append(v_dir)
+                return tensorize(varf_dirs)
         f_grid = self.discretize(function)
         return varf(degree, f_grid, self.nodes, self.weights)
 

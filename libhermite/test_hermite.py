@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 import numpy.polynomial.hermite_e as herm
 import numpy.linalg as la
+import sympy as sym
 import math
 
 
@@ -127,6 +128,18 @@ class TestHermiteVarf(unittest.TestCase):
         bk_ou = quad.varfd('1', degree, [0, 0]) - quad.varfd('x', degree, [0])
         off_diag = bk_ou - np.diag(np.diag(bk_ou))
         self.assertAlmostEqual(la.norm(off_diag, 2), 0)
+
+    def test_varf_split(self):
+        n_points = 100
+        degree = 10
+        quad = hm.Quad.gauss_hermite(n_points, dim=2)
+        x, y = sym.symbols('x y')
+        function = x*x*sym.cos(x) + sym.exp(y)*x + sym.sqrt(2) + 2
+        v1 = quad.varf(function, degree, split=0)
+        v2 = quad.varf(function, degree, split=1)
+        v3 = quad.varf(function, degree, split=2)
+        diff = la.norm(v1 - v2, 2) + la.norm(v2 - v3, 2)
+        self.assertAlmostEqual(diff, 0)
 
 
 class TestTensorize(unittest.TestCase):
