@@ -5,6 +5,7 @@
 # TODO: Ensure variables v[0] and x can be used interchangeably
 # TODO: Implement project to two dimensions
 # TODO: Add function class?
+# TODO: Can varfd be tensorized?
 
 from .cpp import hermite_cpp as hm
 from scipy.special import binom
@@ -407,6 +408,7 @@ class Quad:
         f_grid = self.discretize(function)
         return integrate(f_grid, self.nodes, self.weights)
 
+    @tensorize_at(1)
     def transform(self, function, degree, norm=False):
         f_grid = self.discretize(function)
         coeffs = transform(degree, f_grid, self.nodes,
@@ -443,7 +445,6 @@ class Quad:
             var = var/np.sqrt(eigval[dir])
         return var
 
-    #  TODO: Improvement: tensorize when possible
     def discretize_op(self, op, func, degree, order):
         npolys = int(binom(degree + self.dim, degree))
         mat_operator = np.zeros((npolys, npolys))
