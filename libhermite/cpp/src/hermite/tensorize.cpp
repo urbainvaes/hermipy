@@ -21,22 +21,33 @@ bool isAligned(ivec m, u_int dir)
     return true;
 }
 
-// TODO: Tensorize two vectors (urbain, Sun 29 Apr 2018 09:18:08 PM BST)
-vec tensorize_vec(vec input, u_int dim, u_int dir)
+vec tensorize_vecs(mat input)
 {
-    u_int degree = input.size() - 1;
+    u_int dim = input.size();
+    u_int degree = input[0].size() - 1;
     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
     vec results(n_polys, 0.);
 
     Multi_index_iterator m(dim, degree);
     for (u_int i = 0; !m.isFull(); i++, m.increment())
     {
-        if (isAligned(m.get(), dir))
+        results[i] = 1;
+        for (u_int j = 0; j < dim; j++)
         {
-            results[i] = input[m[dir]];
+            results[i] *= input[j][m[j]];
         }
     }
     return results;
+}
+
+// TODO: Tensorize two vectors (urbain, Sun 29 Apr 2018 09:18:08 PM BST)
+vec tensorize_vec(vec input, u_int dim, u_int dir)
+{
+    u_int degree = input.size() - 1;
+    vec cst(degree + 1, 0.); cst[0] = 1;
+    mat vecs(dim, cst);
+    vecs[dir] = input;
+    return tensorize_vecs(vecs);
 }
 
 mat tensorize_mat(mat input, u_int dim, u_int dir)
