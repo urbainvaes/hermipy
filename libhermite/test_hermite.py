@@ -5,6 +5,13 @@ import numpy.polynomial.hermite_e as herm
 import numpy.linalg as la
 import sympy as sym
 import math
+import os
+import tempfile
+
+settings = {'cache': False, 'cachedir': '/tmp/test_hermite'}
+hm.settings.update(settings)
+if not os.path.exists(settings['cachedir']):
+    os.makedirs(settings['cachedir'])
 
 
 class TestIntegrate(unittest.TestCase):
@@ -68,18 +75,17 @@ class TestIntegrate(unittest.TestCase):
         self.assertAlmostEqual(integral, 1.)
 
     def test_l2_non_aligned(self):
-        dim = 1
-        rand_mat = np.random.random((dim, dim))
-        mean = np.random.random(dim)
-        cov = np.matmul(rand_mat.T, rand_mat)
+        dim = 2
+        cov = [[3, 1], [1, 6]]
+        mean = [0.5, 1]
         quad_ali = hm.Quad.gauss_hermite(50, dim=dim, mean=mean, cov=cov)
         quad_std = hm.Quad.gauss_hermite(50, dim=dim)
         gaussian_ali = quad_ali.weight()
         gaussian_std = quad_std.weight()
         integral_1 = quad_ali.integrate(gaussian_std, l2=True)
         integral_2 = quad_std.integrate(gaussian_ali, l2=True)
-        self.assertAlmostEqual(integral_1, 1.)
-        self.assertAlmostEqual(integral_2, 1.)
+        self.assertTrue(abs(integral_1 - 1.) < .01)
+        self.assertTrue(abs(integral_2 - 1.) < .01)
 
 
 class TestHermiteTransform(unittest.TestCase):
@@ -237,3 +243,42 @@ class TestTensorize(unittest.TestCase):
         projection = hm.project(varf_2d, 2, 0)
         diff = (la.norm(varf_1d - projection, 2))
         self.assertAlmostEqual(diff, 0)
+
+
+class TestCache(unittest.TestCase):
+
+    def setUp(self):
+        x, y = sym.symbols('x y')
+        n_points, dim = 100, 2
+        self.quad = hm.Quad.gauss_hermite(n_points, dim=dim)
+        self.function = x*x*sym.cos(x) + sym.exp(y)*x + sym.sqrt(2) + 2
+        self.cachedir = tempfile.TemporaryDirectory()
+        hm.settings['cachedir'] = self.cachedir.name
+        hm.settings['cache'] = True
+
+    def tearDown(self):
+        self.cachedir.cleanup()
+        hm.settings.update(settings)
+
+    def test_varf(self):
+        degree = 30
+        self.quad.varf(self.function, degree)
+        n_files_1 = len(os.listdir(self.cachedir.name))
+        self.quad.varf(self.function, degree)
+        n_files_2 = len(os.listdir(self.cachedir.name))
+        self.assertEqual(n_files_1, n_files_2)
+
+    def test_transform(self):
+        degree = 30
+        self.quad.transform(self.function, degree)
+        n_files_1 = len(os.listdir(self.cachedir.name))
+        self.quad.transform(self.function, degree)
+        n_files_2 = len(os.listdir(self.cachedir.name))
+        self.assertEqual(n_files_1, n_files_2)
+
+    def test_integrate(self):
+        self.quad.integrate(self.function)
+        n_files_1 = len(os.listdir(self.cachedir.name))
+        self.quad.integrate(self.function)
+        n_files_2 = len(os.listdir(self.cachedir.name))
+        self.assertEqual(n_files_1, n_files_2)
