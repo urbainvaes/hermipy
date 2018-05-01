@@ -170,6 +170,9 @@ def varfd(dim, degree, direction, var):
 
 @cache
 def tensorize(inp, dim=None, direction=None):
+    is_scalar = isinstance(inp[0], (float, int))
+    if is_scalar and dim is None and direction is None:
+        return np.prod(inp)
     inp = to_cpp_array(inp)
     if dim is not None and direction is not None:
         args = [inp, dim, direction]
@@ -241,7 +244,6 @@ def split_operator(op, func, order):
     return result
 
 
-
 class Series:
 
     @staticmethod
@@ -278,6 +280,13 @@ class Series:
             self.degree = Series.natural_bissect(obj)
         else:
             self.degree = degree
+
+    def __add__(self, other):
+        assert abs(self.dim - other.dim) < 1e-8
+        assert la.norm(self.mean - other.mean, 2) < 1e-8
+        assert la.norm(self.cov - other.cov, 2) < 1e-8
+        new_coeffs = self.coeffs + other.coeffs
+        return Series(new_coeffs, dim=self.dim, mean=self.mean, cov=self.cov)
 
     def project(self, direction):
         direction = to_numeric(direction)
@@ -411,6 +420,7 @@ class Quad:
                                   self.mean, self.factor)
         return function
 
+    @tensorize_at(1)
     def integrate(self, function, l2=False):
         f_grid = self.discretize(function)
         if l2:
@@ -442,7 +452,7 @@ class Quad:
                          self.weights, forward=False)
 
     @tensorize_at(1)
-    def varf(self, function, degree, split=2):
+    def varf(self, function, degree):
         f_grid = self.discretize(function)
         return varf(degree, f_grid, self.nodes, self.weights)
 
@@ -495,11 +505,12 @@ class Quad:
                     mean=[self.mean[direction]],
                     cov=[[self.cov[direction][direction]]])
 
-    def series(self, coeffs, norm=False):
+    def series(self, coeffs, degree=None, norm=False):
         return Series(coeffs,
                       dim=self.dim,
                       mean=self.mean,
                       cov=self.cov,
+                      degree=degree,
                       norm=norm)
 
 
