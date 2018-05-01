@@ -17,6 +17,7 @@ import plot
 import equation
 import config
 from libhermite import hermite as hm
+from scipy.special import binom
 
 sym.init_printing()
 
@@ -240,8 +241,10 @@ def compute_moment1(m_val):
     plt.show()
     return value
 
+
 m_operator = backward.diff(params['m'].symbol)
 r_operator = (backward - params['m'].symbol*m_operator).cancel()
+print("Discretizing operators")
 m_mat = quad_num.discretize_op(m_operator, f, degree, 2)
 r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
 
@@ -250,16 +253,43 @@ if args.mass:
     exit(0)
 
 
-# def normalize(series):
-
-
-# def compare(m_val):
-#     mat_operator = r_mat + m_val * m_mat
+def convergence():
+    solution = equation.solve_gaussian(forward)
+    norm_sol = quad_num.integrate(solution, l2=True)
+    assert abs(norm_sol - 1) < 1e-6
+    v0 = None
+    for d in range(5, degree):
+        npolys = int(binom(d + 2, d))
+        sub_mat = (r_mat[0:npolys, 0:npolys]).copy(order='C')
+        # sub_mat = sub_mat
+        if v0 is not None:
+            actual_v0 = np.zeros(npolys)
+            for i in range(len(v0)):
+                actual_v0[i] = v0[i]
+            v0 = actual_v0
+            eig_vals, eig_vecs = hm.cache(las.eigs)(sub_mat, v0=v0, k=1, which='LR')
+        else:
+            eig_vals, eig_vecs = hm.cache(las.eigs)(sub_mat, k=1, which='LR')
+        ground_state = np.real(eig_vecs.T[0])
+        v0 = ground_state.copy(order='C')
+        ground_state = ground_state * np.sign(ground_state[0])
+        ground_series = quad_num.series(ground_state)
+        ground_state_eval = quad_num.eval(ground_series)
+        factor_eval = quad_num.discretize(factor)
+        ground_state_eval = ground_state_eval * factor_eval
+        norm = quad_num.integrate(ground_state_eval, l2=True)
+        ground_state_eval = ground_state_eval / norm
+        solution_eval = quad_num.discretize(solution)
+        print(la.norm(ground_state_eval - solution_eval, 2))
+    fig, ax = plt.subplots(1, 1)
+    cont = quad_visu.plot(ground_series, degree, factor, ax)
+    plt.colorbar(cont, ax=ax)
+    plt.show()
+    # splot.contour(solution, (x, -1, 1), (y, -1, 1))
 
 
 if params['Vp'].value.diff(x, x, x) == 0 and params['θ'].value == 0:
-    solution = equation.solve_gaussian(forward)
-    splot.plot3d(solution, (x, -1, 1), (y, -1, 1))
+    convergence()
 
 # asymptotic_sol_2d = sym.exp(- params['βx'].value * params['Vp'].value
 #                             - params['βy'].value * params['Vy'].value)
@@ -342,7 +372,7 @@ def plot_discretization_error():
 
 # plot_eigenfunctions()
 # plot_hermite_functions()
-plot_ground_state()
+# plot_ground_state()
 # plot_discretization_error()
 # plot_comparison_with_asym()
 

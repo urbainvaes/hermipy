@@ -1,11 +1,12 @@
 # TODO: Add support for sparse matrices
 # TODO: Implement composite quadrature
 # TODO: Ensure directions match
-# TODO: Improve separability
 # TODO: Ensure variables v[0] and x can be used interchangeably
 # TODO: Implement project to two dimensions
 # TODO: Add function class?
 # TODO: Can varfd be tensorized?
+
+# TODO: Improve separability: for example f(x,y) * g(z)
 
 from .cpp import hermite_cpp as hm
 from scipy.special import binom
@@ -123,11 +124,11 @@ def to_cpp_array(*args):
 def to_numeric(var):
     if isinstance(var, list):
         return [to_numeric(v) for v in var]
-    if var == 'x' or var == sym.Symbol('x'):
+    if var == 'x' or var == sym.Symbol('x') or var == 'v[0]':
         return 0
-    elif var == 'y' or var == sym.Symbol('y'):
+    elif var == 'y' or var == sym.Symbol('y') or var == 'v[1]':
         return 1
-    elif var == 'z' or var == sym.Symbol('z'):
+    elif var == 'z' or var == sym.Symbol('z') or var == 'v[2]':
         return 2
     else:
         return var
@@ -168,7 +169,6 @@ def varfd(dim, degree, direction, var):
     return np.array(hm.varfd(dim, degree, direction, var))
 
 
-@cache
 def tensorize(inp, dim=None, direction=None):
     is_scalar = isinstance(inp[0], (float, int))
     if is_scalar and dim is None and direction is None:
@@ -181,7 +181,6 @@ def tensorize(inp, dim=None, direction=None):
     return np.array(hm.tensorize(*args))
 
 
-@cache
 def project(inp, dim, direction):
     inp = to_cpp_array(inp)
     direction = to_numeric(direction)
@@ -465,6 +464,7 @@ class Quad:
             var = var/np.sqrt(eigval[dir])
         return var
 
+    @cache
     def discretize_op(self, op, func, degree, order):
         npolys = int(binom(degree + self.dim, degree))
         mat_operator = np.zeros((npolys, npolys))
