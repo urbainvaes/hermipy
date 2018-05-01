@@ -56,12 +56,13 @@ def cache(function):
             hashes.append(my_hash(kwargs[kw]))
         hash_args = my_hash(('-'.join(hashes)))
 
+        cachedir = settings['cachedir']
+        savefile = cachedir + '/' + prefix + '-' + str(hash_args) + '.npy'
         try:
-            result_cache = np.load('cache/' + prefix + '-'
-                                   + str(hash_args) + '.npy')
+            result_cache = np.load(savefile)
         except IOError:
             result = function(*args, **kwargs)
-            np.save('cache/' + prefix + '-' + str(hash_args), result)
+            np.save(savefile, result)
             return result
 
         if settings['cache']:
@@ -327,16 +328,17 @@ class Quad:
             for arg in args:
                 str_symbols = [str(s) for s in arg.free_symbols]
                 if len(str_symbols) == 0:
-                    result['x'] *= arg
+                    result['v[0]'] *= arg
                 elif len(str_symbols) == 1:
-                    result[str_symbols[0]] *= x_ify(arg)
+                    x_ified = stringify(str_symbols[0])
+                    result[x_ified] *= x_ify(arg)
                 else:
                     return False
             return result
 
         def tensorize_arg(func):
             def wrapper(*args, **kwargs):
-                do_tensorize = True
+                do_tensorize = settings['tensorize_default']
                 if 'tensorize' in kwargs:
                     do_tensorize = kwargs['tensorize']
                     del kwargs['tensorize']
@@ -354,22 +356,23 @@ class Quad:
                         new_args[arg_num] = term
                         func_term = func(*new_args, **kwargs)
                         results.append(func_term)
-                    return sum(results)
+                    return sum(results[1:], results[0])
                 diag_cov = np.diag(np.diag(quad.cov))
                 is_diag = la.norm(quad.cov - diag_cov, 2) < 1e-10
-                if quad.dim > 1 and is_diag:
-                    dirs = (['x', 'y', 'z'])[0:quad.dim]
-                    split_term = split_product(function, dirs)
-                    if split_term is False:
-                        return func(*args, **kwargs)
-                    func_dirs = []
-                    for d in dirs:
-                        new_args = list(args).copy()
-                        new_args[0] = quad.project(d)
-                        new_args[arg_num] = split_term[d]
-                        func_dir = func(*new_args, **kwargs)
-                        func_dirs.append(func_dir)
-                    return tensorize(func_dirs)
+                if quad.dim == 1 or not is_diag:
+                    return func(*args, **kwargs)
+                dirs = (['v[0]', 'v[1]', 'v[2]'])[0:quad.dim]
+                split_term = split_product(function, dirs)
+                if split_term is False:
+                    return func(*args, **kwargs)
+                func_dirs = []
+                for d in dirs:
+                    new_args = list(args).copy()
+                    new_args[0] = quad.project(d)
+                    new_args[arg_num] = split_term[d]
+                    func_dir = func(*new_args, **kwargs)
+                    func_dirs.append(func_dir)
+                return tensorize(func_dirs)
             return wrapper
         return tensorize_arg
 
