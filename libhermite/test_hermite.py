@@ -57,6 +57,30 @@ class TestIntegrate(unittest.TestCase):
                 cov_ij = quad.integrate(fun)
                 self.assertAlmostEqual(cov_ij, cov[i][j])
 
+    def test_l2_aligned(self):
+        dim = 1
+        rand_mat = np.random.random((dim, dim))
+        mean = np.random.random(dim)
+        cov = np.matmul(rand_mat.T, rand_mat)
+        quad_aligned = hm.Quad.gauss_hermite(8, dim=dim, mean=mean, cov=cov)
+        gaussian = quad_aligned.weight()
+        integral = quad_aligned.integrate(gaussian, l2=True)
+        self.assertAlmostEqual(integral, 1.)
+
+    def test_l2_non_aligned(self):
+        dim = 1
+        rand_mat = np.random.random((dim, dim))
+        mean = np.random.random(dim)
+        cov = np.matmul(rand_mat.T, rand_mat)
+        quad_ali = hm.Quad.gauss_hermite(50, dim=dim, mean=mean, cov=cov)
+        quad_std = hm.Quad.gauss_hermite(50, dim=dim)
+        gaussian_ali = quad_ali.weight()
+        gaussian_std = quad_std.weight()
+        integral_1 = quad_ali.integrate(gaussian_std, l2=True)
+        integral_2 = quad_std.integrate(gaussian_ali, l2=True)
+        self.assertAlmostEqual(integral_1, 1.)
+        self.assertAlmostEqual(integral_2, 1.)
+
 
 class TestHermiteTransform(unittest.TestCase):
 

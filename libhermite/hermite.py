@@ -404,8 +404,11 @@ class Quad:
                                   self.mean, self.factor)
         return function
 
-    def integrate(self, function):
+    def integrate(self, function, l2=False):
         f_grid = self.discretize(function)
+        if l2:
+            w_grid = self.discretize(self.weight())
+            f_grid = f_grid / w_grid
         return integrate(f_grid, self.nodes, self.weights)
 
     @tensorize_at(1)
@@ -454,6 +457,7 @@ class Quad:
             mat_operator += self.varfd(coeff, degree, ['x']*m[0] + ['y']*m[1])
         return mat_operator
 
+    #  TODO: Ensure order is right (urbain, Tue 01 May 2018)
     def plot(self, series, degree, factor, ax=None):
         factor = self.discretize(factor)
         if la.norm(self.cov - np.diag(np.diag(self.cov)), 2) > 1e-10:
@@ -473,13 +477,9 @@ class Quad:
     def weight(self):
         var = [sym.symbols('v' + str(i)) for i in range(self.dim)]
         inv_cov = la.inv(self.cov)
-        potential = 0
-        for i in range(self.dim):
-            for j in range(self.dim):
-                potential += 0.5 * inv_cov[i][j] \
-                              * (var[i] - self.mean[i]) \
-                              * (var[j] - self.mean[j])
-        return sym.exp(-potential)
+        potential = 0.5 * inv_cov.dot(var - self.mean).dot(var - self.mean)
+        normalization = 1/(np.sqrt((2*np.pi)**self.dim * la.det(self.cov)))
+        return normalization * sym.exp(-potential)
 
     def project(self, direction):
         direction = to_numeric(direction)
