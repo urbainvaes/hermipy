@@ -17,7 +17,11 @@ import numpy.polynomial.hermite_e as herm
 import re
 import sympy as sym
 
-settings = {'cache': False}
+settings = {
+        'cache': False,
+        'cachedir': 'cache',
+        'tensorize_default': True
+        }
 
 
 def cache(function):
