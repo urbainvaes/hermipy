@@ -10,33 +10,33 @@ class Vector_iterator {
 
     protected:
 
-    unsigned int dim;
-    std::ivec multi_index;
-    bool full;
+        unsigned int dim;
+        std::ivec multi_index;
+        bool full;
 
     public:
 
-    const std::ivec& get() const {
-        return multi_index;
-    }
+        const std::ivec& get() const {
+            return multi_index;
+        }
 
-    int operator[](int i) {
-        return multi_index[i];
-    }
+        int operator[](int i) {
+            return multi_index[i];
+        }
 
-    std::ivec get() {
-        return multi_index;
-    }
+        std::ivec get() {
+            return multi_index;
+        }
 
-    bool isFull() const {
-        return full;
-    }
+        bool isFull() const {
+            return full;
+        }
 
     public:
 
-    virtual void increment() = 0;
-    virtual void reset() = 0;
-    Vector_iterator(int dim): dim(dim), multi_index(std::ivec(dim, 0)), full(false) {}
+        virtual void increment() = 0;
+        virtual void reset() = 0;
+        Vector_iterator(int dim): dim(dim), multi_index(std::ivec(dim, 0)), full(false) {}
 
 };
 
