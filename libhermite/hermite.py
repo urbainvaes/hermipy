@@ -394,6 +394,8 @@ class Quad:
                 if not do_tensorize:
                     return func(*args, **kwargs)
                 function = args[arg_num]
+                if isinstance(function, (float, int)):
+                    function = sym.Rational(function)
                 is_sym = isinstance(function, tuple(sym.core.all_classes))
                 if not is_sym:
                     return func(*args, **kwargs)
