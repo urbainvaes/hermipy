@@ -145,15 +145,15 @@ mat varfd(
     {
         for (j = 0, m2.reset(); j < var.size(); j++, m2.increment())
         {
-            if (m2[direction] == 0)
+            if (m2[direction] == (int) degree || var[i][j] < 1e-12)
             {
                continue;
             }
 
-            ivec diff_m2 = m2.get();
-            diff_m2[direction] -= 1;
-            u_int id = lin_indices[hash_print(diff_m2)];
-            results[i][j] = sqrt(m2[direction])*var[i][id];
+            ivec int_m2 = m2.get();
+            int_m2[direction] += 1;
+            u_int id = lin_indices[hash_print(int_m2)];
+            results[i][id] = sqrt(int_m2[direction])*var[i][j];
             // Entry i,j correspond to < A h_j, h_i >
         }
     }
