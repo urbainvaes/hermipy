@@ -10,6 +10,7 @@
 
 from .cpp import hermite_cpp as hm
 from scipy.special import binom
+from functools import wraps
 import hashlib
 import math
 import numpy as np
@@ -22,7 +23,7 @@ import time
 settings = {
         'cache': False,
         'cachedir': 'cache',
-        'tensorize_default': True
+        'tensorize': True
         }
 
 stats = {}
@@ -64,10 +65,27 @@ def cache(function):
             return my_hash(str(hash(argument)))
         elif isinstance(argument, Quad):
             return my_hash(str(hash(argument)))
+        elif argument is None:
+            return my_hash("")
         else:
             raise ValueError("Argument type not supported")
 
+    def error(u, v):
+        if isinstance(u, (float, int)):
+            return abs(u - v)
+        elif isinstance(u, np.ndarray):
+            return la.norm(u - v, 2)
+        elif isinstance(u, tuple):
+            return sum([error(ui, vi) for ui, vi in zip(u, v)])
+        else:
+            raise ValueError("Invalid types")
+
+    @wraps(function)
     def wrapper(*args, **kwargs):
+        use_cache = settings['cache']
+        if 'cache' in kwargs:
+            use_cache = kwargs['cache']
+            del kwargs['cache']
         hashes, prefix = [], function.__name__
         for arg in args:
             hashes.append(my_hash(arg))
@@ -85,17 +103,11 @@ def cache(function):
             np.save(savefile, result)
             return result
 
-        if settings['cache']:
+        if use_cache:
             return result_cache
         else:
             result = function(*args, **kwargs)
-            if isinstance(result, (float, int)):
-                error = abs(result - result_cache)
-            elif isinstance(result, np.ndarray):
-                error = la.norm(result - result_cache, 2)
-            else:
-                raise ValueError("Invalid return type")
-            assert error < 1e-10
+            assert error(result, result_cache) < 1e-10
             return result
 
     return wrapper
