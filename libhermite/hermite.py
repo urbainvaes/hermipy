@@ -153,14 +153,15 @@ def to_cpp_array(*args):
 
 
 def to_numeric(var):
+
     if isinstance(var, list):
         return [to_numeric(v) for v in var]
-    if var == 'x' or var == sym.Symbol('x') or var == 'v[0]':
-        return 0
-    elif var == 'y' or var == sym.Symbol('y') or var == 'v[1]':
-        return 1
-    elif var == 'z' or var == sym.Symbol('z') or var == 'v[2]':
-        return 2
+
+    var_letters = {'x': 0, 'y': 1, 'z': 2}
+    var_array = {'v[' + str(i) + ']': i for i in range(10)}
+    var_dict = {**var_letters, **var_array}
+    if var in var_dict:
+        return var_dict[var]
     else:
         return var
 
@@ -386,7 +387,7 @@ class Quad:
 
         def tensorize_arg(func):
             def wrapper(*args, **kwargs):
-                do_tensorize = settings['tensorize_default']
+                do_tensorize = settings['tensorize']
                 if 'tensorize' in kwargs:
                     do_tensorize = kwargs['tensorize']
                     del kwargs['tensorize']
@@ -409,7 +410,7 @@ class Quad:
                 is_diag = la.norm(quad.cov - diag_cov, 2) < 1e-10
                 if quad.dim == 1 or not is_diag:
                     return func(*args, **kwargs)
-                dirs = (['v[0]', 'v[1]', 'v[2]'])[0:quad.dim]
+                dirs = ['v[' + str(i) + ']' for i in range(quad.dim)]
                 split_term = split_product(function, dirs)
                 if split_term is False:
                     return func(*args, **kwargs)
