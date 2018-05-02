@@ -468,7 +468,6 @@ class Quad:
             f_grid = f_grid / w_grid
         return integrate(f_grid, self.nodes, self.weights)
 
-    @tensorize_at(1)
     def transform(self, function, degree, norm=False):
         f_grid = self.discretize(function)
         coeffs = transform(degree, f_grid, self.nodes,

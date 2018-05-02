@@ -287,7 +287,7 @@ class TestCache(unittest.TestCase):
 class TestTensorizeDecorator(unittest.TestCase):
 
     def setUp(self):
-        n_points, dim = 100, 2
+        n_points, dim = 100, 5
         diag = 1 + np.abs(np.random.random(dim))
         self.cov = np.diag(diag)
         self.quad = hm.Quad.gauss_hermite(n_points, dim=dim, cov=self.cov)
