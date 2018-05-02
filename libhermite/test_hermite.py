@@ -282,3 +282,24 @@ class TestCache(unittest.TestCase):
         self.quad.integrate(self.function)
         n_files_2 = len(os.listdir(self.cachedir.name))
         self.assertEqual(n_files_1, n_files_2)
+
+
+class TestTensorizeDecorator(unittest.TestCase):
+
+    def setUp(self):
+        n_points, dim = 100, 2
+        diag = 1 + np.abs(np.random.random(dim))
+        self.cov = np.diag(diag)
+        self.quad = hm.Quad.gauss_hermite(n_points, dim=dim, cov=self.cov)
+        self.v = [sym.symbols('v' + str(i)) for i in range(5)]
+        hm.settings['tensorize'] = True
+
+    def tearDown(self):
+        hm.settings.update(settings)
+
+    def test_integrate(self):
+        for i in range(len(self.cov)):
+            for j in range(len(self.cov)):
+                fun = self.v[i]*self.v[j]
+                cov_ij = self.quad.integrate(fun)
+                self.assertAlmostEqual(cov_ij, self.cov[i][j])
