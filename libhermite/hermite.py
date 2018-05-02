@@ -17,12 +17,31 @@ import numpy.linalg as la
 import numpy.polynomial.hermite_e as herm
 import re
 import sympy as sym
+import time
 
 settings = {
         'cache': False,
         'cachedir': 'cache',
         'tensorize_default': True
         }
+
+stats = {}
+
+
+def log_stats(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        time_start = time.time()
+        result = function(*args, **kwargs)
+        time_end = time.time()
+
+        key = function.__name__
+        if key not in stats:
+            stats[key] = {'Calls': 0, 'Time': 0}
+        stats[key]['Calls'] += 1
+        stats[key]['Time'] += time_end - time_start
+        return result
+    return wrapper
 
 
 def cache(function):
@@ -135,40 +154,47 @@ def to_numeric(var):
 
 
 @cache
+@log_stats
 def discretize(function, nodes, translation, dilation):
     nodes, translation, dilation = to_cpp_array(nodes, translation, dilation)
     return np.array(hm.discretize(function, nodes, translation, dilation))
 
 
 @cache
+@log_stats
 def integrate(fgrid, nodes, weights):
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
     return hm.integrate(fgrid, nodes, weights)
 
 
 @cache
+@log_stats
 def transform(degree, fgrid, nodes, weights, forward):
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
     return np.array(hm.transform(degree, fgrid, nodes, weights, forward))
 
 
 @cache
+@log_stats
 def triple_products(degree):
     return np.array(hm.triple_products(degree))
 
 
 @cache
+@log_stats
 def varf(degree, fgrid, nodes, weights):
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
     return np.array(hm.varf(degree, fgrid, nodes, weights))
 
 
 @cache
+@log_stats
 def varfd(dim, degree, direction, var):
     var = to_cpp_array(var)
     return np.array(hm.varfd(dim, degree, direction, var))
 
 
+@log_stats
 def tensorize(inp, dim=None, direction=None):
     is_scalar = isinstance(inp[0], (float, int))
     if is_scalar and dim is None and direction is None:
@@ -181,12 +207,14 @@ def tensorize(inp, dim=None, direction=None):
     return np.array(hm.tensorize(*args))
 
 
+@log_stats
 def project(inp, dim, direction):
     inp = to_cpp_array(inp)
     direction = to_numeric(direction)
     return np.array(hm.project(inp, dim, direction))
 
 
+@log_stats
 def multi_indices(dim, degree):
     result = hm.list_multi_indices(dim, degree)
     return np.asarray(result, dtype=int)
