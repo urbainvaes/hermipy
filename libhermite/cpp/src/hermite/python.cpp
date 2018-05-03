@@ -55,11 +55,49 @@ vec discretize_from_string(
     return result;
 }
 
+namespace p = boost::python;
+namespace np = boost::python::numpy;
+
+mat test()
+{
+    int n = 1e4;
+    mat result(n, vec(n, 0.));
+    for (u_int i = 0; i < result.size(); i++)
+    {
+        for (u_int j = 0; j < result[0].size(); j++)
+        {
+            result[i][j] = (double) i - (double) j;
+        }
+    }
+    return result;
+}
+
+np::ndarray convert_to_numpy(mat const & input)
+{
+    u_int n_rows = input.size();
+    u_int n_cols = input[0].size();
+    p::tuple shape = p::make_tuple(n_rows, n_cols);
+    p::tuple stride = p::make_tuple(sizeof(double));
+    np::dtype dtype = np::dtype::get_builtin<double>();
+    p::object own;
+    np::ndarray converted = np::zeros(shape, dtype);
+
+    for (u_int i = 0; i < n_rows; i++)
+    {
+        shape = p::make_tuple(n_cols);
+        converted[i] = np::from_data(input[i].data(), dtype, shape, stride, own);
+    }
+    return converted;
+}
 
 // ---- PYTHON API ----
 BOOST_PYTHON_MODULE(hermite_cpp)
 {
     using namespace boost::python;
+
+    // Initialize numpy
+    Py_Initialize();
+    boost::python::numpy::initialize();
 
     class_<vec>("double_vec")
         .def(vector_indexing_suite<vec>())
@@ -81,6 +119,8 @@ BOOST_PYTHON_MODULE(hermite_cpp)
         .def(vector_indexing_suite<imat>())
         ;
 
+    def("test", test);
+    def("convert_to_numpy", convert_to_numpy);
     def("discretize", discretize_from_string);
     def("integrate", integrate);
     def("list_cube_indices", list_cube_indices);
