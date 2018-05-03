@@ -2,11 +2,14 @@
 # TODO: Implement composite quadrature
 # TODO: Ensure directions match
 # TODO: Ensure variables v[0] and x can be used interchangeably
-# TODO: Implement project to two dimensions
+# TODO: Implement project to two dimensional subset
 # TODO: Add function class?
 # TODO: Can varfd be tensorized?
-
 # TODO: Improve separability: for example f(x,y) * g(z)
+# TODO: Add varf class (urbain, 02 May 2018)
+# TODO: Add support for tensorization of Series
+# TODO: Implement composite quadrature (urbain, 02 May 2018)
+
 
 from .cpp import hermite_cpp as hm
 from scipy.special import binom
@@ -23,7 +26,8 @@ import time
 settings = {
         'cache': False,
         'cachedir': 'cache',
-        'tensorize': True
+        'tensorize': True,
+        'trails': False
         }
 
 stats = {}
@@ -41,6 +45,8 @@ def log_stats(function):
             stats[key] = {'Calls': 0, 'Time': 0}
         stats[key]['Calls'] += 1
         stats[key]['Time'] += time_end - time_start
+        if settings['trails']:
+            print("Function " + key + ": " + str(time_end - time_start))
         return result
     return wrapper
 
