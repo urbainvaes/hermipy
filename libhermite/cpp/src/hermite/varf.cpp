@@ -173,6 +173,15 @@ u_int hash(ivec v, int degree) {
     return result;
 }
 
+string hash_print(ivec v) {
+    string hash = "";
+    for (u_int i = 0; i < v.size(); ++i)
+    {
+        hash += std::to_string(v[i]) + "-";
+    }
+    return hash;
+}
+
 // Only for cov = D!
 mat varfd(
         u_int dim,
@@ -194,20 +203,22 @@ mat varfd(
     mat results = mat(var.size(), vec(var.size(), 0));
     for (j = 0, m2.reset(); j < var.size(); j++, m2.increment())
     {
-        if (m2[direction] == (int) degree)
+        if (m2[direction] == 0)
         {
-            continue;
+           continue;
         }
-        ivec int_m2 = m2.get();
-        int_m2[direction] += 1;
-        u_int id = lin_indices[hash(int_m2, degree)];
+
+        ivec diff_m2 = m2.get();
+        diff_m2[direction] -= 1;
+        u_int id = lin_indices[hash(diff_m2, degree)];
 
         for (i = 0, m1.reset(); i < var.size(); i++, m1.increment())
         {
-            results[i][id] = var[i][j]*sqrt(int_m2[direction]);
+            results[i][j] = var[i][id]*sqrt(m2[direction]);
             // Entry i,j correspond to < A h_j, h_i >
         }
     }
+
     return results;
 }
 
