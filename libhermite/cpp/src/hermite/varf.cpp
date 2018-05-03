@@ -1,7 +1,9 @@
 #include <cmath>
 
 #include <iostream>
-#include <map>
+#include <unordered_map>
+
+// #include "sparse-matrix/SparseMatrix.h"
 
 #include "hermite/hermite.hpp"
 #include "hermite/iterators.hpp"
@@ -67,6 +69,52 @@ cube triple_products_1d(int degree)
     return products;
 }
 
+// SparseMatrix<double> sparseVarf(
+//         u_int degree,
+//         vec const & input,
+//         mat const & nodes,
+//         mat const & weights)
+// {
+    // u_int dim = nodes.size();
+    // u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
+    // u_int n_polys_2 = (u_int) binomial_coefficient<double> (2*degree + dim, dim);
+
+    // cube products = triple_products_1d(degree);
+
+    // Multi_index_iterator m1(dim, degree);
+    // Multi_index_iterator m2(dim, degree);
+    // Multi_index_iterator m3(dim, 2*degree);
+
+    // // Hermite transform of input function
+    // vec Hf = transform(2*degree, input, nodes, weights, true);
+
+    // u_int i,j,k,l;
+    // SparseMatrix<double> result(n_polys, n_polys);
+
+    // for (k = 0, m3.reset(); k < n_polys_2; k++, m3.increment())
+    // {
+    //     if (abs(Hf[k]) < 1e-14)
+    //     {
+    //         continue;
+    //     }
+
+    //     for (i = 0, m1.reset(); i < n_polys; i++, m1.increment())
+    //     {
+    //         for (j = 0, m2.reset(); j < n_polys; j++, m2.increment())
+    //         {
+    //             double increment = Hf[k];
+    //             for (l = 0; l < dim; l++)
+    //             {
+    //                 increment *= products[m1[l]][m2[l]][m3[l]];
+    //             }
+    //             result.set(result.get(i+1, j+1) + increment, i+1, j+1);
+    //         }
+    //     }
+    // }
+
+    // return result;
+// }
+
 mat varf(
         u_int degree,
         vec const & input,
@@ -113,13 +161,16 @@ mat varf(
     return result;
 }
 
-string hash_print(ivec v) {
-    string hash = "";
-    for (u_int i = 0; i < v.size(); ++i)
+u_int hash(ivec v, int degree) {
+    u_int base = degree + 1;
+    u_int result = 0;
+    u_int unit = 1;
+    for(u_int i = 0; i < v.size(); i++)
     {
-        hash += std::to_string(v[i]) + "-";
+        result += v[i]*unit;
+        unit *= base;
     }
-    return hash;
+    return result;
 }
 
 // Only for cov = D!
@@ -134,26 +185,26 @@ mat varfd(
 
     u_int i,j;
 
-    map<string, u_int> lin_indices;
+    unordered_map<u_int, u_int> lin_indices;
     for (i = 0, m1.reset(); i < var.size(); i++, m1.increment())
     {
-        lin_indices.insert(pair<string, u_int>(hash_print(m1.get()), i));
+        lin_indices.insert(pair<u_int, u_int>(hash(m1.get(), degree), i));
     }
 
     mat results = mat(var.size(), vec(var.size(), 0));
-    for (i = 0, m1.reset(); i < var.size(); i++, m1.increment())
+    for (j = 0, m2.reset(); j < var.size(); j++, m2.increment())
     {
-        for (j = 0, m2.reset(); j < var.size(); j++, m2.increment())
+        if (m2[direction] == (int) degree)
         {
-            if (m2[direction] == (int) degree || var[i][j] < 1e-12)
-            {
-               continue;
-            }
+            continue;
+        }
+        ivec int_m2 = m2.get();
+        int_m2[direction] += 1;
+        u_int id = lin_indices[hash(int_m2, degree)];
 
-            ivec int_m2 = m2.get();
-            int_m2[direction] += 1;
-            u_int id = lin_indices[hash_print(int_m2)];
-            results[i][id] = sqrt(int_m2[direction])*var[i][j];
+        for (i = 0, m1.reset(); i < var.size(); i++, m1.increment())
+        {
+            results[i][id] = var[i][j]*sqrt(int_m2[direction]);
             // Entry i,j correspond to < A h_j, h_i >
         }
     }
