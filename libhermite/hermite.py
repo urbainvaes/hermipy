@@ -501,9 +501,9 @@ class Quad:
         directions = to_numeric(directions)
         var = self.varf(function, degree)
         eigval, _ = la.eig(self.cov)
-        for dir in directions:
-            var = varfd(self.dim, degree, dir, var)
-            var = var/np.sqrt(eigval[dir])
+        for d in directions:
+            var = varfd(self.dim, degree, d, var)
+            var = var/np.sqrt(eigval[d])
         return var
 
     @cache
