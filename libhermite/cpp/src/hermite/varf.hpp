@@ -10,7 +10,7 @@ typedef boost::multi_array<double, 2> c_mat;
 
 std::cube triple_products_1d(int degree);
 
-c_mat varf(
+std::mat varf(
         std::u_int degree,
         std::vec const & input,
         std::mat const & nodes,

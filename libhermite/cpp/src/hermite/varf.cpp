@@ -122,7 +122,7 @@ c_mat contig_mat(int rows, int cols)
     return boost::multi_array<double, 2>(dims);
 }
 
-c_mat varf(
+mat varf(
         u_int degree,
         vec const & input,
         mat const & nodes,
@@ -142,7 +142,7 @@ c_mat varf(
     vec Hf = transform(2*degree, input, nodes, weights, true);
 
     u_int i,j,k,l;
-    c_mat result = contig_mat(n_polys, n_polys);
+    mat result(n_polys, vec(n_polys, 0.));
 
     for (k = 0, m3.reset(); k < n_polys_2; k++, m3.increment())
     {
