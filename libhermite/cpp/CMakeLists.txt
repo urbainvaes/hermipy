@@ -5,12 +5,13 @@ set (PROJECT_VERSION_MAJOR 0)
 set (PROJECT_VERSION_MINOR 0)
 set (CMAKE_BUILD_TYPE Release)
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -Wall") # Necessary to repeat
-set (CMAKE_CXX_LINKER_FLAGS  "${CMAKE_CXX_LINKER_FLAGS} --no-undefined")
+set (CMAKE_CXX_LINKER_FLAGS  "${CMAKE_CXX_LINKER_FLAGS} -Wl,--no-undefined")
 # set(CMAKE_CXX_STANDARD 17)
 
 # Find necessary packages
 find_package(PythonLibs 3 REQUIRED)
 find_package(Boost COMPONENTS python3 REQUIRED)
+find_package(Boost COMPONENTS python3 COMPONENTS numpy3 REQUIRED)
 include_directories(${Boost_INCLUDE_DIR} ${PYTHON_INCLUDE_DIRS})
 
 # Find sources and add include directory of sources

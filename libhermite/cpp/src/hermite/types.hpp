@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 
+#include "boost/multi_array.hpp"
+
 namespace std {
 
     typedef unsigned int u_int;
