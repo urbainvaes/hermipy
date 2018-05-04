@@ -25,7 +25,7 @@ import time
 
 settings = {
         'cache': False,
-        'cachedir': 'cache',
+        'cachedir': '/tmp',
         'tensorize': True,
         'trails': False
         }
@@ -139,6 +139,7 @@ def convert_to_cpp_cube(cube):
     return cpp_cube
 
 
+@log_stats
 def to_cpp_array(*args):
     if len(args) > 1:
         return (to_cpp_array(arg) for arg in args)
@@ -203,14 +204,14 @@ def triple_products(degree):
 @log_stats
 def varf(degree, fgrid, nodes, weights):
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
-    return np.array(hm.varf(degree, fgrid, nodes, weights))
+    return log_stats(hm.to_numpy)(hm.varf(degree, fgrid, nodes, weights))
 
 
 @cache
 @log_stats
 def varfd(dim, degree, direction, var):
     var = to_cpp_array(var)
-    return np.array(hm.varfd(dim, degree, direction, var))
+    return log_stats(hm.to_numpy)(hm.varfd(dim, degree, direction, var))
 
 
 @log_stats

@@ -1,0 +1,1 @@
+ssh urbain@155.198.193.89 "cd phd/code/mckean-vlasov; python coloured.py -c bistable -m $1 -b $2"

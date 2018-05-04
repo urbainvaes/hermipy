@@ -7,7 +7,7 @@
 import argparse
 import sympy as sym
 import sympy.printing as syp
-import sympy.plotting as splot
+# import sympy.plotting as splot
 import multiprocessing
 import numpy as np
 import numpy.linalg as la
@@ -15,7 +15,6 @@ import scipy.sparse.linalg as las
 import matplotlib.pyplot as plt
 import plot
 import equation
-import config
 from libhermite import hermite as hm
 from scipy.special import binom
 
@@ -23,13 +22,19 @@ sym.init_printing()
 
 # Parse options
 parser = argparse.ArgumentParser()
+
+parser.add_argument('-c', '--config', type=str, help='Configuration file')
 parser.add_argument('-b', '--beta', type=str, help='Value of βx')
 parser.add_argument('-t', '--theta', type=str, help='Value of θ')
 parser.add_argument('-e', '--epsilon', type=str, help='Value of ε')
 parser.add_argument('-m', '--mass', type=str, help='Value of m')
+parser.add_argument('-p', '--plots', action='store_true',
+                    help='Enable plots')
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='Enable verbose output')
 args = parser.parse_args()
+
+config = __import__(args.config) if args.config else __import__("config")
 
 if args.beta:
     config.eq['βx'] = sym.Rational(args.beta)
@@ -37,13 +42,16 @@ if args.theta:
     config.eq['θ'] = sym.Rational(args.theta)
 if args.epsilon:
     config.eq['ε'] = sym.Rational(args.epsilon)
+if args.verbose:
+    config.misc['verbose'] = args.verbose
+config.misc['plots'] = args.plots
 
 
 # }}}
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
 
 # Set library option
-hm.settings['cache'] = config.misc['cache']
+hm.settings.update(config.misc)
 
 # Variables and function
 x, y, f = equation.x, equation.y, equation.f
@@ -168,7 +176,7 @@ backward = equation.map_operator(forward, factor)
 forward, backward = evaluate([forward, backward])
 factor_x, factor_y, factor = evaluate([factor_x, factor_y, factor])
 
-if args.verbose:
+if config.misc['verbose']:
     syp.pprint(forward)
     syp.pprint(backward)
 
@@ -225,7 +233,7 @@ def compute_m(series):
 
 
 def compute_moment1(m_val):
-    if args.verbose:
+    if config.misc['verbose']:
         print("Solving the eigenvalue problem for m = " + str(m_val) + ".")
     mat_operator = r_mat + m_val * m_mat
     eig_vals, eig_vecs = hm.cache(las.eigs)(mat_operator, k=1, which='LR')
@@ -233,20 +241,23 @@ def compute_moment1(m_val):
     ground_state = ground_state * np.sign(ground_state[0])
     ground_series = quad_num.series(ground_state, norm=True)
     value = compute_m(ground_series)
-    if args.verbose:
+    if config.misc['verbose']:
         print(value)
-    fig, ax = plt.subplots(1, 1)
-    cont = quad_visu.plot(ground_series, degree, factor, ax)
-    plt.colorbar(cont, ax=ax)
-    plt.show()
+    if config.misc['plots']:
+        fig, ax = plt.subplots(1, 1)
+        cont = quad_visu.plot(ground_series, degree, factor, ax)
+        plt.colorbar(cont, ax=ax)
+        plt.show()
     return value
 
 
 m_operator = backward.diff(params['m'].symbol)
 r_operator = (backward - params['m'].symbol*m_operator).cancel()
-print("Discretizing operators")
 m_mat = quad_num.discretize_op(m_operator, f, degree, 2)
 r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
+
+if config.misc['verbose']:
+    print(hm.stats)
 
 if args.mass:
     print(compute_moment1(float(args.mass)))
@@ -258,6 +269,8 @@ def convergence():
     norm_sol = quad_num.integrate(solution, l2=True)
     assert abs(norm_sol - 1) < 1e-6
     v0 = None
+    degrees = []
+    errors = []
     for d in range(5, degree):
         npolys = int(binom(d + 2, d))
         sub_mat = (r_mat[0:npolys, 0:npolys]).copy(order='C')
@@ -280,11 +293,16 @@ def convergence():
         norm = quad_num.integrate(ground_state_eval, l2=True)
         ground_state_eval = ground_state_eval / norm
         solution_eval = quad_num.discretize(solution)
-        print(la.norm(ground_state_eval - solution_eval, 2))
-    fig, ax = plt.subplots(1, 1)
-    cont = quad_visu.plot(ground_series, degree, factor, ax)
-    plt.colorbar(cont, ax=ax)
-    plt.show()
+        error = la.norm(ground_state_eval - solution_eval, 2)
+        degrees.append(d)
+        errors.append(error)
+    # fig, ax = plt.subplots(1, 1)
+    # cont = quad_visu.plot(ground_series, degree, factor, ax)
+    # plt.colorbar(cont, ax=ax)
+    # plt.show()
+    # fig, ax = plt.subplots(1, 1)
+    # ax.semilogy(degrees, errors, 'k.')
+    # plt.show()
     # splot.contour(solution, (x, -1, 1), (y, -1, 1))
 
 
@@ -307,11 +325,11 @@ else:
     for m_val in m_values:
         images.append(compute_moment1(m_val))
 
-fig, ax = plt.subplots(1, 1)
-ax.plot(m_values, m_values)
-ax.plot(m_values, images)
-plt.show()
-exit(0)
+# fig, ax = plt.subplots(1, 1)
+# ax.plot(m_values, m_values)
+# ax.plot(m_values, images)
+# plt.show()
+# exit(0)
 
 # Calculate eigenvalues of largest real part
 # sparse_operator = scipy.sparse.csr_matrix(mat_operator)
