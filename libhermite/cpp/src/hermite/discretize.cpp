@@ -1,4 +1,6 @@
 #include <cmath>
+#include <dlfcn.h>
+#include <fstream>
 
 #include "hermite/types.hpp"
 #include "hermite/iterators.hpp"
@@ -60,6 +62,43 @@ vec discretize(
     free(node);
     free(mapped_node);
 
+    return result;
+}
+
+void intern_function(string const & function_body)
+{
+    string name = to_string(hash<string>()(function_body));
+    string cpp_file = "/tmp/" + name + ".cpp";
+    string so_file = "/tmp/" + name + ".so";
+    ifstream test_exists(so_file.c_str());
+
+    if(! test_exists.good()) {
+         ofstream write_function;
+         write_function.open(cpp_file);
+         write_function << "#include <vector>\n#include <cmath>\n";
+         write_function << "extern \"C\" double toIntegrate(double *v) {\n";
+         write_function << "    return " << function_body << ";\n}";
+         write_function.close();
+
+        // Compile file
+        string command = "c++ " + cpp_file + " -o " + so_file + " -O3 -Ofast -shared -fPIC";
+        system(command.c_str());
+    }
+}
+
+vec discretize_from_string(
+        string function_body,
+        mat const & nodes,
+        vec const & translation,
+        mat const & dilation)
+{
+    intern_function(function_body);
+    string name = to_string(hash<string>()(function_body));
+    string so_file = "/tmp/" + name + ".so";
+    void *function_so = dlopen(so_file.c_str(), RTLD_NOW);
+    s_func func = (s_func) dlsym(function_so, "toIntegrate");
+    vec result = discretize(func, nodes, translation, dilation);
+    dlclose(function_so);
     return result;
 }
 

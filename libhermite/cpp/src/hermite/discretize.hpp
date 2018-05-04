@@ -11,5 +11,12 @@ std::vec discretize(
         std::vec const & translation,
         std::mat const & dilation);
 
+void intern_function(std::string const & function_body);
+std::vec discretize_from_string(
+        std::string function_body,
+        std::mat const & nodes,
+        std::vec const & translation,
+        std::mat const & dilation);
+
 }
 #endif

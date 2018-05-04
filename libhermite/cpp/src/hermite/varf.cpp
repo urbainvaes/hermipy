@@ -116,12 +116,6 @@ cube triple_products_1d(int degree)
     // return result;
 // }
 
-c_mat contig_mat(int rows, int cols)
-{
-    auto dims = boost::extents[rows][cols];
-    return boost::multi_array<double, 2>(dims);
-}
-
 mat varf(
         u_int degree,
         vec const & input,

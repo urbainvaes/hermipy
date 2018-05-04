@@ -6,8 +6,6 @@
 
 namespace hermite {
 
-typedef boost::multi_array<double, 2> c_mat;
-
 std::cube triple_products_1d(int degree);
 
 std::mat varf(
