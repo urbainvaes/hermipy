@@ -21,7 +21,7 @@ boost::c_mat test3(int n)
     {
         for (u_int j = 0; j < result.shape()[1]; j++)
         {
-            result[i][j] = (double) i*n + (double) j;
+            result[i][j] = (double) i*n + (double) j + 0.1;
         }
     }
     return result;
@@ -31,8 +31,9 @@ np::ndarray test2(int n)
 {
     boost::c_mat result = test3(n);
     np::ndarray array = cmat_to_numpy(result);
-    std::cout << "Selective multidimensional array :: "<<std::endl
-        << p::extract<char const *>(p::str(array)) << std::endl ;
+    np::ndarray array2 = array;
+    std::cout << p::extract<char const *>(p::str(array)) << std::endl ;
+    std::cout << p::extract<char const *>(p::str(array2)) << std::endl ;
     return array;
 }
 
@@ -48,5 +49,21 @@ std::mat test(int n)
     }
     return result;
 }
+
+np::ndarray test4(int n)
+{
+    mat result(n, vec(n, 0.));
+    for (u_int i = 0; i < result.size(); i++)
+    {
+        for (u_int j = 0; j < result[0].size(); j++)
+        {
+            result[i][j] = (double) i*n + (double) j;
+        }
+    }
+    np::ndarray array = mat_to_numpy(result);
+    std::cout << p::extract<char const *>(p::str(array)) << std::endl ;
+    return array;
+}
+
 
 }

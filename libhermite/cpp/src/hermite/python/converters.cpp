@@ -26,14 +26,10 @@ np::ndarray mat_to_numpy(mat const & input)
 
     for (u_int i = 0; i < n_rows; i++)
     {
-        // for (u_int j = 0; j < n_cols; j++)
-        // {
-        //     converted[i][j] = input[i][j];
-        // }
         shape = p::make_tuple(n_cols);
         converted[i] = np::from_data(input[i].data(), dtype, shape, stride, own);
     }
-    return converted;
+    return converted.copy();
 }
 
 np::ndarray cmat_to_numpy(boost::c_mat const & input)
@@ -44,14 +40,19 @@ np::ndarray cmat_to_numpy(boost::c_mat const & input)
     p::tuple strides = p::make_tuple(input.strides()[0]*sizeof(double),
                                      input.strides()[1]*sizeof(double));
     np::dtype dtype = np::dtype::get_builtin<double>();
-    p::object own;
-    np::ndarray converted = np::from_data(input.data(), dtype, shape, strides, own);
-    return converted;
+    np::ndarray converted = np::from_data(input.data(), dtype, shape, strides, p::object());
+    return converted.copy();
 }
 
-mat to_cpp(np::ndarray input)
+
+boost::c_mat to_bmat(np::ndarray const & input)
 {
-    int dim = input.get_nd();
+    if (input.get_nd() != 2)
+    {
+        cout << "Dimension must be 2" << endl;
+        throw WRONG_DIMENSION;
+    }
+
     Py_intptr_t const* shape = input.get_shape();
     Py_intptr_t const* strides = input.get_strides();
     double * data = reinterpret_cast<double*>(input.get_data());
@@ -59,33 +60,50 @@ mat to_cpp(np::ndarray input)
     u_int n_rows = (u_int) shape[0];
     u_int n_cols = (u_int) shape[1];
 
+    u_int stride_cols = (u_int) strides[1] / sizeof(double);
+
+    if (stride_cols != 1)
+    {
+        cout << "Rows of the matrix must be stored contiguously" << endl;
+        throw ROWS_NOT_CONTIGUOUS;
+    }
+
+    auto sizes = boost::extents[n_rows][n_cols];
+    boost::c_mat result = boost::c_mat(boost::multi_array_ref<double, 2>(data, sizes)); // copy
+    return result;
+}
+
+
+mat to_mat(np::ndarray input)
+{
+    if (input.get_nd() != 2)
+    {
+        cout << "Dimension must be 2" << endl;
+        throw WRONG_DIMENSION;
+    }
+
+    Py_intptr_t const* shape = input.get_shape();
+    Py_intptr_t const* strides = input.get_strides();
+    double * data = reinterpret_cast<double*>(input.get_data());
+
+    u_int n_rows = (u_int) shape[0];
+
     u_int stride_rows = (u_int) strides[0] / sizeof(double);
     u_int stride_cols = (u_int) strides[1] / sizeof(double);
 
-    u_int i, j;
-    mat result(n_rows);
-    for (i = 0; i < n_rows; i++)
+    if (stride_cols != 1)
     {
-        if (stride_cols == 1)
-        {
-            result[i] = vec(data + i*stride_rows, data + (i+1)*stride_rows);
-        }
-        else
-        {
-            cout << "Rows of the matrix must be stored contiguously" << endl; 
-            throw ROWS_NOT_CONTIGUOUS;
-        }
+        cout << "Rows of the matrix must be stored contiguously" << endl;
+        throw ROWS_NOT_CONTIGUOUS;
+    }
+
+    mat result(n_rows);
+    for (u_int i = 0; i < n_rows; i++)
+    {
+        result[i] = vec(data + i*stride_rows, data + (i+1)*stride_rows);
     }
 
     return result;
-
-    // u_int n_rows = input.size();
-    // u_int n_cols = input[0].size();
-    // p::tuple shape = p::make_tuple(n_rows, n_cols);
-    // p::tuple stride = p::make_tuple(sizeof(double));
-    // np::dtype dtype = np::dtype::get_builtin<double>();
-    // p::object own;
-    // np::ndarray converted = np::zeros(shape, dtype);
 }
 
 }

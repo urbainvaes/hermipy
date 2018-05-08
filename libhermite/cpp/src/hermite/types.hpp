@@ -28,7 +28,6 @@ namespace boost {
 
     typedef multi_array<double, 2> c_mat;
     c_mat contig_mat(int rows, int cols);
-
 }
 
 #endif
