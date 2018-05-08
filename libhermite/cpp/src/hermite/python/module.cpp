@@ -50,7 +50,7 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     def("test2", test2);
     def("test3", test3);
     def("to_numpy", mat_to_numpy);
-    def("to_numpy", cmat_to_numpy);
+    def("to_cpp", to_cpp);
     def("discretize", discretize_from_string);
     def("integrate", integrate);
     def("list_cube_indices", list_cube_indices);

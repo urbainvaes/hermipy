@@ -10,6 +10,8 @@
 
 using namespace std;
 
+namespace p = boost::python;
+namespace np = boost::python::numpy;
 namespace hermite {
 
 boost::c_mat test3(int n)
@@ -19,7 +21,7 @@ boost::c_mat test3(int n)
     {
         for (u_int j = 0; j < result.shape()[1]; j++)
         {
-            result[i][j] = (double) i - (double) j;
+            result[i][j] = (double) i*n + (double) j;
         }
     }
     return result;
@@ -28,7 +30,10 @@ boost::c_mat test3(int n)
 np::ndarray test2(int n)
 {
     boost::c_mat result = test3(n);
-    return cmat_to_numpy(result);
+    np::ndarray array = cmat_to_numpy(result);
+    std::cout << "Selective multidimensional array :: "<<std::endl
+        << p::extract<char const *>(p::str(array)) << std::endl ;
+    return array;
 }
 
 std::mat test(int n)
@@ -38,7 +43,7 @@ std::mat test(int n)
     {
         for (u_int j = 0; j < result[0].size(); j++)
         {
-            result[i][j] = (double) i - (double) j;
+            result[i][j] = (double) i*n + (double) j;
         }
     }
     return result;

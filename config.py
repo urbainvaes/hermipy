@@ -32,7 +32,7 @@ eq['sx'] = r(1)
 eq['Vp'] = r(.5)*x*x/sx
 
 # Miscellaneous parameters
-misc['cache'] = True
+misc['cache'] = False
 misc['parallel'] = False
 misc['tensorize'] = False
 misc['trails'] = True

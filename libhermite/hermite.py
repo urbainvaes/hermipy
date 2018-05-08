@@ -210,6 +210,7 @@ def varf(degree, fgrid, nodes, weights):
 @cache
 @log_stats
 def varfd(dim, degree, direction, var):
+    # var = log_stats(hm.to_cpp)(var)
     var = to_cpp_array(var)
     return log_stats(hm.to_numpy)(hm.varfd(dim, degree, direction, var))
 

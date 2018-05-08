@@ -1,5 +1,6 @@
 import hermite_cpp as test
 import numpy as np
+import numpy.linalg as la
 import time
 
 
@@ -12,19 +13,26 @@ def timeit(function):
         return result
     return wrapper
 
+n = 5
 
-A = timeit(test.test)(10000)
-B = timeit(test.test3)(10000)
-C = timeit(test.test2)(10000)
+mat_cpp = timeit(test.test)(n)
+mat_numpy = timeit(test.to_numpy)(mat_cpp)
+mat_cpp = timeit(test.to_cpp)(mat_numpy)
+mat_numpy = timeit(test.to_numpy)(mat_cpp)
+mat_cpp = timeit(test.to_cpp)(mat_numpy.T)
 
-print(type(B))
-A = timeit(test.to_numpy)(A)
-B = timeit(test.to_numpy)(B)
+# print(mat
+# print(mat_numpy)
 
-print(A - C)
-# print(type(B))
-# print(B)
+# print(mat_usual.flags)
+# print(mat_usual.strides)
 
-# print(B)
-# C = timeit(np.array)(A)
-# D = timeit(np.copy)(C)
+# print(mat_usual)
+
+# mat_contig = timeit(test.to_numpy)(mat_contig)
+# print(mat_contig.flags)
+# print(mat_contig.strides)
+
+# print(mat_contig)
+
+# print(la.norm(mat_usual - mat_contig, 2))

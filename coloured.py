@@ -45,6 +45,7 @@ if args.epsilon:
 if args.verbose:
     config.misc['verbose'] = args.verbose
 config.misc['plots'] = args.plots
+config.misc['verbose'] = args.verbose
 
 
 # }}}
