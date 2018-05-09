@@ -8,11 +8,14 @@
 
 #include "hermite/hermite.hpp"
 #include "hermite/iterators.hpp"
+#include "hermite/tensorize.hpp"
 #include "hermite/transform.hpp"
 #include "hermite/types.hpp"
+#include "hermite/templates.hpp"
 #include "hermite/varf.hpp"
 
 #include <boost/math/special_functions/binomial.hpp>
+#include <boost/numeric/ublas/matrix_sparse.hpp>
 
 #define MIN(i,j) (i < j ? i : j)
 #define MAX(i,j) (i < j ? j : i)
@@ -25,14 +28,14 @@ namespace hermite {
 // Exact, does not rely on quadrature
 cube triple_products_1d(int degree)
 {
-    cube products(degree + 1, mat(degree + 1, vec(2*degree + 1, 0.)));
+    cube products(2*degree + 1, mat(degree + 1, vec(degree + 1, 0.)));
 
     // Compute entries for i ≤ j ≤ k, and the rest by symmetry.
     int i,j,k;
 
     for (i = 0; i <= degree; i++)
     {
-        products[0][i][i] = 1.;
+        products[i][0][i] = 1.;
     }
 
     vec a(2*degree + 1, 0.), b(2*degree + 1, 0.);
@@ -48,23 +51,24 @@ cube triple_products_1d(int degree)
     {
         double ai = a[i-1];
         double bi = b[i-1];
+
         for (j = i; j <= degree; j++)
         {
             for (k = MAX(j - i, 0); k <= j + i - 2; k++)
-                products[i][j][k] += ai/a[k] * products[i-1][j][k+1];
+                products[k][i][j] += ai/a[k] * products[k+1][i-1][j];
 
             for (k = MAX(j - i + 2, 0); k <= j + i - 2; k++)
-                products[i][j][k] += - bi * products[i-2][j][k];
+                products[k][i][j] += - bi * products[k][i-2][j];
 
             for (k = MAX(j - i + 2, 1); k <= i + j; k++)
-                products[i][j][k] += ai/a[k]*b[k] * products[i-1][j][k-1];
+                products[k][i][j] += ai/a[k]*b[k] * products[k-1][i-1][j];
         }
     }
 
     for (i = 0; i <= degree; i++)
         for (j = i; j <= degree; j++)
             for (k = j - i; k <= j + i; k++)
-                products[j][i][k] = products[i][j][k];
+                products[k][j][i] = products[k][i][j];
 
     return products;
 }
@@ -123,39 +127,31 @@ mat varf(
 {
     u_int dim = nodes.size();
     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
-    u_int n_polys_2 = (u_int) binomial_coefficient<double> (2*degree + dim, dim);
-
-    cube products = triple_products_1d(degree);
-
-    Multi_index_iterator m1(dim, degree);
-    Multi_index_iterator m2(dim, degree);
-    Multi_index_iterator m3(dim, 2*degree);
 
     // Hermite transform of input function
     vec Hf = transform(2*degree, input, nodes, weights, true);
 
-    u_int i,j,k,l;
+    cube products = triple_products_1d(degree);
+
+    // To store results
     mat result(n_polys, vec(n_polys, 0.));
 
-    for (k = 0, m3.reset(); k < n_polys_2; k++, m3.increment())
+    Multi_index_iterator m(dim, 2*degree); m.reset();
+    for (u_int i = 0; i < Hf.size(); i++, m.increment())
     {
-        if (abs(Hf[k]) < 1e-14)
+        if (abs(Hf[i]) < 1e-14)
         {
             continue;
         }
 
-        for (i = 0, m1.reset(); i < n_polys; i++, m1.increment())
+        cube factors(dim);
+        for (u_int d = 0; d < dim; ++d)
         {
-            for (j = 0, m2.reset(); j < n_polys; j++, m2.increment())
-            {
-                double increment = Hf[k];
-                for (l = 0; l < dim; l++)
-                {
-                    increment *= products[m1[l]][m2[l]][m3[l]];
-                }
-                result[i][j] += increment;
-            }
+            factors[d] = products[m[d]];
         }
+
+        mat results(n_polys, vec(n_polys, 0.));
+        result = result + tensorize_mats(factors)*Hf[i];
     }
 
     return result;

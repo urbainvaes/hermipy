@@ -4,7 +4,8 @@
 #include <vector>
 #include <string>
 
-#include "boost/multi_array.hpp"
+#include <boost/multi_array.hpp>
+#include <boost/numeric/ublas/matrix_sparse.hpp>
 
 namespace std {
 
@@ -27,6 +28,8 @@ namespace std {
 namespace boost {
 
     typedef multi_array<double, 2> c_mat;
+    // using namespace boost::numeric::ublas;
+    // typedef compressed_matrix<float, row_major> spmat;
     c_mat contig_mat(int rows, int cols);
 }
 
