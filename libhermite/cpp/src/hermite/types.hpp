@@ -25,11 +25,11 @@ namespace std {
     typedef double (*s_func)(double*);
 }
 
+
 namespace boost {
 
+    // Contiguous multi-dimensional array
     typedef multi_array<double, 2> c_mat;
-    // using namespace boost::numeric::ublas;
-    // typedef compressed_matrix<float, row_major> spmat;
     c_mat contig_mat(int rows, int cols);
 }
 

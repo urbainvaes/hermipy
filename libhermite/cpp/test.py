@@ -16,14 +16,16 @@ def timeit(function):
         return result
     return wrapper
 
-n = 10000
+timeit(test.triple_products)(200)
 
-mat_cpp = timeit(test.test)(n)
-mat_numpy = timeit(test.to_numpy)(mat_cpp)
-# mat_cpp = timeit(test.to_mat)(mat_numpy)
-bmat_cpp = timeit(test.to_bmat)(mat_numpy)
-# mat_numpy1 = timeit(test.to_numpy)(mat_cpp)
-mat_numpy2 = timeit(test.to_numpy)(bmat_cpp)
+# n = 10000
+
+# mat_cpp = timeit(test.test)(n)
+# mat_numpy = timeit(test.to_numpy)(mat_cpp)
+# # mat_cpp = timeit(test.to_mat)(mat_numpy)
+# bmat_cpp = timeit(test.to_bmat)(mat_numpy)
+# # mat_numpy1 = timeit(test.to_numpy)(mat_cpp)
+# mat_numpy2 = timeit(test.to_numpy)(bmat_cpp)
 
 # print(np.max(mat_numpy1 - mat_numpy2))
 

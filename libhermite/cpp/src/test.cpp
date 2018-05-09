@@ -3,7 +3,6 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
 
-
 int main(int argc, char** argv)
 {
     using std::cerr;

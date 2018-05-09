@@ -1,12 +1,20 @@
 #include <boost/math/special_functions/binomial.hpp>
+#include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <iostream>
 
 #include "hermite/iterators.hpp"
 #include "hermite/tensorize.hpp"
 #include "hermite/templates.hpp"
+#include "hermite/types.hpp"
 
 using namespace std;
 using boost::math::binomial_coefficient;
+
+// Sparse matrix
+using namespace boost::numeric::ublas;
+typedef compressed_matrix<double, row_major>::iterator1 it1_t;
+typedef compressed_matrix<double, row_major>::iterator2 it2_t;
+typedef compressed_matrix<double, row_major> spmat;
 
 namespace hermite {
 
@@ -51,9 +59,55 @@ vec tensorize_vec(vec input, u_int dim, u_int dir)
     return tensorize_vecs(vecs);
 }
 
+spmat sp_tensorize_mats(std::vector<spmat> inputs)
+{
+    u_int dim = inputs.size();
+
+    if (dim == 1)
+    {
+        return inputs[0];
+    }
+
+
+//     for (it1_t i1 = M.begin1(); i1 != M.end1(); ++i1)
+//     {
+//         for (it2_t i2 = i1.begin(); i2 != i1.end(); ++i2)
+//         {
+//             cout << "(" << i2.index1() << "," << i2.index2() << ":" << *i2 << ")  " << endl;
+//         }
+//     }
+
+    u_int degree = inputs.size1() - 1;
+    u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
+
+    spmat result(n_polys, n_polys);
+
+    // Multi_index_iterator m1(dim, degree);
+    // Multi_index_iterator m2(dim, degree);
+    // u_int i,j,k;
+    // for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
+    // {
+    //     for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
+    //     {
+    //         results[i][j] = 1.;
+    //         for (k = 0; k < dim; k++)
+    //         {
+    //             results[i][j] *= inputs[k][m1[k]][m2[k]];
+    //         }
+    //     }
+    // }
+    // return results;
+}
+
 mat tensorize_mats(cube inputs)
 {
     u_int dim = inputs.size();
+
+    if (dim == 1)
+    {
+        return inputs[0];
+    }
+
     u_int degree = inputs[0].size() - 1;
     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
     mat results(n_polys, vec(n_polys, 0.));
