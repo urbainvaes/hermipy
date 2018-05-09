@@ -60,7 +60,7 @@ mat test_return_multi_array(int n)
     for (unsigned int i = 0; i < array.shape()[0]; i++)
         for (unsigned int j = 0; j < array.shape()[1]; j++)
             array[i][j] = ++value;
-    return mat;
+    return array;
 }
 
 int main()
