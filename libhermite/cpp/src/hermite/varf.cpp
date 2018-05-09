@@ -25,112 +25,46 @@ namespace hermite {
 // Exact, does not rely on quadrature
 cube triple_products_1d(int degree)
 {
-    // cube products(degree + 1, mat(degree + 1, vec(2*degree + 1, 0.)));
-    // cube e_products(degree + 1, mat(degree + 1, vec(2*degree + 1, 0.)));
-    // cube e_products_2(degree + 1, mat(2*degree + 1, vec(2*degree + 1, 0.)));
-
-    // // Compute entries for i ≤ j ≤ k, and the rest by symmetry.
-    // int i,j,k;
-
-    // for (i = 0; i <= degree; i++)
-    // {
-    //     e_products[0][i][i] = 1.;
-    // }
-
-    // vec a(2*degree + 1, 0.), b(2*degree + 1, 0.);
-    // for (i = 0; i <= 2*degree; i++)
-    // {
-    //     a[i] = REC_A(i);
-    //     b[i] = REC_B(i);
-    // }
-
-    // // i ≥ 2; j ≥ 2: h_{i+1} h_j = x REC_A(i) h_i h_j - REB_B(i) h_(i-1) h_(j)
-    // //                           = (REC_A(i)/REC_A(j) (h_i h_(j+1) + REC_B(j) h_i h_(j-1)) - ...
-
-    // for (i = 0; i <= 2*degree; i++)
-    // {
-    //     e_products_2[0][i][i] = 1.;
-    // }
-    // for (i = 1; i <= degree; i++)
-    // {
-    //     double ai = REC_A(i-1);
-    //     double bi = REC_B(i-1);
-    //     for (j = i; j <= 2*degree - i; j++)
-    //     {
-    //         double aj = REC_A(j);
-    //         double bj = REC_B(j);
-    //         for (k = j - i; k <= j + i; k++)
-    //         {
-    //             e_products_2[i][j][k] += ai/aj * e_products_2[i-1][j+1][k];
-    //             e_products_2[i][j][k] += ai/aj*bj * e_products_2[i-1][j-1][k];
-    //             e_products_2[i][j][k] += i == 1 ? 0. : - bi * e_products_2[i-2][j][k];
-    //         }
-    //     }
-    // }
-
-
-    // for (i = 1; i <= degree; i++)
-    // {
-    //     double ai = a[i-1];
-    //     double bi = b[i-1];
-    //     for (j = i; j <= degree; j++)
-    //     {
-    //         for (k = MAX(j - i, 0); k <= j + i - 2; k++)
-    //             e_products[i][j][k] += ai/a[k] * e_products[i-1][j][k+1];
-
-    //         for (k = MAX(j - i + 2, 0); k <= j + i - 2; k++)
-    //             e_products[i][j][k] += - bi * e_products[i-2][j][k];
-
-    //         for (k = MAX(j - i + 2, 1); k <= i + j; k++)
-    //             e_products[i][j][k] += ai/a[k]*b[k] * e_products[i-1][j][k-1];
-
-    //         double error = e_products[i][j][k] - e_products_2[i][j][k];
-    //         if (error > 1e-10)
-    //             cout << "Error: " << error << endl;
-    //     }
-    // }
-
     cube products(degree + 1, mat(degree + 1, vec(2*degree + 1, 0.)));
-    cube e_products(degree + 1, mat(2*degree + 1, vec(2*degree + 1, 0.)));
 
     // Compute entries for i ≤ j ≤ k, and the rest by symmetry.
     int i,j,k;
 
-    for (j = 0; j <= 2*degree; j++)
+    for (i = 0; i <= degree; i++)
     {
-        e_products[0][j][j] = 1.;
+        products[0][i][i] = 1.;
+    }
+
+    vec a(2*degree + 1, 0.), b(2*degree + 1, 0.);
+    for (i = 0; i <= 2*degree; i++)
+    {
+        a[i] = REC_A(i);
+        b[i] = REC_B(i);
     }
 
     // i ≥ 2; j ≥ 2: h_{i+1} h_j = x REC_A(i) h_i h_j - REB_B(i) h_(i-1) h_(j)
     //                           = (REC_A(i)/REC_A(j) (h_i h_(j+1) + REC_B(j) h_i h_(j-1)) - ...
     for (i = 1; i <= degree; i++)
     {
-        double ai = REC_A(i-1);
-        double bi = REC_B(i-1);
-        for (j = i; j <= 2*degree - i; j++)
+        double ai = a[i-1];
+        double bi = b[i-1];
+        for (j = i; j <= degree; j++)
         {
-            double aj = REC_A(j);
-            double bj = REC_B(j);
-            for (k = j - i; k <= j + i; k++)
-            {
-                e_products[i][j][k] += ai/aj * e_products[i-1][j+1][k];
-                e_products[i][j][k] += ai/aj*bj * e_products[i-1][j-1][k];
-                e_products[i][j][k] += i == 1 ? 0. : - bi * e_products[i-2][j][k];
-            }
+            for (k = MAX(j - i, 0); k <= j + i - 2; k++)
+                products[i][j][k] += ai/a[k] * products[i-1][j][k+1];
+
+            for (k = MAX(j - i + 2, 0); k <= j + i - 2; k++)
+                products[i][j][k] += - bi * products[i-2][j][k];
+
+            for (k = MAX(j - i + 2, 1); k <= i + j; k++)
+                products[i][j][k] += ai/a[k]*b[k] * products[i-1][j][k-1];
         }
     }
 
     for (i = 0; i <= degree; i++)
-    {
         for (j = i; j <= degree; j++)
-        {
             for (k = j - i; k <= j + i; k++)
-            {
-                products[i][j][k] = e_products[i][j][k];
-                products[j][i][k] = e_products[i][j][k];
-            }
-        }
-    }
+                products[j][i][k] = products[i][j][k];
 
     return products;
 }
