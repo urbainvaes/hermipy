@@ -2,6 +2,7 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <iostream>
 
+#include "hermite/matrix.hpp"
 #include "hermite/iterators.hpp"
 #include "hermite/tensorize.hpp"
 #include "hermite/templates.hpp"
@@ -60,7 +61,7 @@ template <> boost::spmat tensorize(const std::cube & inputs)
     u_int degree = inputs[0].size() - 1;
     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
 
-    boost::spmat product(n_polys, n_polys);
+    boost::spmat product = matrix::construct<boost::spmat>(n_polys, n_polys);
 
     Multi_index_iterator m1(dim, degree);
     Multi_index_iterator m2(dim, degree);
@@ -76,21 +77,49 @@ template <> boost::spmat tensorize(const std::cube & inputs)
             }
             if (result != 0)
             {
-                product(i,j) = result;
+                matrix::set(product, i, j, result);
             }
         }
     }
     return product;
 }
 
+// template<typename T> T tensorize(const std::cube & inputs)
+// {
+//     u_int dim = inputs.size();
+
+//     u_int degree = inputs[0].size() - 1;
+//     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
+
+//     T product = matrix::construct<T>(n_polys, n_polys);
+
+//     Multi_index_iterator m1(dim, degree);
+//     Multi_index_iterator m2(dim, degree);
+//     u_int i,j,k;
+//     for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
+//     {
+//         for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
+//         {
+//             double result = 1.;
+//             for (k = 0; k < dim; k++)
+//             {
+//                 result *= matrix::get(inputs[k], m1[k], m2[k]);
+//             }
+//             if (result != 0)
+//             {
+//                 matrix::set(product, i, j, result);
+//             }
+//         }
+//     }
+//     return product;
+// }
+
+// template std::mat tensorize(const std::cube & inputs);
+// template boost::spmat tensorize(const std::cube & inputs);
+
 template <> std::mat tensorize(const cube & inputs)
 {
     u_int dim = inputs.size();
-
-    if (dim == 1)
-    {
-        return inputs[0];
-    }
 
     u_int degree = inputs[0].size() - 1;
     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);

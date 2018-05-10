@@ -14,17 +14,45 @@ namespace boost
 
 namespace matrix 
 {
+    inline void set(boost::spmat & input, std::u_int i, std::u_int j, double val)
+    {
+        input(i, j) = val;
+    }
 
-    void set(boost::spmat & matrix, std::u_int i, std::u_int j, double val);
-    void set(std::mat & matrix, std::u_int i, std::u_int j, double val);
+    inline void set(std::mat & input, std::u_int i, std::u_int j, double val)
+    {
+        input[i][j] = val;
+    }
 
-    double get(const boost::spmat & matrix, std::u_int i, std::u_int j);
-    double get(const std::mat & matrix, std::u_int i, std::u_int j);
+    inline std::u_int size1(const std::mat & input)
+    {
+        return input.size();
+    }
 
-    std::u_int size1(const std::mat &);
-    std::u_int size2(const std::mat &);
-    std::u_int size1(const boost::spmat &);
-    std::u_int size2(const boost::spmat &);
+    inline std::u_int size2(const std::mat & input)
+    {
+        return input[0].size();
+    }
+
+    inline std::u_int size1(const boost::spmat & input)
+    {
+        return input.size1();
+    }
+
+    inline std::u_int size2(const boost::spmat & input)
+    {
+        return input.size2();
+    }
+
+    inline double get(const boost::spmat & input, std::u_int i, std::u_int j)
+    {
+        return input(i, j);
+    }
+
+    inline double get(const std::mat & input, std::u_int i, std::u_int j)
+    {
+        return input[i][j];
+    }
 
     template<typename T> T construct(std::u_int size1, std::u_int size2);
 }

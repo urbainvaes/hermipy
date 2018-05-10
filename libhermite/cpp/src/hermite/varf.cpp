@@ -4,8 +4,6 @@
 #include <unordered_map>
 #include <ctime>
 
-// #include "sparse-matrix/SparseMatrix.h"
-
 #include "hermite/hermite.hpp"
 #include "hermite/iterators.hpp"
 #include "hermite/tensorize.hpp"
