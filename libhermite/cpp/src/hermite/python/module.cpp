@@ -65,11 +65,12 @@ BOOST_PYTHON_MODULE(hermite_cpp)
 
     // Projcetion and tensorizations of matrices
     def("project", static_cast<std::mat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& project));
-    def("tensorize", static_cast<std::mat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& tensorize));
-    def("tensorize", tensorize<std::mat>);
+    def("tensorize", static_cast<std::mat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& tensorize<std::mat>));
+    def("tensorize", static_cast<std::mat (*) (const std::cube & input)> (& tensorize<std::mat>));
 
     // Tensorization of sparse matrices
-    def("tensorize_sp", tensorize<boost::spmat>);
+    def("tensorize_sp", static_cast<boost::spmat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& tensorize<boost::spmat>));
+    def("tensorize_sp", static_cast<boost::spmat (*) (const std::cube & input)> (& tensorize<boost::spmat>));
 
     // Converters between data types
     def("to_numpy", mat_to_numpy);
