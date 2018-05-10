@@ -6,15 +6,15 @@
 
 namespace hermite {
 
-std::vec tensorize_vecs(std::mat inputs);
-std::mat tensorize_mats(std::cube inputs);
-std::vec tensorize_vec(std::vec input, std::u_int dim, std::u_int dir);
-std::mat tensorize_mat(std::mat input, std::u_int dim, std::u_int dir);
-std::vec project_vec(std::vec input, std::u_int dim, std::u_int dir);
-std::mat project_mat(std::mat input, std::u_int dim, std::u_int dir);
+std::vec tensorize(const std::mat &);
+std::mat tensorize(const std::cube &);
+std::vec tensorize(const std::vec & input, std::u_int dim, std::u_int dir);
+std::mat tensorize(const std::mat & input, std::u_int dim, std::u_int dir);
+std::vec project(const std::vec & input, std::u_int dim, std::u_int dir);
+std::mat project(const std::mat & input, std::u_int dim, std::u_int dir);
 
-using namespace boost::numeric::ublas;
-compressed_matrix<double, row_major> sp_tensorize_mats(std::vector<compressed_matrix<double, row_major>> inputs);
+// using namespace boost::numeric::ublas;
+boost::spmat tensorize(const std::vector<boost::spmat> & inputs);
 
 }
 

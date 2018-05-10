@@ -150,8 +150,7 @@ mat varf(
             factors[d] = products[m[d]];
         }
 
-        mat results(n_polys, vec(n_polys, 0.));
-        result = result + tensorize_mats(factors)*Hf[i];
+        result = result + tensorize(factors)*Hf[i];
     }
 
     return result;

@@ -1,4 +1,5 @@
 #include <boost/math/special_functions/binomial.hpp>
+#include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <iostream>
 
 #include "hermite/iterators.hpp"
@@ -11,7 +12,7 @@ using boost::math::binomial_coefficient;
 
 namespace hermite {
 
-bool isAligned(ivec m, u_int dir)
+bool isAligned(const ivec & m, u_int dir)
 {
     for (u_int j = 0; j < m.size(); j++)
     {
@@ -23,7 +24,7 @@ bool isAligned(ivec m, u_int dir)
     return true;
 }
 
-vec tensorize_vecs(mat inputs)
+vec tensorize(const mat & inputs)
 {
     u_int dim = inputs.size();
     u_int degree = inputs[0].size() - 1;
@@ -43,18 +44,16 @@ vec tensorize_vecs(mat inputs)
     return results;
 }
 
-vec tensorize_vec(vec input, u_int dim, u_int dir)
+vec tensorize(const vec & input, u_int dim, u_int dir)
 {
     u_int degree = input.size() - 1;
     vec cst(degree + 1, 0.); cst[0] = 1;
     mat vecs(dim, cst);
     vecs[dir] = input;
-    return tensorize_vecs(vecs);
+    return tensorize(vecs);
 }
 
-using namespace boost::numeric::ublas;
-typedef compressed_matrix<double, row_major> spmat;
-spmat sp_tensorize_mats(std::vector<spmat> inputs)
+boost::spmat tensorize(const std::vector<boost::spmat> & inputs)
 {
     u_int dim = inputs.size();
 
@@ -66,7 +65,7 @@ spmat sp_tensorize_mats(std::vector<spmat> inputs)
     u_int degree = inputs[0].size1() - 1;
     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
 
-    spmat product(n_polys, n_polys);
+    boost::spmat product(n_polys, n_polys);
 
     Multi_index_iterator m1(dim, degree);
     Multi_index_iterator m2(dim, degree);
@@ -89,7 +88,7 @@ spmat sp_tensorize_mats(std::vector<spmat> inputs)
     return product;
 }
 
-mat tensorize_mats(cube inputs)
+mat tensorize(const cube & inputs)
 {
     u_int dim = inputs.size();
 
@@ -119,7 +118,7 @@ mat tensorize_mats(cube inputs)
     return results;
 }
 
-mat tensorize_mat(mat input, u_int dim, u_int dir)
+mat tensorize(const mat & input, u_int dim, u_int dir)
 {
     u_int degree = input.size() - 1;
     vec zeros(degree + 1, 0.);
@@ -130,10 +129,10 @@ mat tensorize_mat(mat input, u_int dim, u_int dir)
     }
     cube mats(dim, eye);
     mats[dir] = input;
-    return tensorize_mats(mats);
+    return tensorize(mats);
 }
 
-vec project_vec(vec input, u_int dim, u_int dir)
+vec project(const vec & input, u_int dim, u_int dir)
 {
     u_int degree = 0, n_polys = input.size();
     while ((u_int) binomial_coefficient<double> (degree + dim, dim) != n_polys)
@@ -153,7 +152,7 @@ vec project_vec(vec input, u_int dim, u_int dir)
     return results;
 }
 
-mat project_mat(mat input, u_int dim, u_int dir)
+mat project(const mat & input, u_int dim, u_int dir)
 {
     u_int degree = 0, n_polys = input.size();
     while ((u_int) binomial_coefficient<double> (degree + dim, dim) != n_polys)
