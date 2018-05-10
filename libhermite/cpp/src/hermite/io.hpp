@@ -6,40 +6,70 @@
 #include <iostream>
 
 namespace hermite {
-using namespace std;
 
-template<typename T> void printVec(vector<T> a)
+template<typename T> std::ostream & printVec(std::ostream & os,
+        std::vector<T> a)
 {
-    cout << "[" << a[0];
+    os << "[" << a[0];
     for (u_int i = 1; i < a.size(); i++)
     {
-            cout << ", " << a[i];
+            os << ", " << a[i];
     }
-    cout << "]";
+    os << "]";
+    return os;
 }
 
-template<typename T> void printMat(vector< vector<T> >  a, string begin)
+template<typename T>
+std::ostream& operator<<(std::ostream& os,
+        const std::vector<T> & data)
 {
-    cout << "["; printVec<T>(a[0]);
-    for (u_int i = 1; i < a.size(); i++)
-    {
-        cout << endl << begin;
-        printVec<T>(a[i]);
-    }
-    cout << "]";
+    printVec(os, data);
+    return os;
 }
 
-template<typename T> void printCube(vector< vector< vector<T> >  > a, string begin)
+template<typename T> std::ostream &  printMat(std::ostream & os,
+        std::vector< std::vector<T> >  a,
+        std::string begin = " ")
 {
-    cout << "[";
-    printMat<T>(a[0]);
+    os << "[" << a[0];
     for (u_int i = 1; i < a.size(); i++)
     {
-        cout << endl << begin;
-        printMat<T>(a[i]);
+        os << std::endl << begin << a[i];
     }
-    cout << "]" << endl;
-}}
+    os << "]";
+    return os;
+}
+
+template<typename T>
+std::ostream& operator<<(std::ostream& os,
+        const std::vector< std::vector<T> > & data)
+{
+    printMat<T>(os, data);
+    return os;
+}
+
+template<typename T> std::ostream &  printCube(std::ostream & os,
+        std::vector< std::vector< std::vector<T> >  > a,
+        std::string begin = "  ")
+{
+    os << "[" << a[0];
+    for (u_int i = 1; i < a.size(); i++)
+    {
+        os << std::endl << begin << a[i];
+    }
+    os << "]" << std::endl;
+    return os;
+}
+
+template<typename T>
+std::ostream& operator<<(std::ostream& os,
+        const std::vector< std::vector< std::vector<T> >  > & data)
+{
+    printCube<T>(os, data);
+    return os;
+}
+
+}
 
 
 #endif

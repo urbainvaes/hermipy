@@ -4,7 +4,6 @@
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
 #include "hermite/discretize.hpp"
-#include "hermite/io.hpp"
 #include "hermite/iterators.hpp"
 #include "hermite/tensorize.hpp"
 #include "hermite/transform.hpp"
@@ -12,6 +11,7 @@
 #include "hermite/varf.hpp"
 #include "hermite/python/converters.hpp"
 
+using namespace std;
 namespace hermite {
 
 BOOST_PYTHON_MODULE(hermite_cpp)
@@ -44,14 +44,9 @@ BOOST_PYTHON_MODULE(hermite_cpp)
 
     class_<boost::c_mat>("contiguous_mat");
 
-    def("to_numpy", mat_to_numpy);
-    def("to_numpy", cmat_to_numpy);
-    def("to_mat", to_mat);
-    def("to_bmat", to_bmat);
+    // Core functions
     def("discretize", discretize_from_string);
     def("integrate", integrate);
-    def("list_cube_indices", list_cube_indices);
-    def("list_multi_indices", list_multi_indices);
     def("project", project_vec);
     def("project", project_mat);
     def("tensorize", tensorize_vecs);
@@ -62,6 +57,16 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     def("triple_products", triple_products_1d);
     def("varf", varf);
     def("varfd", varfd);
+
+    // Converters between data types
+    def("to_numpy", mat_to_numpy);
+    def("to_numpy", cmat_to_numpy);
+    def("to_mat", to_mat);
+    def("to_bmat", to_bmat);
+
+    // Misc functions
+    def("list_cube_indices", list_cube_indices);
+    def("list_multi_indices", list_multi_indices);
 }
 
 }

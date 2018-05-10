@@ -2,7 +2,7 @@
 
 using namespace std;
 
-mat operator*(const mat& mat1, const mat& mat2) {
+mat operator*(const mat& mat1, const mat & mat2) {
     mat result (mat1.size(), vec (mat1.size(), 0.));
     for (unsigned int i = 0; i < mat1.size(); i++) {
         for (unsigned int j = 0; j < mat1.size(); j++) {
@@ -14,7 +14,7 @@ mat operator*(const mat& mat1, const mat& mat2) {
     return result;
 }
 
-vec operator*(const mat& matrix, const vec& vector) {
+vec operator*(const mat& matrix, const vec & vector) {
     vec result(matrix.size(),0.);
     for (unsigned int i = 0; i < matrix.size(); i++) {
         for (unsigned int j = 0; j < matrix.size(); j++) {

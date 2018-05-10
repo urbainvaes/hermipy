@@ -3,13 +3,17 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
 #include "hermite/sparse.hpp"
+#include "hermite/iterators.hpp"
+#include "hermite/tensorize.hpp"
+#include "hermite/templates.hpp"
+#include "hermite/io.hpp"
 
 #include <iostream>
 
 using namespace std;
 using namespace hermite;
-using namespace boost::numeric::ublas;
-typedef compressed_matrix<double, row_major> spmat;
+namespace bn = boost::numeric::ublas;
+typedef bn::compressed_matrix<double, bn::row_major> spmat;
 
 std::mat simple(int n)
 {
@@ -18,9 +22,9 @@ std::mat simple(int n)
     {
         for (u_int j = 0; j < result[0].size(); j++)
         {
-            if (i%2 == 0 && j%2 == 0)
+            if (true || i%2 == 0 && j%2 == 0)
             {
-                result[i][j] = (double) i*n + (double) j;
+                result[i][j] = (double) i*n + (double) j + 1;
             }
         }
     }
@@ -29,7 +33,24 @@ std::mat simple(int n)
 
 int main()
 {
-    mat test = simple(6);
-    spmat converted = mat_to_spmat(test);
-    cout << converted << endl;
+    int degree = 3;
+    mat initial = simple(degree + 1);
+    cout << initial << endl;
+    spmat sp_initial = mat_to_spmat(initial);
+    std::cube inputs(2, initial);
+    std::vector<spmat> sp_inputs(2, sp_initial);
+    spmat sp_tensorized = sp_tensorize_mats(sp_inputs);
+    mat tensorized = tensorize_mats(inputs);
+    mat difference = hermite::full(sp_tensorized) - tensorized;
+    imat m = list_multi_indices(2, degree);
+    for (u_int i = 0; i < tensorized.size(); i++)
+    {
+        for (u_int j = 0; j < tensorized.size(); j++)
+        {
+            cout << m[i] << ", " << m[j] << ", "
+                << initial[m[i][0]][m[j][0]] <<  " * "
+                << initial[m[i][1]][m[j][1]] << " = "
+                <<  tensorized[i][j] << "?" << endl;
+        }
+    }
 }

@@ -41,4 +41,18 @@ spmat mat_to_spmat(mat input)
     return result;
 }
 
+mat full(spmat input)
+{
+    u_int s1 = input.size1(), s2 = input.size2();
+    mat result(s1, vec(s2, 0));
+    for (u_int i = 0; i < s1; i++)
+    {
+        for (u_int j = 0; j < s2; j++)
+        {
+            result[i][j] = input(i, j);
+        }
+    }
+    return result;
+}
+
 }
