@@ -1,4 +1,6 @@
+*.so
+*.exe
+a.out
+
 build
 doc
-*.so
-cpp/main

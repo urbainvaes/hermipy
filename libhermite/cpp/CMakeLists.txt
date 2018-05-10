@@ -15,7 +15,7 @@ find_package(Boost COMPONENTS python3 numpy3 REQUIRED)
 include_directories(${Boost_INCLUDE_DIR} ${PYTHON_INCLUDE_DIRS})
 
 # Find sources and add include directory of sources
-file(GLOB_RECURSE Sources "src/hermite/*.cpp" "src/tests/*cpp")
+file(GLOB_RECURSE Sources "src/hermite/*.cpp")
 include_directories("src")
 
 # Build our library
@@ -26,7 +26,7 @@ target_link_libraries(hermite_cpp ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} ${CMAKE
 set_target_properties(hermite_cpp PROPERTIES
     PREFIX "" LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY})
 
-file(GLOB testfiles src/*.cpp)
+file(GLOB testfiles "src/tests/*.cpp")
 foreach(testfile ${testfiles})
     get_filename_component(testname ${testfile} NAME_WE)
     add_executable(${testname}.exe ${testfile})

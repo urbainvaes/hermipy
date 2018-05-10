@@ -10,9 +10,7 @@
 #include "hermite/transform.hpp"
 #include "hermite/types.hpp"
 #include "hermite/varf.hpp"
-
 #include "hermite/python/converters.hpp"
-#include "tests/conversions.hpp"
 
 namespace hermite {
 
@@ -46,11 +44,8 @@ BOOST_PYTHON_MODULE(hermite_cpp)
 
     class_<boost::c_mat>("contiguous_mat");
 
-    def("test", test);
-    def("test2", test2);
-    def("test3", test3);
     def("to_numpy", mat_to_numpy);
-    def("to_numpy", cmat_to_numpy); // Not working
+    def("to_numpy", cmat_to_numpy);
     def("to_mat", to_mat);
     def("to_bmat", to_bmat);
     def("discretize", discretize_from_string);

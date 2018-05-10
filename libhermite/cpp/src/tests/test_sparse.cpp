@@ -17,8 +17,9 @@ int main(int argc, char** argv)
 
     cMatrix sparseMat(size,size);
     for (size_t i=0; i<size; ++i)
-        sparseMat.insert_element(rowInd[i], colInd[i], 1.0);
+        sparseMat(rowInd[i], colInd[i]) = 0.0;
 
+    cout << sparseMat(0, 1) << endl;
     cout << sparseMat << endl;
 
     // Try writing to file
