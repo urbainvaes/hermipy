@@ -26,11 +26,14 @@ target_link_libraries(hermite_cpp ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} ${CMAKE
 set_target_properties(hermite_cpp PROPERTIES
     PREFIX "" LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY})
 
-# Add executable
-add_executable (main src/main.cpp)
-target_link_libraries (main hermite_cpp)
-set_target_properties(main PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY})
+file(GLOB testfiles src/*.cpp)
+foreach(testfile ${testfiles})
+    get_filename_component(testname ${testfile} NAME_WE)
+    add_executable(${testname}.exe ${testfile})
+    target_link_libraries (${testname}.exe hermite_cpp)
+    # set_target_properties(${testname}.exe PROPERTIES
+    #     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY})
+endforeach(testfile ${testfiles})
 
 # Generate documentation
 find_package(Doxygen)
