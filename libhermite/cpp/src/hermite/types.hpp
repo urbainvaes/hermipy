@@ -30,7 +30,6 @@ namespace boost {
 
     // Contiguous multi-dimensional array
     typedef multi_array<double, 2> c_mat;
-    c_mat contig_mat(int rows, int cols);
 
     // Sparse matrix
     typedef boost::numeric::ublas::compressed_matrix<double, boost::numeric::ublas::row_major> spmat;

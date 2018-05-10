@@ -13,6 +13,7 @@
 #include "hermite/types.hpp"
 #include "hermite/templates.hpp"
 #include "hermite/varf.hpp"
+#include "hermite/matrix.hpp"
 
 #include <boost/math/special_functions/binomial.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
@@ -73,53 +74,7 @@ cube triple_products_1d(int degree)
     return products;
 }
 
-// SparseMatrix<double> sparseVarf(
-//         u_int degree,
-//         vec const & input,
-//         mat const & nodes,
-//         mat const & weights)
-// {
-    // u_int dim = nodes.size();
-    // u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
-    // u_int n_polys_2 = (u_int) binomial_coefficient<double> (2*degree + dim, dim);
-
-    // cube products = triple_products_1d(degree);
-
-    // Multi_index_iterator m1(dim, degree);
-    // Multi_index_iterator m2(dim, degree);
-    // Multi_index_iterator m3(dim, 2*degree);
-
-    // // Hermite transform of input function
-    // vec Hf = transform(2*degree, input, nodes, weights, true);
-
-    // u_int i,j,k,l;
-    // SparseMatrix<double> result(n_polys, n_polys);
-
-    // for (k = 0, m3.reset(); k < n_polys_2; k++, m3.increment())
-    // {
-    //     if (abs(Hf[k]) < 1e-14)
-    //     {
-    //         continue;
-    //     }
-
-    //     for (i = 0, m1.reset(); i < n_polys; i++, m1.increment())
-    //     {
-    //         for (j = 0, m2.reset(); j < n_polys; j++, m2.increment())
-    //         {
-    //             double increment = Hf[k];
-    //             for (l = 0; l < dim; l++)
-    //             {
-    //                 increment *= products[m1[l]][m2[l]][m3[l]];
-    //             }
-    //             result.set(result.get(i+1, j+1) + increment, i+1, j+1);
-    //         }
-    //     }
-    // }
-
-    // return result;
-// }
-
-mat varf(
+template<typename T> T varf(
         u_int degree,
         vec const & input,
         mat const & nodes,
@@ -134,7 +89,7 @@ mat varf(
     cube products = triple_products_1d(degree);
 
     // To store results
-    mat result(n_polys, vec(n_polys, 0.));
+    T result = matrix::construct<T>(n_polys, n_polys);
 
     Multi_index_iterator m(dim, 2*degree); m.reset();
     for (u_int i = 0; i < Hf.size(); i++, m.increment())
@@ -150,11 +105,14 @@ mat varf(
             factors[d] = products[m[d]];
         }
 
-        result = result + tensorize(factors)*Hf[i];
+        result = result + tensorize<T>(factors)*Hf[i];
     }
 
     return result;
 }
+
+template std::mat varf( u_int degree, vec const & input, mat const & nodes, mat const & weights);
+template boost::spmat varf( u_int degree, vec const & input, mat const & nodes, mat const & weights);
 
 u_int hash(ivec v, int degree) {
     u_int base = degree + 1;

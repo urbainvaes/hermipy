@@ -53,16 +53,11 @@ vec tensorize(const vec & input, u_int dim, u_int dir)
     return tensorize(vecs);
 }
 
-boost::spmat tensorize(const std::vector<boost::spmat> & inputs)
+template <> boost::spmat tensorize(const std::cube & inputs)
 {
     u_int dim = inputs.size();
 
-    if (dim == 1)
-    {
-        return inputs[0];
-    }
-
-    u_int degree = inputs[0].size1() - 1;
+    u_int degree = inputs[0].size() - 1;
     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
 
     boost::spmat product(n_polys, n_polys);
@@ -77,7 +72,7 @@ boost::spmat tensorize(const std::vector<boost::spmat> & inputs)
             double result = 1.;
             for (k = 0; k < dim; k++)
             {
-                 result *= inputs[k](m1[k], m2[k]);
+                result *= inputs[k][m1[k]][m2[k]];
             }
             if (result != 0)
             {
@@ -88,7 +83,7 @@ boost::spmat tensorize(const std::vector<boost::spmat> & inputs)
     return product;
 }
 
-mat tensorize(const cube & inputs)
+template <> std::mat tensorize(const cube & inputs)
 {
     u_int dim = inputs.size();
 
@@ -129,7 +124,7 @@ mat tensorize(const mat & input, u_int dim, u_int dir)
     }
     cube mats(dim, eye);
     mats[dir] = input;
-    return tensorize(mats);
+    return tensorize<std::mat>(mats);
 }
 
 vec project(const vec & input, u_int dim, u_int dir)

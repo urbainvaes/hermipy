@@ -45,22 +45,31 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     class_<boost::c_mat>("contiguous_mat");
 
 
-    // Core functions
+    // Discretization
     def("discretize", discretize_from_string);
+
+    // Integration and Hermite transform
     def("integrate", integrate);
     def("transform", transform);
+
+    // Triple products and variational formulations
     def("triple_products", triple_products_1d);
-    def("varf", varf);
+    def("varf", varf<std::mat>);
+    def("varf_sp", varf<boost::spmat>);
     def("varfd", varfd);
 
-    // Tensorization
+    // Projection and tensorization of vectors
     def("project", static_cast<std::vec (*) (const std::vec & input, std::u_int dim, std::u_int dir)> (& project));
-    def("project", static_cast<std::mat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& project));
-    def("tensorize", static_cast<std::vec (*) (const std::mat &)> (& tensorize));
-    def("tensorize", static_cast<std::mat (*) (const std::cube &)> (& tensorize));
     def("tensorize", static_cast<std::vec (*) (const std::vec & input, std::u_int dim, std::u_int dir)> (& tensorize));
+    def("tensorize", static_cast<std::vec (*) (const std::mat &)> (& tensorize));
+
+    // Projcetion and tensorizations of matrices
+    def("project", static_cast<std::mat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& project));
     def("tensorize", static_cast<std::mat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& tensorize));
-    def("tensorize", static_cast<boost::spmat (*) (const std::vector<boost::spmat> &)>(& tensorize));
+    def("tensorize", tensorize<std::mat>);
+
+    // Tensorization of sparse matrices
+    def("tensorize_sp", tensorize<boost::spmat>);
 
     // Converters between data types
     def("to_numpy", mat_to_numpy);

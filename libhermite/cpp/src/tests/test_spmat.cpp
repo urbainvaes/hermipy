@@ -34,9 +34,8 @@ int main()
     cout << initial << endl;
     boost::spmat sp_initial = mat_to_spmat(initial);
     std::cube inputs(2, initial);
-    std::vector<boost::spmat> sp_inputs(2, sp_initial);
-    boost::spmat sp_tensorized = tensorize(sp_inputs);
-    mat tensorized = tensorize(inputs);
+    boost::spmat sp_tensorized = tensorize<boost::spmat>(inputs);
+    mat tensorized = tensorize<std::mat>(inputs);
     mat difference = hermite::full(sp_tensorized) - tensorized;
     imat m = list_multi_indices(2, degree);
     for (u_int i = 0; i < tensorized.size(); i++)
