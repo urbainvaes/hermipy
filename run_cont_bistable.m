@@ -1,9 +1,9 @@
-function run_cont_bistable
+ function run_cont_bistable
     
     global N m SS
           
     lam0= 10;                                                               % initial guess for beta
-    dlam=0.05;                                                              % maximum step on arclength continuation
+    dlam=5;                                                              % maximum step on arclength continuation
     theta = 0.5;   
             
     % space discretisaiton (more details in steady_cont_bistable.m)
@@ -21,7 +21,7 @@ function run_cont_bistable
     SS = exp(-lam0*(V(x)+theta*x.^2/2 - theta*x*m));                   % guess for solution with first moment xi
     SS = SS/trapz(x,SS);                                                    % rescaling
     
-    u_in = [SS ; m];                               
+    u_in = m;                               
     
     MON = [];               % to store the first moment (solution to R(m)=m
     LAM = [];               % stores values of beta
@@ -29,7 +29,7 @@ function run_cont_bistable
     tic
     [SOL,Mon,S] = cont(@steady_cont_bistable,u_in,lam0,60,...
         'MonitorFcn',@Monitor,'step',dlam,'direction',1,...         
-        'jacobian','off','minstep',1e-6,'tolfun',1e-8,...
+        'jacobian','off','minstep',1e-2,'tolfun',1e-2,...
         'algorithm','keller',...
         'stop','on');
         %% 'Adaptative',{[N 5 1e-8]},'Maxstep',1,...
@@ -43,9 +43,6 @@ function run_cont_bistable
        LAM = [LAM,lambda];
        MON = [MON,g];
        P = [P,ss];
-%        subplot(2,1,1)
-%        plot(x,ss,'b-',x,p,'r--','linewidth',2)
-%        xlabel('$x$', 'interpreter','latex'); ylabel('$p_{\infty}(x)$', 'interpreter','latex')
        plot(LAM,MON,'linewidth',2)
        xlabel('$\beta$', 'interpreter','latex'); ylabel('$m$', 'interpreter','latex')
        drawnow

@@ -18,8 +18,7 @@ num['σx'] = r(1, 10)
 num['λ'] = r(1, 2)
 
 # Scalar parameters of the equation
-eq['βx'] = r(2)
-eq['βy'] = r(1)
+eq['β'] = r(2)
 eq['ε'] = r(.5)
 eq['γ'] = r(0)
 eq['θ'] = r(.5)

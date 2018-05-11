@@ -1,4 +1,4 @@
-function run_cont_bistable
+ function run_cont_bistable
     
     global N m SS
           

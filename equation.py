@@ -18,7 +18,7 @@ def forward_params():
 
     # Create missing real positive parameters
     options = {'real': True, 'positive': True}
-    for param in ['βx', 'βy', 'γ', 'ε']:
+    for param in ['β', 'γ', 'ε']:
         params[param] = sym.symbols(param, **options)
 
     # Create missing real parameters
@@ -36,18 +36,18 @@ def forward_params():
 def forward(params):
 
     # Real parameters
-    βx, βy, γ, ε, θ, m = (params[x] for x in ['βx', 'βy', 'γ', 'ε', 'θ', 'm'])
+    β, γ, ε, θ, m = (params[x] for x in ['β', 'γ', 'ε', 'θ', 'm'])
 
     # Functional parameters
-    Vp, Vy = (params[x] for x in ['Vp', 'Vy'])
+    Vp = (params[x] for x in ['Vp'])
 
     d = sym.diff
 
     # Fokker planck operator
-    return d(d(Vp, x)*f + θ*(x-m)*f + (1-γ)*sym.sqrt(2/βx)*y*f/ε, x) \
-        + γ**2/βx * (1/ε) * d(d(f, x), x) \
-        + (1/ε**2) * d(d(Vy, y) * f, y) \
-        + (1/ε**2) * (1/βy) * d(d(f, y), y)
+    return d(d(Vp, x)*f + θ*(x-m)*f + (1-γ)*sym.sqrt(2/β)*y*f/ε, x) \
+        + γ**2/β * (1/ε) * d(d(f, x), x) \
+        + (1/ε**2) * d(y * f, y) \
+        + (1/ε**2) * d(d(f, y), y)
 
 
 def solve_gaussian(operator):

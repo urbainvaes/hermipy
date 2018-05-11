@@ -12,8 +12,6 @@ import multiprocessing
 import numpy as np
 import numpy.linalg as la
 import scipy.sparse.linalg as las
-import matplotlib.pyplot as plt
-import plot
 import equation
 from libhermite import hermite as hm
 from scipy.special import binom
@@ -24,7 +22,7 @@ sym.init_printing()
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-c', '--config', type=str, help='Configuration file')
-parser.add_argument('-b', '--beta', type=str, help='Value of βx')
+parser.add_argument('-b', '--beta', type=str, help='Value of β')
 parser.add_argument('-t', '--theta', type=str, help='Value of θ')
 parser.add_argument('-e', '--epsilon', type=str, help='Value of ε')
 parser.add_argument('-m', '--mass', type=str, help='Value of m')
@@ -37,16 +35,20 @@ args = parser.parse_args()
 config = __import__(args.config) if args.config else __import__("config")
 
 if args.beta:
-    config.eq['βx'] = sym.Rational(args.beta)
+    config.eq['β'] = sym.Rational(args.beta)
 if args.theta:
     config.eq['θ'] = sym.Rational(args.theta)
 if args.epsilon:
     config.eq['ε'] = sym.Rational(args.epsilon)
 if args.verbose:
     config.misc['verbose'] = args.verbose
+
 config.misc['plots'] = args.plots
 config.misc['verbose'] = args.verbose
 
+if config.misc['plots']:
+    import matplotlib.pyplot as plt
+    import plot
 
 # }}}
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
@@ -94,12 +96,10 @@ def eq_params():
 
 
 def vy():
-    alpha = sym.sqrt(2/params['βy'].symbol)
+    alpha = sym.sqrt(2)
     σy = Parameter(sym.symbols('σy', real=True, positive=True),
-                   1/(alpha*params['βy'].symbol),
-                   type='equation')
-    Vy = Parameter(sym.Function('Vy')(y),
-                   y*y/(2*params['βy'].symbol*σy.symbol),
+                   1/(alpha), type='equation')
+    Vy = Parameter(sym.Function('Vy')(y), alpha*y*y/2,
                    type='equation')
     return {'σy': σy, 'Vy': Vy}
 
@@ -107,11 +107,11 @@ def vy():
 def vq():
     r = sym.Rational
     symb = sym.symbols
-    βx = params['βx']
+    β = params['β']
     μx = Parameter(symb('μx', real=True), config.num['μx'])
     σx = Parameter(symb('σx', real=True, positive=True), config.num['σx'])
     Vq = Parameter(sym.Function('Vq')(x), r(1, 2) *
-                   (x - μx.symbol)*(x - μx.symbol)/(σx.symbol*βx.symbol))
+                   (x - μx.symbol)*(x - μx.symbol)/(σx.symbol*β.symbol))
     return {'μx': μx, 'σx': σx, 'Vq': Vq}
 
 
@@ -133,8 +133,7 @@ def forward_op(symbolic):
 
 
 def factors(symbolic, λ):
-    βx = params['βx'].value if symbolic == 0 else params['βx'].symbol
-    βy = params['βy'].value if symbolic == 0 else params['βy'].symbol
+    β = params['β'].value if symbolic == 0 else params['β'].symbol
     if symbolic == 2:
         Vy = params['Vy'].symbol
         Vp = params['Vp'].symbol
@@ -147,8 +146,8 @@ def factors(symbolic, λ):
         Vy = params['Vy'].eval()
         Vp = params['Vp'].eval()
         Vq = params['Vq'].eval()
-    factor_x = sym.exp(-βx*(λ*Vq + (1-λ)*Vp))
-    factor_y = sym.exp(-βy*Vy)
+    factor_x = sym.exp(-β*(λ*Vq + (1-λ)*Vp))
+    factor_y = sym.exp(-Vy)
     factor = factor_x * factor_y
     return factor_x, factor_y, factor
 
@@ -244,11 +243,11 @@ def compute_moment1(m_val):
     value = compute_m(ground_series)
     if config.misc['verbose']:
         print(value)
-    if config.misc['plots']:
-        fig, ax = plt.subplots(1, 1)
-        cont = quad_visu.plot(ground_series, degree, factor, ax)
-        plt.colorbar(cont, ax=ax)
-        plt.show()
+    # if config.misc['plots']:
+        # fig, ax = plt.subplots(1, 1)
+        # cont = quad_visu.plot(ground_series, degree, factor, ax)
+        # plt.colorbar(cont, ax=ax)
+        # plt.show()
     return value
 
 
@@ -370,7 +369,7 @@ def plot_ground_state():
 
 def plot_comparison_with_asym():
     fig, ax = plt.subplots(1, 1)
-    as_sol = sym.exp(- params['βx'] * functions['Vp'])/factor_x
+    as_sol = sym.exp(- params['β'] * functions['Vp'])/factor_x
     as_series = quad_num.project('x').transform(as_sol, degree, norm=True)
     quad_visu.project('x').plot(as_series, degree, factor_x, ax)
     plt.show()
@@ -379,7 +378,7 @@ def plot_comparison_with_asym():
 def plot_discretization_error():
     fig, ax = plt.subplots(1, 2)
     quad_visu_x = quad_visu.project('x')
-    as_sol = sym.exp(- params['βx'] * functions['Vp'])
+    as_sol = sym.exp(- params['β'] * functions['Vp'])
     as_series = quad_num.project('x').transform(as_sol/factor_x, degree)
     norm_as = la.norm(as_series.coeffs, 2)
     as_series.coeffs = as_series.coeffs / norm_as

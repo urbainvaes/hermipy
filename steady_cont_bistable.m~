@@ -29,8 +29,14 @@ SS = SS/trapz(x,SS);
 
 F_out = zeros(N+2,1);
 F_out(1:N+1) = ss-SS;
-result = m-trapz(x,x.*SS)
-F_out(end) =  result;   %computes R(m)-m and solves for R(m)-m=0
 
+% executable = '/home/urbain/phd/code/mckean-vlasov/coloured.py';
+% command = strcat(executable, ' -c bistable -t ', string(theta), ' -m', ' ', string(m), ' -b', ' ', string(beta))
+% [~, result] = system(command);
+% result = str2num(result) - m
+pause(0.1);
+result = m-trapz(x,x.*SS);
+fprintf("beta: %.9f, m: %.9f, R(m): %.9f\n", beta, m, result);
+F_out(end) =  result;   %computes R(m)-m
 g=F_out;
 end
