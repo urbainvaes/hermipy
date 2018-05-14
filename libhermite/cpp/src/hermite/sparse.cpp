@@ -20,6 +20,7 @@ mat to_mat(spmat input)
             result[0][index] = i2.index1();
             result[1][index] = i2.index2();
             result[2][index] = *i2;
+            index++;
         }
     }
     return result;
