@@ -9,7 +9,7 @@ using namespace std;
 namespace hermite
 {
 
-mat spmat_to_mat(spmat input)
+mat to_mat(spmat input)
 {
     mat result(3, vec(input.nnz(), 0.));
     int index = 0;
@@ -25,7 +25,7 @@ mat spmat_to_mat(spmat input)
     return result;
 }
 
-spmat mat_to_spmat(mat input)
+spmat to_spmat(mat input)
 {
     spmat result(input.size(), input[0].size());
     for (u_int i = 0; i < input.size(); i++)

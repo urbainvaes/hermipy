@@ -9,9 +9,15 @@
 #include "hermite/transform.hpp"
 #include "hermite/types.hpp"
 #include "hermite/varf.hpp"
+#include "hermite/sparse.hpp"
 #include "hermite/python/converters.hpp"
 
 using namespace std;
+
+namespace p = boost::python;
+namespace np = boost::python::numpy;
+namespace bnu = boost::numeric::ublas;
+
 namespace hermite {
 
 BOOST_PYTHON_MODULE(hermite_cpp)
@@ -43,6 +49,7 @@ BOOST_PYTHON_MODULE(hermite_cpp)
         ;
 
     class_<boost::c_mat>("contiguous_mat");
+    class_<boost::spmat>("Sparse matrix");
 
 
     // Discretization
@@ -55,15 +62,17 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     // Triple products and variational formulations
     def("triple_products", triple_products_1d);
     def("varf", varf<std::mat>);
-    def("varf_sp", varf<boost::spmat>);
     def("varfd", varfd);
+
+    // Sparse versions
+    def("varf_sp", varf<boost::spmat>);
 
     // Projection and tensorization of vectors
     def("project", static_cast<std::vec (*) (const std::vec & input, std::u_int dim, std::u_int dir)> (& project));
     def("tensorize", static_cast<std::vec (*) (const std::vec & input, std::u_int dim, std::u_int dir)> (& tensorize));
     def("tensorize", static_cast<std::vec (*) (const std::mat &)> (& tensorize));
 
-    // Projcetion and tensorizations of matrices
+    // Projection and tensorization of matrices
     def("project", static_cast<std::mat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& project));
     def("tensorize", static_cast<std::mat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& tensorize<std::mat>));
     def("tensorize", static_cast<std::mat (*) (const std::cube & input)> (& tensorize<std::mat>));
@@ -73,10 +82,14 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     def("tensorize_sp", static_cast<boost::spmat (*) (const std::cube & input)> (& tensorize<boost::spmat>));
 
     // Converters between data types
-    def("to_numpy", mat_to_numpy);
-    def("to_numpy", cmat_to_numpy);
-    def("to_mat", to_mat);
+    def("to_numpy", static_cast<np::ndarray (*) (const std::mat & input)> (& to_numpy));
+    def("to_numpy", static_cast<np::ndarray (*) (const boost::c_mat & input)> (& to_numpy));
+    def("to_mat", static_cast<std::mat (*) (const np::ndarray & input)> (& to_mat));
     def("to_bmat", to_bmat);
+
+    // For sparse matrices
+    def("to_mat", static_cast<std::mat (*) (bnu::compressed_matrix<double, bnu::row_major> input)> (& to_mat));
+    def("full", full);
 
     // Misc functions
     def("list_cube_indices", list_cube_indices);

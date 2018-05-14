@@ -70,7 +70,7 @@ int main()
             if(fabs(returned[i][j] - array[i][j]) > 1e-12)
                 return 1;
 
-    mat converted = hermite::to_mat(hermite::cmat_to_numpy(array));
+    mat converted = hermite::to_mat(hermite::to_numpy(array));
     for (i = 0; i < n; i++)
         for (j = 0; j < n; j++)
             if(fabs(converted[i][j] - array[i][j]) > 1e-12)

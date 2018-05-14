@@ -14,7 +14,7 @@ namespace hermite {
 namespace p = boost::python;
 namespace np = boost::python::numpy;
 
-np::ndarray mat_to_numpy(mat const & input)
+np::ndarray to_numpy(const mat & input)
 {
     u_int n_rows = input.size();
     u_int n_cols = input[0].size();
@@ -32,7 +32,7 @@ np::ndarray mat_to_numpy(mat const & input)
     return converted.copy();
 }
 
-np::ndarray cmat_to_numpy(boost::c_mat const & input)
+np::ndarray to_numpy(const boost::c_mat & input)
 {
     u_int n_rows = input.shape()[0];
     u_int n_cols = input.shape()[1];
@@ -45,7 +45,7 @@ np::ndarray cmat_to_numpy(boost::c_mat const & input)
 }
 
 
-boost::c_mat to_bmat(np::ndarray const & input)
+boost::c_mat to_bmat(const np::ndarray & input)
 {
     if (input.get_nd() != 2)
     {
@@ -74,7 +74,7 @@ boost::c_mat to_bmat(np::ndarray const & input)
 }
 
 
-mat to_mat(np::ndarray input)
+mat to_mat(const np::ndarray & input)
 {
     if (input.get_nd() != 2)
     {

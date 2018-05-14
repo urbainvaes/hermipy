@@ -32,7 +32,7 @@ int main()
     int degree = 20;
     mat initial = simple(degree + 1);
     cout << initial << endl;
-    boost::spmat sp_initial = mat_to_spmat(initial);
+    boost::spmat sp_initial = to_spmat(initial);
     std::cube inputs(2, initial);
     boost::spmat sp_tensorized = tensorize<boost::spmat>(inputs);
     mat tensorized = tensorize<std::mat>(inputs);
