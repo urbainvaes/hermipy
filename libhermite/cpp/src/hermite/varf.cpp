@@ -13,6 +13,10 @@
 #include "hermite/varf.hpp"
 #include "hermite/matrix.hpp"
 
+#ifdef DEBUG
+#include "hermite/io.hpp"
+#endif
+
 #include <boost/math/special_functions/binomial.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 
@@ -81,6 +85,10 @@ template<typename T> T varf(
     u_int dim = nodes.size();
     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
 
+    #ifdef DEBUG
+    cout << "Calculating varf in dimension " << dim << "." << endl;
+    #endif
+
     // Hermite transform of input function
     vec Hf = transform(2*degree, input, nodes, weights, true);
 
@@ -92,10 +100,14 @@ template<typename T> T varf(
     Multi_index_iterator m(dim, 2*degree); m.reset();
     for (u_int i = 0; i < Hf.size(); i++, m.increment())
     {
-        if (abs(Hf[i]) < 1e-14)
+        if (abs(Hf[i]) < 1e-12)
         {
             continue;
         }
+
+        #ifdef DEBUG
+        cout << "i = " << i << ", and m = " << m.get() << ", and Hf[i] = " << Hf[i] << endl;
+        #endif
 
         cube factors(dim);
         for (u_int d = 0; d < dim; ++d)
