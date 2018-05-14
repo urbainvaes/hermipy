@@ -46,5 +46,6 @@ int main(int argc, char** argv)
 
     cout << sparseMat_2 << endl;
 
+    cout << "Test passed" << endl;
     return 0;
 }

@@ -26,6 +26,8 @@ target_link_libraries(hermite_cpp ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} ${CMAKE
 set_target_properties(hermite_cpp PROPERTIES
     PREFIX "" LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY})
 
+# Tests
+include(CTest)
 file(GLOB testfiles "src/tests/*.cpp")
 foreach(testfile ${testfiles})
     get_filename_component(testname ${testfile} NAME_WE)
@@ -33,6 +35,8 @@ foreach(testfile ${testfiles})
     target_link_libraries (${testname}.exe hermite_cpp)
     # set_target_properties(${testname}.exe PROPERTIES
     #     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY})
+    add_test(${testname} ${testname}.exe)
+    set_tests_properties (${testname} PROPERTIES PASS_REGULAR_EXPRESSION "Test passed")
 endforeach(testfile ${testfiles})
 
 # Generate documentation

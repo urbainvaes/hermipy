@@ -29,7 +29,7 @@ std::mat simple(int n)
 
 int main()
 {
-    int degree = 3;
+    int degree = 20;
     mat initial = simple(degree + 1);
     cout << initial << endl;
     boost::spmat sp_initial = mat_to_spmat(initial);
@@ -42,10 +42,17 @@ int main()
     {
         for (u_int j = 0; j < tensorized.size(); j++)
         {
-            cout << m[i] << ", " << m[j] << ", "
-                << initial[m[i][0]][m[j][0]] <<  " * "
-                << initial[m[i][1]][m[j][1]] << " = "
-                << tensorized[i][j] << "?" << endl;
+            double tens = initial[m[i][0]][m[j][0]] * initial[m[i][1]][m[j][1]];
+            if (tens - tensorized[i][j] > 1e-12)
+            {
+                return 1;
+            }
+
+            if(fabs(difference[i][j]) > 1e-12)
+            {
+                return 1;
+            }
         }
     }
+    cout << "Test passed" << endl;
 }
