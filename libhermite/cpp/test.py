@@ -16,9 +16,9 @@ def timeit(function):
         return result
     return wrapper
 
-timeit(test.triple_products)(200)
+# timeit(test.triple_products)(200)
 
-# n = 10000
+# n = 1000
 
 # mat_cpp = timeit(test.test)(n)
 # mat_numpy = timeit(test.to_numpy)(mat_cpp)

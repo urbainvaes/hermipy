@@ -291,7 +291,7 @@ class TestTensorizeDecorator(unittest.TestCase):
         diag = 1 + np.abs(np.random.random(dim))
         self.cov = np.diag(diag)
         self.quad = hm.Quad.gauss_hermite(n_points, dim=dim, cov=self.cov)
-        self.v = [sym.symbols('v' + str(i)) for i in range(5)]
+        self.v = [sym.symbols('v' + str(i)) for i in range(dim)]
         hm.settings['tensorize'] = True
 
     def tearDown(self):
@@ -303,6 +303,13 @@ class TestTensorizeDecorator(unittest.TestCase):
                 fun = self.v[i]*self.v[j]
                 cov_ij = self.quad.integrate(fun)
                 self.assertAlmostEqual(cov_ij, self.cov[i][j])
+
+    def testSpVarf5d(self):
+        degree = 5
+        function = 1. + self.v[0] + self.v[1] + self.v[1]*self.v[0] \
+            + self.v[2]**2 + self.v[3]**3 + self.v[4]
+        sp_var = self.quad.varf(function, degree, sparse=True)
+        self.assertTrue(sp_var.nnz < 400)
 
 
 class TestSparseFunctions(unittest.TestCase):
