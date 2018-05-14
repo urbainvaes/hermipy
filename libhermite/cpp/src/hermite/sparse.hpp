@@ -7,7 +7,7 @@
 namespace bnu = boost::numeric::ublas;
 namespace hermite {
 
-std::mat to_mat(bnu::compressed_matrix<double, bnu::row_major> input);
+std::mat row_col_val(bnu::compressed_matrix<double, bnu::row_major> input);
 bnu::compressed_matrix<double, bnu::row_major> to_spmat(std::mat input);
 std::mat full(bnu::compressed_matrix<double, bnu::row_major> input);
 

@@ -9,7 +9,7 @@ using namespace std;
 namespace hermite
 {
 
-mat to_mat(spmat input)
+mat row_col_val(spmat input)
 {
     mat result(3, vec(input.nnz(), 0.));
     int index = 0;

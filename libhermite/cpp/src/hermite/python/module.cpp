@@ -49,7 +49,11 @@ BOOST_PYTHON_MODULE(hermite_cpp)
         ;
 
     class_<boost::c_mat>("contiguous_mat");
-    class_<boost::spmat>("Sparse matrix");
+
+    class_<boost::spmat>("sparse_matrix")
+        .def("size1", &boost::spmat::size1)
+        .def("size2", &boost::spmat::size2)
+        ;
 
 
     // Discretization
@@ -84,11 +88,13 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     // Converters between data types
     def("to_numpy", static_cast<np::ndarray (*) (const std::mat & input)> (& to_numpy));
     def("to_numpy", static_cast<np::ndarray (*) (const boost::c_mat & input)> (& to_numpy));
+    def("to_numpy", static_cast<np::ndarray (*) (const boost::c_mat & input)> (& to_numpy));
     def("to_mat", static_cast<std::mat (*) (const np::ndarray & input)> (& to_mat));
     def("to_bmat", to_bmat);
 
     // For sparse matrices
-    def("to_mat", static_cast<std::mat (*) (bnu::compressed_matrix<double, bnu::row_major> input)> (& to_mat));
+    def("row_col_val", row_col_val);
+    def("to_spmat", to_spmat);
     def("full", full);
 
     // Misc functions
