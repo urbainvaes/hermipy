@@ -303,3 +303,46 @@ class TestTensorizeDecorator(unittest.TestCase):
                 fun = self.v[i]*self.v[j]
                 cov_ij = self.quad.integrate(fun)
                 self.assertAlmostEqual(cov_ij, self.cov[i][j])
+
+
+class TestSparseFunctions(unittest.TestCase):
+
+    def setUp(self):
+        n_points = 100
+        self.quad1 = hm.Quad.gauss_hermite(n_points)
+        self.quad2 = hm.Quad.gauss_hermite(n_points, dim=2)
+        self.v = [sym.symbols('v' + str(i)) for i in range(2)]
+        hm.settings['tensorize'] = False
+        hm.settings['cache'] = False
+
+    def tearDown(self):
+        hm.settings.update(settings)
+
+    def testSpVarfSimple(self):
+        degree = 30
+        function = '1'
+        sp_var = self.quad2.varf(function, degree, sparse=True)
+        self.assertEqual(sp_var.nnz, sp_var.shape[0])
+
+    def testSpVarf1d(self):
+        degree, degreef_max = 50, 7
+        x = sym.symbols('x')
+        function = 0
+        for deg in range(degreef_max):
+            function += x**deg
+            sp_var = self.quad1.varf(function, degree, sparse=True)
+            coords = sp_var.tocoo()
+            bw = 0
+            for i, j, v in zip(coords.row, coords.col, coords.data):
+                if abs(i - j) > bw:
+                    bw = abs(i - j)
+                    if bw > deg:
+                        print(i, j, v)
+            self.assertEqual(bw, deg)
+
+    def testSpVarf2d(self):
+        degree = 50
+        function = 1. + self.v[0] + self.v[1] + self.v[1]*self.v[0]
+        sp_var = self.quad2.varf(function, degree, sparse=True)
+        var = self.quad2.varf(function, degree)
+        self.assertAlmostEqual(la.norm(var - sp_var, 2), 0)
