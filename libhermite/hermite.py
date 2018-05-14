@@ -13,6 +13,7 @@
 
 from .cpp import hermite_cpp as hm
 from scipy.special import binom
+import scipy.sparse as ss
 from functools import wraps
 import hashlib
 import math
@@ -81,6 +82,9 @@ def cache(function):
             return abs(u - v)
         elif isinstance(u, np.ndarray):
             return la.norm(u - v, 2)
+        elif isinstance(u, ss.csr_matrix):
+            assert isinstance(v, ss.csr_matrix)
+            return la.norm(u.data - v.data, 2)
         elif isinstance(u, tuple):
             return sum([error(ui, vi) for ui, vi in zip(u, v)])
         else:
@@ -100,13 +104,18 @@ def cache(function):
             hashes.append(my_hash(kwargs[kw]))
         hash_args = my_hash(('-'.join(hashes)))
 
+        is_sparse = 'sparse' in kwargs and kwargs['sparse'] is True
+        ext = '.npz' if is_sparse else '.npy'
+        save = ss.save_npz if is_sparse else np.save
+        load = ss.load_npz if is_sparse else np.load
+
         cachedir = settings['cachedir']
-        savefile = cachedir + '/' + prefix + '-' + str(hash_args) + '.npy'
+        savefile = cachedir + '/' + prefix + '-' + str(hash_args) + ext
         try:
-            result_cache = np.load(savefile)
+            result_cache = load(savefile)
         except IOError:
             result = function(*args, **kwargs)
-            np.save(savefile, result)
+            save(savefile, result)
             return result
 
         if use_cache:
@@ -159,6 +168,14 @@ def to_cpp_array(*args):
     return array
 
 
+@log_stats
+def to_csr(sp_matrix):
+    assert isinstance(sp_matrix, hm.sparse_matrix)
+    rcv = np.array(hm.row_col_val(sp_matrix))
+    shape = (sp_matrix.size1(), sp_matrix.size2())
+    return ss.csr_matrix((rcv[2], (rcv[0], rcv[1])), shape=shape)
+
+
 def to_numeric(var):
 
     if isinstance(var, list):
@@ -202,21 +219,23 @@ def triple_products(degree):
 
 @cache
 @log_stats
-def varf(degree, fgrid, nodes, weights):
+def varf(degree, fgrid, nodes, weights, sparse=False):
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
-    return log_stats(hm.to_numpy)(hm.varf(degree, fgrid, nodes, weights))
+    args = [degree, fgrid, nodes, weights]
+    function = hm.varf_sp if sparse else hm.varf
+    convert = to_csr if sparse else hm.to_numpy
+    return log_stats(convert)(function(*args))
 
 
 @cache
 @log_stats
 def varfd(dim, degree, direction, var):
-    # var = log_stats(hm.to_cpp)(var)
     var = to_cpp_array(var)
     return log_stats(hm.to_numpy)(hm.varfd(dim, degree, direction, var))
 
 
 @log_stats
-def tensorize(inp, dim=None, direction=None):
+def tensorize(inp, dim=None, direction=None, sparse=False):
     is_scalar = isinstance(inp[0], (float, int))
     if is_scalar and dim is None and direction is None:
         return np.prod(inp)
@@ -225,8 +244,11 @@ def tensorize(inp, dim=None, direction=None):
         args = [inp, dim, direction]
     else:
         args = [inp]
-    return np.array(hm.tensorize(*args))
-
+    if sparse:
+        result = to_csr(hm.sp_tensorize(*args))
+    else:
+        result = np.array(hm.tensorize(*args))
+    return result
 
 @log_stats
 def project(inp, dim, direction):
@@ -501,9 +523,9 @@ class Quad:
                          self.weights, forward=False)
 
     @tensorize_at(1)
-    def varf(self, function, degree):
+    def varf(self, function, degree, sparse=False):
         f_grid = self.discretize(function)
-        return varf(degree, f_grid, self.nodes, self.weights)
+        return varf(degree, f_grid, self.nodes, self.weights, sparse=sparse)
 
     def varfd(self, function, degree, directions):
         directions = to_numeric(directions)
