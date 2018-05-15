@@ -1,4 +1,6 @@
 from . import hermite as hm
+from . import settings as rc
+from . import wrappers as wr
 import unittest
 import numpy as np
 import numpy.polynomial.hermite_e as herm
@@ -9,7 +11,7 @@ import os
 import tempfile
 
 settings = {'cache': False, 'cachedir': '/tmp/test_hermite'}
-hm.settings.update(settings)
+rc.settings.update(settings)
 if not os.path.exists(settings['cachedir']):
     os.makedirs(settings['cachedir'])
 
@@ -180,7 +182,7 @@ class TestTensorize(unittest.TestCase):
         quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
         coeffs_1d = quad_1d.transform('exp(x)', degree).coeffs
         coeffs_2d = quad_2d.transform('exp(x)', degree).coeffs
-        tensorized_coeffs_1d = hm.tensorize(coeffs_1d, 2, 0)
+        tensorized_coeffs_1d = wr.tensorize(coeffs_1d, 2, 0)
         self.assertAlmostEqual(la.norm(coeffs_2d - tensorized_coeffs_1d, 2), 0)
 
     def test_tensorize_matrix(self):
@@ -191,7 +193,7 @@ class TestTensorize(unittest.TestCase):
         quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
         varf_1d = quad_1d.varf(function, degree)
         varf_2d = quad_2d.varf(function, degree)
-        tensorized_varf_1d = hm.tensorize(varf_1d, 2, 0)
+        tensorized_varf_1d = wr.tensorize(varf_1d, 2, 0)
         diff = (la.norm(varf_2d - tensorized_varf_1d, 2))
         self.assertAlmostEqual(diff, 0)
 
@@ -204,7 +206,7 @@ class TestTensorize(unittest.TestCase):
         coeffs_x = quad_1d.transform(fx, degree).coeffs
         coeffs_y = quad_1d.transform(fy, degree).coeffs
         coeffs_2d = quad_2d.transform(f, degree).coeffs
-        tensorized_coeffs = hm.tensorize([coeffs_x, coeffs_y])
+        tensorized_coeffs = wr.tensorize([coeffs_x, coeffs_y])
         diff = la.norm(coeffs_2d - tensorized_coeffs, 2)
         self.assertAlmostEqual(diff, 0)
 
@@ -217,7 +219,7 @@ class TestTensorize(unittest.TestCase):
         varf_x = quad_1d.varf(fx, degree)
         varf_y = quad_1d.varf(fy, degree)
         varf_2d = quad_2d.varf(f, degree)
-        tensorized_varf = hm.tensorize([varf_x, varf_y])
+        tensorized_varf = wr.tensorize([varf_x, varf_y])
         diff = la.norm(varf_2d - tensorized_varf, 2)
         self.assertAlmostEqual(diff, 0)
 
@@ -228,7 +230,7 @@ class TestTensorize(unittest.TestCase):
         quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
         coeffs_1d = quad_1d.transform('exp(x)', degree).coeffs
         coeffs_2d = quad_2d.transform('exp(x)', degree).coeffs
-        projection = hm.project(coeffs_2d, 2, 0)
+        projection = wr.project(coeffs_2d, 2, 0)
         diff = la.norm(coeffs_1d - projection, 2)
         self.assertAlmostEqual(diff, 0)
 
@@ -240,7 +242,7 @@ class TestTensorize(unittest.TestCase):
         quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
         varf_1d = quad_1d.varf(function, degree)
         varf_2d = quad_2d.varf(function, degree)
-        projection = hm.project(varf_2d, 2, 0)
+        projection = wr.project(varf_2d, 2, 0)
         diff = (la.norm(varf_1d - projection, 2))
         self.assertAlmostEqual(diff, 0)
 
@@ -253,12 +255,12 @@ class TestCache(unittest.TestCase):
         self.quad = hm.Quad.gauss_hermite(n_points, dim=dim)
         self.function = x*x*sym.cos(x) + sym.exp(y)*x + sym.sqrt(2) + 2
         self.cachedir = tempfile.TemporaryDirectory()
-        hm.settings['cachedir'] = self.cachedir.name
-        hm.settings['cache'] = True
+        rc.settings['cachedir'] = self.cachedir.name
+        rc.settings['cache'] = True
 
     def tearDown(self):
         self.cachedir.cleanup()
-        hm.settings.update(settings)
+        rc.settings.update(settings)
 
     def test_varf(self):
         degree = 30
@@ -287,15 +289,17 @@ class TestCache(unittest.TestCase):
 class TestTensorizeDecorator(unittest.TestCase):
 
     def setUp(self):
-        n_points, dim = 100, 5
+        dim = 5
         diag = 1 + np.abs(np.random.random(dim))
         self.cov = np.diag(diag)
-        self.quad = hm.Quad.gauss_hermite(n_points, dim=dim, cov=self.cov)
+        self.quad = hm.Quad.gauss_hermite(100, dim=dim, cov=self.cov)
+        self.quad_low = hm.Quad.gauss_hermite(6, dim=dim, cov=self.cov)
         self.v = [sym.symbols('v' + str(i)) for i in range(dim)]
-        hm.settings['tensorize'] = True
+        rc.settings['tensorize'] = True
+        rc.settings['trails'] = False
 
     def tearDown(self):
-        hm.settings.update(settings)
+        rc.settings.update(settings)
 
     def test_integrate(self):
         for i in range(len(self.cov)):
@@ -304,12 +308,26 @@ class TestTensorizeDecorator(unittest.TestCase):
                 cov_ij = self.quad.integrate(fun)
                 self.assertAlmostEqual(cov_ij, self.cov[i][j])
 
-    def testSpVarf5d(self):
-        degree = 5
+    def testSpVarf5dSimple(self):
+        degree = 12
+        function = 1
+        sp_var = self.quad.varf(function, degree, sparse=True)
+        self.assertTrue(sp_var.nnz == sp_var.shape[0])
+
+    def testSpVarf5dComposite(self):
+        degree = 10
         function = 1. + self.v[0] + self.v[1] + self.v[1]*self.v[0] \
             + self.v[2]**2 + self.v[3]**3 + self.v[4]
         sp_var = self.quad.varf(function, degree, sparse=True)
-        self.assertTrue(sp_var.nnz < 400)
+        self.assertTrue(sp_var.nnz < sp_var.shape[0] * sp_var.shape[1])
+
+    def testConsistency(self):
+        degree = 3
+        function = 1. + self.v[0] + self.v[1] + self.v[1]*self.v[0] \
+            + self.v[2]**2 + self.v[3]**3 + self.v[4]
+        var_1 = self.quad_low.varf(function, degree, tensorize=True)
+        var_2 = self.quad_low.varf(function, degree, tensorize=False)
+        self.assertAlmostEqual(la.norm(var_1 - var_2), 0.)
 
 
 class TestSparseFunctions(unittest.TestCase):
@@ -319,11 +337,11 @@ class TestSparseFunctions(unittest.TestCase):
         self.quad1 = hm.Quad.gauss_hermite(n_points)
         self.quad2 = hm.Quad.gauss_hermite(n_points, dim=2)
         self.v = [sym.symbols('v' + str(i)) for i in range(2)]
-        hm.settings['tensorize'] = False
-        hm.settings['cache'] = False
+        rc.settings['tensorize'] = False
+        rc.settings['cache'] = False
 
     def tearDown(self):
-        hm.settings.update(settings)
+        rc.settings.update(settings)
 
     def testSpVarfSimple(self):
         degree = 30
