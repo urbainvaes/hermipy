@@ -13,31 +13,17 @@
 # }}}
 # {{{ Import packages
 from . import wrappers as hm
+from . import symlib as lib
 from .settings import settings
 from .cache import cache
 
 from scipy.special import binom
-import math
 import numpy as np
 import numpy.linalg as la
 import numpy.polynomial.hermite_e as herm
-import re
 import sympy as sym
 # }}}
 # Auxiliary functions {{{
-
-
-def stringify(function):
-    if isinstance(function, int) or isinstance(function, float):
-        return str(function)
-    if isinstance(function, sym.Expr):
-        function = sym.ccode(function)
-    if isinstance(function, str):
-        function = re.sub(r'\bx\b', 'v[0]', function)
-        function = re.sub(r'\by\b', 'v[1]', function)
-        function = re.sub(r'\bz\b', 'v[2]', function)
-        function = re.sub(r'(?<=[v])([0-9]+)', r'[\1]', function)
-    return function
 
 
 def hermegauss_nd(n_points):
@@ -51,31 +37,6 @@ def hermegauss_nd(n_points):
         weights_multidim.append(weights_1d)
     return nodes_multidim, weights_multidim
 
-
-def split_operator(op, func, order):
-    variables = func.args
-    result, rem, order = [], op.expand(), 2
-    for m in hm.multi_indices(len(variables), order):
-        if rem == 0:
-            result.append(0)
-            continue
-        test, der = 1, func
-        for i, v in zip(m, variables):
-            test *= v**i/math.factorial(i)
-            der = sym.diff(der, v, i)
-        remargs = rem.args if isinstance(rem, sym.add.Add) else [rem]
-        term, rem = 0, 0
-        for arg in remargs:  # Convoluted to avoid rounding errors
-            termarg = arg.subs(func, test).doit()
-            if termarg == 0:
-                rem += arg
-            else:
-                term += termarg
-        if isinstance(term, tuple(sym.core.all_classes)):
-            term = sym.simplify(term)
-        result.append(term)
-    assert rem == 0
-    return result
 # }}}
 # Class Series {{{
 
@@ -164,30 +125,6 @@ class Quad:
         return self.hash
 
     def tensorize_at(arg_num):
-        def x_ify(function):
-            if not isinstance(function, tuple(sym.core.all_classes)):
-                return function
-            symbols = list(function.free_symbols)
-            if symbols == []:
-                return function
-            assert len(symbols) == 1
-            return function.subs(symbols[0], sym.symbols('x'))
-
-        def split_product(expression, symbols):
-            is_mul = isinstance(expression, sym.mul.Mul)
-            args = expression.args if is_mul else [expression]
-            result = {str(s): sym.Rational('1') for s in symbols}
-            for arg in args:
-                str_symbols = [str(s) for s in arg.free_symbols]
-                if len(str_symbols) == 0:
-                    result['v[0]'] *= arg
-                elif len(str_symbols) == 1:
-                    x_ified = stringify(str_symbols[0])
-                    result[x_ified] *= x_ify(arg)
-                else:
-                    return False
-            return result
-
         def tensorize_arg(func):
             def wrapper(*args, **kwargs):
                 do_tensorize = settings['tensorize']
@@ -216,53 +153,7 @@ class Quad:
                 if quad.dim == 1 or not is_diag:
                     return func(*args, **kwargs)
                 dirs = ['v[' + str(i) + ']' for i in range(quad.dim)]
-                split_term = split_product(function, dirs)
-                if split_term is False:
-                    return func(*args, **kwargs)
-                func_dirs = []
-                for d in dirs:
-                    new_args = list(args).copy()
-                    new_args[0] = quad.project(d)
-                    new_args[arg_num] = split_term[d]
-                    func_dir = func(*new_args, **kwargs)
-                    func_dirs.append(func_dir)
-                if settings['debug']:
-                    print("Tensorizing results")
-                kwargs_func = {'sparse': kwargs['sparse']} \
-                    if 'sparse' in kwargs else {}
-                return hm.tensorize(func_dirs, **kwargs_func)
-            return wrapper
-        return tensorize_arg
-
-        def tensorize_arg(func):
-            def wrapper(*args, **kwargs):
-                do_tensorize = settings['tensorize']
-                if 'tensorize' in kwargs:
-                    do_tensorize = kwargs['tensorize']
-                    del kwargs['tensorize']
-                if not do_tensorize:
-                    return func(*args, **kwargs)
-                function = args[arg_num]
-                if isinstance(function, (float, int)):
-                    function = sym.Rational(function)
-                is_sym = isinstance(function, tuple(sym.core.all_classes))
-                if not is_sym:
-                    return func(*args, **kwargs)
-                quad, function = args[0], function.expand()
-                if isinstance(function, sym.add.Add):
-                    add_terms, results = function.args, []
-                    for term in add_terms:
-                        new_args = list(args).copy()
-                        new_args[arg_num] = term
-                        func_term = wrapper(*new_args, **kwargs)
-                        results.append(func_term)
-                    return sum(results[1:], results[0])
-                diag_cov = np.diag(np.diag(quad.cov))
-                is_diag = la.norm(quad.cov - diag_cov, 2) < 1e-10
-                if quad.dim == 1 or not is_diag:
-                    return func(*args, **kwargs)
-                dirs = ['v[' + str(i) + ']' for i in range(quad.dim)]
-                split_term = split_product(function, dirs)
+                split_term = lib.split_product(function, dirs)
                 if split_term is False:
                     return func(*args, **kwargs)
                 func_dirs = []
@@ -309,7 +200,7 @@ class Quad:
         return np.asarray(np.vstack(coords_nodes)).T
 
     def discretize(self, f):
-        function = stringify(f)
+        function = lib.stringify(f)
         if isinstance(function, str):
             function = hm.discretize(function, self.nodes,
                                      self.mean, self.factor)
@@ -366,7 +257,7 @@ class Quad:
         npolys = int(binom(degree + self.dim, degree))
         mat_operator = np.zeros((npolys, npolys))
         mult = list(hm.multi_indices(self.dim, order))
-        splitop = split_operator(op, func, order)
+        splitop = lib.split_operator(op, func, order)
         for m, coeff in zip(mult, splitop):
             mat_operator += self.varfd(coeff, degree, ['x']*m[0] + ['y']*m[1])
         return mat_operator
