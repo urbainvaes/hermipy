@@ -6,6 +6,7 @@
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include "hermite/types.hpp"
+#include "hermite/sparse.hpp"
 
 namespace boost 
 {
@@ -54,7 +55,17 @@ namespace matrix
         return input[i][j];
     }
 
+    template<typename T, typename S> T convert(const S & input);
     template<typename T> T construct(std::u_int size1, std::u_int size2);
+    template<typename T> T eye(std::u_int size)
+    {
+        T result = construct<T> (size, size);
+        for (u_int i = 0; i < size; i++)
+        {
+            set(result, i, i, 1.);
+        }
+        return result;
+    }
 }
 
 #endif

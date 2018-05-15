@@ -15,8 +15,11 @@ std::vec project(const std::vec & input, std::u_int dim, std::u_int dir);
 std::mat project(const std::mat & input, std::u_int dim, std::u_int dir);
 
 // Tensorize matrix
-template<typename T> T tensorize(const std::mat & input, std::u_int dim, std::u_int dir);
-template<typename T> T tensorize(const std::cube & inputs);
+template<typename T, typename M> 
+T tensorize(const M & input, std::u_int dim, std::u_int dir);
+
+template <typename T, typename M>
+T tensorize(const std::vector<M> & inputs);
 
 }
 

@@ -115,7 +115,7 @@ template<typename T> T varf(
             factors[d] = products[m[d]];
         }
 
-        result = result + tensorize<T>(factors)*Hf[i];
+        result = result + tensorize<T, std::mat>(factors)*Hf[i];
     }
 
     return result;

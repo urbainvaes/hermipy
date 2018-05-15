@@ -78,12 +78,14 @@ BOOST_PYTHON_MODULE(hermite_cpp)
 
     // Projection and tensorization of matrices
     def("project", static_cast<std::mat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& project));
-    def("tensorize", static_cast<std::mat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& tensorize<std::mat>));
-    def("tensorize", static_cast<std::mat (*) (const std::cube & input)> (& tensorize<std::mat>));
-
-    // Tensorization of sparse matrices
-    def("tensorize_sp", static_cast<boost::spmat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& tensorize<boost::spmat>));
-    def("tensorize_sp", static_cast<boost::spmat (*) (const std::cube & input)> (& tensorize<boost::spmat>));
+    def("tensorize", static_cast<std::mat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& tensorize<std::mat, std::mat>));
+    def("tensorize", static_cast<std::mat (*) (const boost::spmat & input, std::u_int dim, std::u_int dir)> (& tensorize<std::mat, boost::spmat>));
+    def("tensorize", static_cast<std::mat (*) (const std::vector<std::mat> & input)> (& tensorize<std::mat, std::mat>));
+    def("tensorize", static_cast<std::mat (*) (const std::vector<boost::spmat> & input)> (& tensorize<std::mat, boost::spmat>));
+    def("tensorize_sp", static_cast<boost::spmat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& tensorize<boost::spmat, std::mat>));
+    def("tensorize_sp", static_cast<boost::spmat (*) (const boost::spmat & input, std::u_int dim, std::u_int dir)> (& tensorize<boost::spmat, boost::spmat>));
+    def("tensorize_sp", static_cast<boost::spmat (*) (const std::vector<std::mat> & input)> (& tensorize<boost::spmat, std::mat>));
+    def("tensorize_sp", static_cast<boost::spmat (*) (const std::vector<boost::spmat> & input)> (& tensorize<boost::spmat, boost::spmat>));
 
     // Converters between data types
     def("to_numpy", static_cast<np::ndarray (*) (const std::mat & input)> (& to_numpy));
