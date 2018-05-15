@@ -1,3 +1,4 @@
+# Todos {{{
 # TODO: Add support for sparse matrices
 # TODO: Implement composite quadrature
 # TODO: Ensure directions match
@@ -9,258 +10,21 @@
 # TODO: Add varf class (urbain, 02 May 2018)
 # TODO: Add support for tensorization of Series
 # TODO: Implement composite quadrature (urbain, 02 May 2018)
+# }}}
+# {{{ Import packages
+from . import wrappers as hm
+from .settings import settings
+from .cache import cache
 
-
-from .cpp import hermite_cpp as hm
 from scipy.special import binom
-import scipy.sparse as ss
-from functools import wraps
-import hashlib
 import math
 import numpy as np
 import numpy.linalg as la
 import numpy.polynomial.hermite_e as herm
 import re
 import sympy as sym
-import time
-
-settings = {
-        'cache': False,
-        'cachedir': '/tmp',
-        'tensorize': True,
-        'trails': False
-        }
-
-stats = {}
-
-
-def log_stats(function):
-    @wraps(function)
-    def wrapper(*args, **kwargs):
-        time_start = time.time()
-        result = function(*args, **kwargs)
-        time_end = time.time()
-
-        key = function.__name__
-        if key not in stats:
-            stats[key] = {'Calls': 0, 'Time': 0}
-        stats[key]['Calls'] += 1
-        stats[key]['Time'] += time_end - time_start
-        if settings['trails']:
-            print("Function " + key + ": " + str(time_end - time_start))
-        return result
-    return wrapper
-
-
-def cache(function):
-
-    def my_hash(argument):
-        if isinstance(argument, str):
-            encoded_str = argument.encode('utf-8')
-            return hashlib.md5(encoded_str).hexdigest()
-        elif isinstance(argument, np.ndarray):
-            return hashlib.md5(argument).hexdigest()
-        if isinstance(argument, tuple(sym.core.all_classes)):
-            return my_hash(str(argument))
-        elif isinstance(argument, list):
-            hashes = [my_hash(e) for e in argument]
-            return my_hash(hash(frozenset(hashes)))
-        elif isinstance(argument, dict):
-            hashes = {kw: my_hash(argument[kw]) for kw in argument}
-            return my_hash(hash(frozenset(argument)))
-        elif isinstance(argument, (int, float)):
-            return my_hash(str(hash(argument)))
-        elif isinstance(argument, Quad):
-            return my_hash(str(hash(argument)))
-        elif argument is None:
-            return my_hash("")
-        else:
-            raise ValueError("Argument type not supported")
-
-    def error(u, v):
-        if isinstance(u, (float, int)):
-            return abs(u - v)
-        elif isinstance(u, np.ndarray):
-            return la.norm(u - v, 2)
-        elif isinstance(u, ss.csr_matrix):
-            assert isinstance(v, ss.csr_matrix)
-            return la.norm(u.data - v.data, 2)
-        elif isinstance(u, tuple):
-            return sum([error(ui, vi) for ui, vi in zip(u, v)])
-        else:
-            raise ValueError("Invalid types")
-
-    @wraps(function)
-    def wrapper(*args, **kwargs):
-        use_cache = settings['cache']
-        if 'cache' in kwargs:
-            use_cache = kwargs['cache']
-            del kwargs['cache']
-        hashes, prefix = [], function.__name__
-        for arg in args:
-            hashes.append(my_hash(arg))
-        for kw in kwargs:
-            hashes.append(my_hash(kw))
-            hashes.append(my_hash(kwargs[kw]))
-        hash_args = my_hash(('-'.join(hashes)))
-
-        is_sparse = 'sparse' in kwargs and kwargs['sparse'] is True
-        ext = '.npz' if is_sparse else '.npy'
-        save = ss.save_npz if is_sparse else np.save
-        load = ss.load_npz if is_sparse else np.load
-
-        cachedir = settings['cachedir']
-        savefile = cachedir + '/' + prefix + '-' + str(hash_args) + ext
-        try:
-            result_cache = load(savefile)
-        except IOError:
-            result = function(*args, **kwargs)
-            save(savefile, result)
-            return result
-
-        if use_cache:
-            return result_cache
-        else:
-            result = function(*args, **kwargs)
-            assert error(result, result_cache) < 1e-10
-            return result
-
-    return wrapper
-
-
-def convert_to_cpp_vec(vec):
-    cpp_vec = hm.double_vec()
-    cpp_vec.extend(vec)
-    return cpp_vec
-
-
-def convert_to_cpp_mat(mat):
-    cpp_mat = hm.double_mat()
-    for vec in mat:
-        cpp_mat.append(convert_to_cpp_vec(vec))
-    return cpp_mat
-
-
-def convert_to_cpp_cube(cube):
-    cpp_cube = hm.double_cube()
-    for mat in cube:
-        cpp_cube.append(convert_to_cpp_mat(mat))
-    return cpp_cube
-
-
-@log_stats
-def to_cpp_array(*args):
-    if len(args) > 1:
-        return (to_cpp_array(arg) for arg in args)
-    array, dim = args[0], 0
-    if type(array) in (list, np.ndarray):
-        dim = 1
-        if type(array[0]) in (list, np.ndarray):
-            dim = 2
-            if type(array[0][0]) in (list, np.ndarray):
-                dim = 3
-    if dim is 1:
-        array = convert_to_cpp_vec(array)
-    elif dim is 2:
-        array = convert_to_cpp_mat(array)
-    elif dim is 3:
-        array = convert_to_cpp_cube(array)
-    return array
-
-
-@log_stats
-def to_csr(sp_matrix):
-    assert isinstance(sp_matrix, hm.sparse_matrix)
-    rcv = np.array(hm.row_col_val(sp_matrix))
-    shape = (sp_matrix.size1(), sp_matrix.size2())
-    return ss.csr_matrix((rcv[2], (rcv[0], rcv[1])), shape=shape)
-
-
-def to_numeric(var):
-
-    if isinstance(var, list):
-        return [to_numeric(v) for v in var]
-
-    var_letters = {'x': 0, 'y': 1, 'z': 2}
-    var_array = {'v[' + str(i) + ']': i for i in range(10)}
-    var_dict = {**var_letters, **var_array}
-    if var in var_dict:
-        return var_dict[var]
-    else:
-        return var
-
-
-@cache
-@log_stats
-def discretize(function, nodes, translation, dilation):
-    nodes, translation, dilation = to_cpp_array(nodes, translation, dilation)
-    return np.array(hm.discretize(function, nodes, translation, dilation))
-
-
-@cache
-@log_stats
-def integrate(fgrid, nodes, weights):
-    fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
-    return hm.integrate(fgrid, nodes, weights)
-
-
-@cache
-@log_stats
-def transform(degree, fgrid, nodes, weights, forward):
-    fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
-    return np.array(hm.transform(degree, fgrid, nodes, weights, forward))
-
-
-@cache
-@log_stats
-def triple_products(degree):
-    return np.array(hm.triple_products(degree))
-
-
-@cache
-@log_stats
-def varf(degree, fgrid, nodes, weights, sparse=False):
-    fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
-    args = [degree, fgrid, nodes, weights]
-    function = hm.varf_sp if sparse else hm.varf
-    convert = to_csr if sparse else hm.to_numpy
-    return log_stats(convert)(function(*args))
-
-
-@cache
-@log_stats
-def varfd(dim, degree, direction, var):
-    var = to_cpp_array(var)
-    return log_stats(hm.to_numpy)(hm.varfd(dim, degree, direction, var))
-
-
-@log_stats
-def tensorize(inp, dim=None, direction=None, sparse=False):
-    is_scalar = isinstance(inp[0], (float, int))
-    if is_scalar and dim is None and direction is None:
-        return np.prod(inp)
-    inp = to_cpp_array(inp)
-    if dim is not None and direction is not None:
-        args = [inp, dim, direction]
-    else:
-        args = [inp]
-    if sparse:
-        result = to_csr(hm.sp_tensorize(*args))
-    else:
-        result = np.array(hm.tensorize(*args))
-    return result
-
-@log_stats
-def project(inp, dim, direction):
-    inp = to_cpp_array(inp)
-    direction = to_numeric(direction)
-    return np.array(hm.project(inp, dim, direction))
-
-
-@log_stats
-def multi_indices(dim, degree):
-    result = hm.list_multi_indices(dim, degree)
-    return np.asarray(result, dtype=int)
+# }}}
+# Auxiliary functions {{{
 
 
 def stringify(function):
@@ -291,7 +55,7 @@ def hermegauss_nd(n_points):
 def split_operator(op, func, order):
     variables = func.args
     result, rem, order = [], op.expand(), 2
-    for m in multi_indices(len(variables), order):
+    for m in hm.multi_indices(len(variables), order):
         if rem == 0:
             result.append(0)
             continue
@@ -312,6 +76,8 @@ def split_operator(op, func, order):
         result.append(term)
     assert rem == 0
     return result
+# }}}
+# Class Series {{{
 
 
 class Series:
@@ -359,11 +125,13 @@ class Series:
         return Series(new_coeffs, dim=self.dim, mean=self.mean, cov=self.cov)
 
     def project(self, direction):
-        direction = to_numeric(direction)
-        p_coeffs = project(self.coeffs, self.dim, direction)
+        direction = hm.to_numeric(direction)
+        p_coeffs = hm.project(self.coeffs, self.dim, direction)
         return Series(p_coeffs,
                       mean=[self.mean[direction]],
                       cov=[[self.cov[direction][direction]]])
+# }}}
+# Class Quad {{{
 
 
 class Quad:
@@ -386,6 +154,11 @@ class Quad:
             hash(frozenset(self.weights.flatten())),
             hash(frozenset(self.mean.flatten())),
             hash(frozenset(self.cov.flatten()))}))
+
+    def hash_quad(argument):
+        if isinstance(argument, Quad):
+            return hash(argument)
+        raise ValueError("Argument type not supported")
 
     def __hash__(self):
         return self.hash
@@ -435,7 +208,7 @@ class Quad:
                     for term in add_terms:
                         new_args = list(args).copy()
                         new_args[arg_num] = term
-                        func_term = func(*new_args, **kwargs)
+                        func_term = wrapper(*new_args, **kwargs)
                         results.append(func_term)
                     return sum(results[1:], results[0])
                 diag_cov = np.diag(np.diag(quad.cov))
@@ -453,7 +226,57 @@ class Quad:
                     new_args[arg_num] = split_term[d]
                     func_dir = func(*new_args, **kwargs)
                     func_dirs.append(func_dir)
-                return tensorize(func_dirs)
+                if settings['debug']:
+                    print("Tensorizing results")
+                kwargs_func = {'sparse': kwargs['sparse']} \
+                    if 'sparse' in kwargs else {}
+                return hm.tensorize(func_dirs, **kwargs_func)
+            return wrapper
+        return tensorize_arg
+
+        def tensorize_arg(func):
+            def wrapper(*args, **kwargs):
+                do_tensorize = settings['tensorize']
+                if 'tensorize' in kwargs:
+                    do_tensorize = kwargs['tensorize']
+                    del kwargs['tensorize']
+                if not do_tensorize:
+                    return func(*args, **kwargs)
+                function = args[arg_num]
+                if isinstance(function, (float, int)):
+                    function = sym.Rational(function)
+                is_sym = isinstance(function, tuple(sym.core.all_classes))
+                if not is_sym:
+                    return func(*args, **kwargs)
+                quad, function = args[0], function.expand()
+                if isinstance(function, sym.add.Add):
+                    add_terms, results = function.args, []
+                    for term in add_terms:
+                        new_args = list(args).copy()
+                        new_args[arg_num] = term
+                        func_term = wrapper(*new_args, **kwargs)
+                        results.append(func_term)
+                    return sum(results[1:], results[0])
+                diag_cov = np.diag(np.diag(quad.cov))
+                is_diag = la.norm(quad.cov - diag_cov, 2) < 1e-10
+                if quad.dim == 1 or not is_diag:
+                    return func(*args, **kwargs)
+                dirs = ['v[' + str(i) + ']' for i in range(quad.dim)]
+                split_term = split_product(function, dirs)
+                if split_term is False:
+                    return func(*args, **kwargs)
+                func_dirs = []
+                for d in dirs:
+                    new_args = list(args).copy()
+                    new_args[0] = quad.project(d)
+                    new_args[arg_num] = split_term[d]
+                    func_dir = func(*new_args, **kwargs)
+                    func_dirs.append(func_dir)
+                if settings['debug']:
+                    print("Tensorizing results")
+                kwargs_func = {'sparse': kwargs['sparse']} \
+                    if 'sparse' in kwargs else {}
+                return hm.tensorize(func_dirs, **kwargs_func)
             return wrapper
         return tensorize_arg
 
@@ -488,8 +311,8 @@ class Quad:
     def discretize(self, f):
         function = stringify(f)
         if isinstance(function, str):
-            function = discretize(function, self.nodes,
-                                  self.mean, self.factor)
+            function = hm.discretize(function, self.nodes,
+                                     self.mean, self.factor)
         return function
 
     @tensorize_at(1)
@@ -498,12 +321,12 @@ class Quad:
         if l2:
             w_grid = self.discretize(self.weight())
             f_grid = f_grid / w_grid
-        return integrate(f_grid, self.nodes, self.weights)
+        return hm.integrate(f_grid, self.nodes, self.weights)
 
     def transform(self, function, degree, norm=False):
         f_grid = self.discretize(function)
-        coeffs = transform(degree, f_grid, self.nodes,
-                           self.weights, forward=True)
+        coeffs = hm.transform(degree, f_grid, self.nodes,
+                              self.weights, forward=True)
         return Series(coeffs, self.dim, self.mean, self.cov,
                       norm=norm, degree=degree)
 
@@ -519,28 +342,30 @@ class Quad:
         mapped_nodes = self.nodes.copy()
         for i in range(len(self.nodes)):
             mapped_nodes[i] = self.nodes[i] * factor[i][i] + translation[i]
-        return transform(degree, coeffs, mapped_nodes,
-                         self.weights, forward=False)
+        return hm.transform(degree, coeffs, mapped_nodes,
+                            self.weights, forward=False)
 
     @tensorize_at(1)
     def varf(self, function, degree, sparse=False):
+        if settings['debug']:
+            print("Entering body of Quad.varf")
         f_grid = self.discretize(function)
-        return varf(degree, f_grid, self.nodes, self.weights, sparse=sparse)
+        return hm.varf(degree, f_grid, self.nodes, self.weights, sparse=sparse)
 
     def varfd(self, function, degree, directions):
-        directions = to_numeric(directions)
+        directions = hm.to_numeric(directions)
         var = self.varf(function, degree)
         eigval, _ = la.eig(self.cov)
         for d in directions:
-            var = varfd(self.dim, degree, d, var)
+            var = hm.varfd(self.dim, degree, d, var)
             var = var/np.sqrt(eigval[d])
         return var
 
-    @cache
+    @cache(hash_extend=hash_quad)
     def discretize_op(self, op, func, degree, order):
         npolys = int(binom(degree + self.dim, degree))
         mat_operator = np.zeros((npolys, npolys))
-        mult = list(multi_indices(self.dim, order))
+        mult = list(hm.multi_indices(self.dim, order))
         splitop = split_operator(op, func, order)
         for m, coeff in zip(mult, splitop):
             mat_operator += self.varfd(coeff, degree, ['x']*m[0] + ['y']*m[1])
@@ -571,7 +396,7 @@ class Quad:
         return normalization * sym.exp(-potential)
 
     def project(self, direction):
-        direction = to_numeric(direction)
+        direction = hm.to_numeric(direction)
         return Quad([self.nodes[direction]],
                     [self.weights[direction]],
                     mean=[self.mean[direction]],
@@ -584,6 +409,8 @@ class Quad:
                       cov=self.cov,
                       degree=degree,
                       norm=norm)
+# }}}
+#  Composite quadrature {{{
 
 
 class CompQuad:
@@ -599,3 +426,5 @@ class CompQuad:
 # def herm_to_poly(c):
 #     herme_coeffs = c/np.sqrt(np.sqrt(2*np.pi)*np.arange(len(c)))
 #     return herm.herme2poly(herme_coeffs)
+# }}}
+# vim: foldmethod=marker foldnestmax=2
