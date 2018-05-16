@@ -1,12 +1,14 @@
+from . import core
 from . import hermite as hm
 from . import settings as rc
-from . import core
+from . import equations as eq
 
 import unittest
 import numpy as np
 import numpy.polynomial.hermite_e as herm
 import numpy.linalg as la
 import sympy as sym
+import scipy.sparse.linalg as las
 import math
 import os
 import tempfile
@@ -415,3 +417,56 @@ class TestSparseFunctions(unittest.TestCase):
         sp_var = self.quad2.varf(function, degree, sparse=True)
         var = self.quad2.varf(function, degree)
         self.assertAlmostEqual(la.norm(var - sp_var, 2), 0)
+
+
+class TestConvergence(unittest.TestCase):
+
+    def testFokkerPlanck1d(self):
+
+        # Equation parameters
+        equation = eq.Fokker_Planck_1d
+        x, f = equation.x, equation.f
+        β, Vp = sym.Rational(3), x*x*sym.Rational(1, 4)
+        forward = equation.equation({'β': β, 'Vp': Vp})
+
+        # Parameters of potential associated with Hermite polynomials
+        m, s2 = sym.Rational(1, 10), sym.Rational(1, 5)
+        Vq = sym.Rational(1/2) * (x - m)*(x - m)/(β*s2)
+
+        # Map to appropriate space
+        factor = sym.exp(- sym.Rational(1, 2) * β * (Vq + Vp))
+        backward = eq.map_operator(forward, f, factor)
+
+        # Numerical parameters
+        degree = 100
+        n_points_num = 2*degree + 1
+
+        # Calculation of the solution
+        new_q = hm.Quad.gauss_hermite
+        quad_num = new_q(n_points_num, dim=1, mean=[m], cov=[[s2]])
+        mat = quad_num.discretize_op(backward, f, degree, 2)
+        factor = quad_num.discretize(factor)
+
+        # Calculate exact solution
+        solution = eq.solve_gaussian(forward, f, [x])
+        norm_sol = quad_num.integrate(solution, l2=True)
+        assert abs(norm_sol - 1) < 1e-6
+
+        degrees = []
+        errors = []
+        for d in range(5, degree):
+            sub_mat = (mat[0:d+1, 0:d+1]).copy(order='C')
+            eig_vals, eig_vecs = las.eigs(sub_mat, k=1, which='LR')
+            ground_state = np.real(eig_vecs.T[0])
+            ground_state = ground_state * np.sign(ground_state[0])
+            ground_series = quad_num.series(ground_state)
+            ground_state_eval = quad_num.eval(ground_series)
+            ground_state_eval = ground_state_eval * factor
+            norm = quad_num.integrate(ground_state_eval, l2=True)
+            ground_state_eval = ground_state_eval / norm
+            solution_eval = quad_num.discretize(solution)
+            error = la.norm(ground_state_eval - solution_eval, 2)
+            degrees.append(d)
+            errors.append(error)
+        
+        self.assertTrue(errors[-1] < 1e-12)
