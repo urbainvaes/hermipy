@@ -10,8 +10,8 @@
 namespace hermite {
 
 void hermite_eval(double x,
-        std::u_int degree,
-        std::vec & values);
+        u_int degree,
+        vec & values);
 
 }
 

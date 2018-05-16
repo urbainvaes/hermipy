@@ -8,56 +8,51 @@
 #include "hermite/types.hpp"
 #include "hermite/sparse.hpp"
 
-namespace boost 
+namespace hermite { namespace matrix
 {
-    c_mat contig_mat(int rows, int cols);
-}
-
-namespace matrix 
-{
-    inline void set(boost::spmat & input, std::u_int i, std::u_int j, double val)
+    inline void set(spmat & input, u_int i, u_int j, double val)
     {
         input(i, j) = val;
     }
 
-    inline void set(std::mat & input, std::u_int i, std::u_int j, double val)
+    inline void set(mat & input, u_int i, u_int j, double val)
     {
         input[i][j] = val;
     }
 
-    inline std::u_int size1(const std::mat & input)
+    inline u_int size1(const mat & input)
     {
         return input.size();
     }
 
-    inline std::u_int size2(const std::mat & input)
+    inline u_int size2(const mat & input)
     {
         return input[0].size();
     }
 
-    inline std::u_int size1(const boost::spmat & input)
+    inline u_int size1(const spmat & input)
     {
         return input.size1();
     }
 
-    inline std::u_int size2(const boost::spmat & input)
+    inline u_int size2(const spmat & input)
     {
         return input.size2();
     }
 
-    inline double get(const boost::spmat & input, std::u_int i, std::u_int j)
+    inline double get(const spmat & input, u_int i, u_int j)
     {
         return input(i, j);
     }
 
-    inline double get(const std::mat & input, std::u_int i, std::u_int j)
+    inline double get(const mat & input, u_int i, u_int j)
     {
         return input[i][j];
     }
 
     template<typename T, typename S> T convert(const S & input);
-    template<typename T> T construct(std::u_int size1, std::u_int size2);
-    template<typename T> T eye(std::u_int size)
+    template<typename T> T construct(u_int size1, u_int size2);
+    template<typename T> T eye(u_int size)
     {
         T result = construct<T> (size, size);
         for (u_int i = 0; i < size; i++)
@@ -66,6 +61,6 @@ namespace matrix
         }
         return result;
     }
-}
+}}
 
 #endif

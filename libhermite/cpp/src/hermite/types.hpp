@@ -7,29 +7,25 @@
 #include <boost/multi_array.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 
-namespace std {
+namespace hermite {
 
     typedef unsigned int u_int;
 
     // Arrays
-    typedef vector<double> vec;
-    typedef vector<vec> mat;
-    typedef vector<mat> cube;
+    typedef std::vector<double> vec;
+    typedef std::vector<vec> mat;
+    typedef std::vector<mat> cube;
 
-    typedef vector<unsigned int> ivec;
-    typedef vector<ivec> imat;
-    typedef vector<imat> icube;
+    typedef std::vector<unsigned int> ivec;
+    typedef std::vector<ivec> imat;
+    typedef std::vector<imat> icube;
 
     // Functions
     // typedef boost::function<double(vec const &)> s_func;
     typedef double (*s_func)(double*);
-}
-
-
-namespace boost {
 
     // Contiguous multi-dimensional array
-    typedef multi_array<double, 2> c_mat;
+    typedef boost::multi_array<double, 2> cmat;
 
     // Sparse matrix
     typedef boost::numeric::ublas::compressed_matrix<double, boost::numeric::ublas::row_major> spmat;

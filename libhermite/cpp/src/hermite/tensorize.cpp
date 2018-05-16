@@ -102,7 +102,7 @@ mat project(const mat & input, u_int dim, u_int dir)
 }
 
 template <typename T, typename M>
-T tensorize(const std::vector<M> & inputs)
+T tensorize(const vector<M> & inputs)
 {
     u_int dim = inputs.size();
     u_int degree = matrix::size1(inputs[0]) - 1;
@@ -137,20 +137,20 @@ tensorize(const M & input, u_int dim, u_int dir)
 {
     u_int degree = matrix::size1(input) - 1;
     T eye = matrix::eye<T>(degree + 1);
-    std::vector<T> mats(dim, eye);
+    vector<T> mats(dim, eye);
     mats[dir] = matrix::convert<T,M>(input);
     return tensorize<T>(mats);
 }
 
-template std::mat tensorize(const std::vector<std::mat> & inputs);
-template std::mat tensorize(const std::vector<boost::spmat> & inputs);
+template mat tensorize(const std::vector<mat> & inputs);
+template mat tensorize(const std::vector<spmat> & inputs);
 
-template boost::spmat tensorize(const std::vector<std::mat> & inputs);
-template boost::spmat tensorize(const std::vector<boost::spmat> & inputs);
+template spmat tensorize(const std::vector<mat> & inputs);
+template spmat tensorize(const std::vector<spmat> & inputs);
 
-template std::mat tensorize(const std::mat & input, u_int dim, u_int dir);
-template std::mat tensorize(const boost::spmat & input, u_int dim, u_int dir);
-template boost::spmat tensorize(const std::mat & input, u_int dim, u_int dir);
-template boost::spmat tensorize(const boost::spmat & input, u_int dim, u_int dir);
+template mat tensorize(const mat & input, u_int dim, u_int dir);
+template mat tensorize(const spmat & input, u_int dim, u_int dir);
+template spmat tensorize(const mat & input, u_int dim, u_int dir);
+template spmat tensorize(const spmat & input, u_int dim, u_int dir);
 
 }

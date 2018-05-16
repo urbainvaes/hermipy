@@ -14,9 +14,9 @@
 using namespace std;
 using namespace hermite;
 
-std::mat simple(int n)
+hermite::mat simple(int n)
 {
-    mat result(n, vec(n, 0.));
+    hermite::mat result(n, vec(n, 0.));
     for (u_int i = 0; i < result.size(); i++)
     {
         for (u_int j = 0; j < result[0].size(); j++)
@@ -30,14 +30,14 @@ std::mat simple(int n)
 int main()
 {
     int degree = 20;
-    mat initial = simple(degree + 1);
+    hermite::mat initial = simple(degree + 1);
     cout << initial << endl;
-    boost::spmat sp_initial = to_spmat(initial);
-    std::vector<std::mat> inputs(2, initial);
-    std::vector<boost::spmat> sp_inputs(2, sp_initial);
-    boost::spmat sp_tensorized = tensorize<boost::spmat, boost::spmat>(sp_inputs);
-    mat tensorized = tensorize<std::mat, std::mat>(inputs);
-    mat difference = hermite::full(sp_tensorized) - tensorized;
+    hermite::spmat sp_initial = to_spmat(initial);
+    vector<hermite::mat> inputs(2, initial);
+    vector<hermite::spmat> sp_inputs(2, sp_initial);
+    hermite::spmat sp_tensorized = tensorize<hermite::spmat, hermite::spmat>(sp_inputs);
+    hermite::mat tensorized = tensorize<hermite::mat, hermite::mat>(inputs);
+    hermite::mat difference = hermite::full(sp_tensorized) - tensorized;
     imat m = list_multi_indices(2, degree);
     for (u_int i = 0; i < tensorized.size(); i++)
     {

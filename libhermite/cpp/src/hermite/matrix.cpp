@@ -1,25 +1,22 @@
 #include "hermite/matrix.hpp"
 
-namespace boost
-{
-    c_mat contig_mat(int rows, int cols)
-    {
-        auto dims = extents[rows][cols];
-        return multi_array<double, 2>(dims);
-    }
-}
+namespace hermite { namespace matrix {
 
-namespace matrix
-{
     // Template specialization
-    template <> std::mat construct(std::u_int size1, std::u_int size2)
+    template <> mat construct(u_int size1, u_int size2)
     {
-        return std::mat(size1, std::vec(size2, 0.));
+        return mat(size1, vec(size2, 0.));
     }
 
-    template <> boost::spmat construct(std::u_int size1, std::u_int size2)
+    template <> spmat construct(u_int size1, u_int size2)
     {
-        return boost::spmat(size1, size2);
+        return spmat(size1, size2);
+    }
+
+    template <> cmat construct(u_int size1, u_int size2)
+    {
+        auto dims = boost::extents[size1][size2];
+        return cmat(dims);
     }
 
     template<typename T, typename S> T convert(const S & input)
@@ -27,17 +24,18 @@ namespace matrix
         return input;
     }
 
-    template <> std::mat convert(const boost::spmat & input)
+    template <> mat convert(const spmat & input)
     {
-        return hermite::full(input);
+        return full(input);
     }
 
-    template <> boost::spmat convert(const std::mat & input)
+    template <> spmat convert(const mat & input)
     {
-        return hermite::to_spmat(input);
+        return to_spmat(input);
     }
 
     // Template instanciation
-    template boost::spmat convert(const boost::spmat & input);
-    template std::mat convert(const std::mat & input);
-}
+    template spmat convert(const spmat & input);
+    template mat convert(const mat & input);
+
+}}

@@ -115,14 +115,14 @@ template<typename T> T varf(
             factors[d] = products[m[d]];
         }
 
-        result = result + tensorize<T, std::mat>(factors)*Hf[i];
+        result = result + tensorize<T, mat>(factors)*Hf[i];
     }
 
     return result;
 }
 
-template std::mat varf( u_int degree, vec const & input, mat const & nodes, mat const & weights);
-template boost::spmat varf( u_int degree, vec const & input, mat const & nodes, mat const & weights);
+template mat varf( u_int degree, vec const & input, mat const & nodes, mat const & weights);
+template spmat varf( u_int degree, vec const & input, mat const & nodes, mat const & weights);
 
 u_int hash(ivec v, int degree) {
     u_int base = degree + 1;

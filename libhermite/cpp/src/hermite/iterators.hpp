@@ -11,12 +11,12 @@ class Vector_iterator {
     protected:
 
         unsigned int dim;
-        std::ivec multi_index;
+        ivec multi_index;
         bool full;
 
     public:
 
-        const std::ivec& get() const {
+        const ivec& get() const {
             return multi_index;
         }
 
@@ -24,7 +24,7 @@ class Vector_iterator {
             return multi_index[i];
         }
 
-        std::ivec get() {
+        ivec get() {
             return multi_index;
         }
 
@@ -36,7 +36,7 @@ class Vector_iterator {
 
         virtual void increment() = 0;
         virtual void reset() = 0;
-        Vector_iterator(int dim): dim(dim), multi_index(std::ivec(dim, 0)), full(false) {}
+        Vector_iterator(int dim): dim(dim), multi_index(ivec(dim, 0)), full(false) {}
 
 };
 
@@ -58,18 +58,18 @@ class Multi_index_iterator : public Vector_iterator {
 class Hyper_cube_iterator : public Vector_iterator {
 
     // Upper bounds excluded
-    const std::ivec upper_bounds;
+    const ivec upper_bounds;
 
     public:
 
     void increment();
     void reset();
-    Hyper_cube_iterator(const std::ivec & upper_bounds):
+    Hyper_cube_iterator(const ivec & upper_bounds):
         Vector_iterator(upper_bounds.size()), upper_bounds(upper_bounds) {}
 };
 
-std::imat list_multi_indices(u_int dim, u_int upper_bound);
-std::imat list_cube_indices(const std::ivec & upper_bounds);
+imat list_multi_indices(u_int dim, u_int upper_bound);
+imat list_cube_indices(const ivec & upper_bounds);
 
 }
 

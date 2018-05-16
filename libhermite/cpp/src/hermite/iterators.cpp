@@ -76,9 +76,9 @@ namespace hermite {
         }
     }
 
-    std::imat list_multi_indices(u_int dim, u_int upper_bound)
+    imat list_multi_indices(u_int dim, u_int upper_bound)
     {
-        std::imat result;
+        imat result;
         for(Multi_index_iterator m(dim, upper_bound); !m.isFull(); m.increment())
         {
             result.push_back(m.get());
@@ -86,9 +86,9 @@ namespace hermite {
         return result;
     }
 
-    std::imat list_cube_indices(const std::ivec & upper_bounds)
+    imat list_cube_indices(const ivec & upper_bounds)
     {
-        std::imat result;
+        imat result;
         for(Hyper_cube_iterator m(upper_bounds); !m.isFull(); m.increment())
         {
             result.push_back(m.get());

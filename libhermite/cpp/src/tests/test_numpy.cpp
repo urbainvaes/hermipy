@@ -7,14 +7,12 @@
 #include "boost/multi_array.hpp"
 
 #include "hermite/python/converters.hpp"
+#include "hermite/types.hpp"
 
 using namespace std;
 
 namespace p = boost::python;
 namespace np = boost::python::numpy;
-
-typedef boost::multi_array<double, 2> cmat;
-typedef vector<vec> mat;
 
 np::ndarray test_array()
 {
@@ -26,7 +24,7 @@ np::ndarray test_array()
     return result.copy();
 }
 
-np::ndarray convert(cmat const & array)
+np::ndarray convert(hermite::cmat const & array)
 {
     p::tuple shape = p::make_tuple(array.shape()[0], array.shape()[1]);
     p::tuple strides = p::make_tuple(array.strides()[0]*sizeof(double),
@@ -37,11 +35,11 @@ np::ndarray convert(cmat const & array)
     return result.copy();
 }
 
-cmat test_return_multi_array(int n)
+hermite::cmat test_return_multi_array(int n)
 {
     double value = 0.;
     auto dims = boost::extents[n][n];
-    cmat array = boost::multi_array<double, 2>(dims);
+    hermite::cmat array = boost::multi_array<double, 2>(dims);
     for (unsigned int i = 0; i < array.shape()[0]; i++)
         for (unsigned int j = 0; j < array.shape()[1]; j++)
             array[i][j] = ++value;
@@ -59,18 +57,18 @@ int main()
 
     u_int n = 5;
     auto dims = boost::extents[n][n];
-    cmat array = cmat(dims); double value = 0.;
+    hermite::cmat array = hermite::cmat(dims); double value = 0.;
     for (unsigned int i = 0; i < array.shape()[0]; i++)
         for (unsigned int j = 0; j < array.shape()[1]; j++)
             array[i][j] = ++value;
 
-    cmat returned = test_return_multi_array(n);
+    hermite::cmat returned = test_return_multi_array(n);
     for (i = 0; i < n; i++)
         for (j = 0; j < n; j++)
             if(fabs(returned[i][j] - array[i][j]) > 1e-12)
                 return 1;
 
-    mat converted = hermite::to_mat(hermite::to_numpy(array));
+    hermite::mat converted = hermite::to_mat(hermite::to_numpy(array));
     for (i = 0; i < n; i++)
         for (j = 0; j < n; j++)
             if(fabs(converted[i][j] - array[i][j]) > 1e-12)

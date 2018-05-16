@@ -32,7 +32,7 @@ np::ndarray to_numpy(const mat & input)
     return converted.copy();
 }
 
-np::ndarray to_numpy(const boost::c_mat & input)
+np::ndarray to_numpy(const cmat & input)
 {
     u_int n_rows = input.shape()[0];
     u_int n_cols = input.shape()[1];
@@ -45,7 +45,7 @@ np::ndarray to_numpy(const boost::c_mat & input)
 }
 
 
-boost::c_mat to_bmat(const np::ndarray & input)
+cmat to_bmat(const np::ndarray & input)
 {
     if (input.get_nd() != 2)
     {
@@ -69,7 +69,7 @@ boost::c_mat to_bmat(const np::ndarray & input)
     }
 
     auto sizes = boost::extents[n_rows][n_cols];
-    boost::c_mat result = boost::c_mat(boost::multi_array_ref<double, 2>(data, sizes)); // copy
+    cmat result = cmat(boost::multi_array_ref<double, 2>(data, sizes)); // copy
     return result;
 }
 

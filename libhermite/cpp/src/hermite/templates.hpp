@@ -41,8 +41,8 @@ template<class type> std::vector<type> operator*(const std::vector<type>& vec, c
 }
 
 
-std::mat operator*(const std::mat& mat1, const std::mat& mat2);
-std::vec operator*(const std::mat& mat, const std::vec& vec);
-double operator*(const std::vec& vec1, const std::vec& vec2);
+hermite::mat operator*(const hermite::mat &, const hermite::mat &);
+hermite::vec operator*(const hermite::mat &, const hermite::vec &);
+double operator*(const hermite::vec &, const hermite::vec &);
 
 #endif

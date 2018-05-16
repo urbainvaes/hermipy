@@ -6,19 +6,19 @@
 
 namespace hermite {
 
-std::cube triple_products_1d(int degree);
+cube triple_products_1d(int degree);
 
 template<typename T> T varf(
-        std::u_int degree,
-        std::vec const & input,
-        std::mat const & nodes,
-        std::mat const & weights);
+        u_int degree,
+        vec const & input,
+        mat const & nodes,
+        mat const & weights);
 
-std::mat varfd(
-        std::u_int dim,
-        std::u_int degree,
-        std::u_int direction,
-        std::mat const & var);
+mat varfd(
+        u_int dim,
+        u_int degree,
+        u_int direction,
+        mat const & var);
 }
 
 #endif

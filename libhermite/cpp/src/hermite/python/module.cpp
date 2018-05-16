@@ -48,11 +48,11 @@ BOOST_PYTHON_MODULE(hermite_cpp)
         .def(vector_indexing_suite<imat>())
         ;
 
-    class_<boost::c_mat>("contiguous_mat");
+    class_<cmat>("contiguous_mat");
 
-    class_<boost::spmat>("sparse_matrix")
-        .def("size1", &boost::spmat::size1)
-        .def("size2", &boost::spmat::size2)
+    class_<spmat>("sparse_matrix")
+        .def("size1", &spmat::size1)
+        .def("size2", &spmat::size2)
         ;
 
 
@@ -65,33 +65,33 @@ BOOST_PYTHON_MODULE(hermite_cpp)
 
     // Triple products and variational formulations
     def("triple_products", triple_products_1d);
-    def("varf", varf<std::mat>);
+    def("varf", varf<mat>);
     def("varfd", varfd);
 
     // Sparse versions
-    def("varf_sp", varf<boost::spmat>);
+    def("varf_sp", varf<spmat>);
 
     // Projection and tensorization of vectors
-    def("project", static_cast<std::vec (*) (const std::vec & input, std::u_int dim, std::u_int dir)> (& project));
-    def("tensorize", static_cast<std::vec (*) (const std::vec & input, std::u_int dim, std::u_int dir)> (& tensorize));
-    def("tensorize", static_cast<std::vec (*) (const std::mat &)> (& tensorize));
+    def("project", static_cast<vec (*) (const vec & input, u_int dim, u_int dir)> (& project));
+    def("tensorize", static_cast<vec (*) (const vec & input, u_int dim, u_int dir)> (& tensorize));
+    def("tensorize", static_cast<vec (*) (const mat &)> (& tensorize));
 
     // Projection and tensorization of matrices
-    def("project", static_cast<std::mat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& project));
-    def("tensorize", static_cast<std::mat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& tensorize<std::mat, std::mat>));
-    def("tensorize", static_cast<std::mat (*) (const boost::spmat & input, std::u_int dim, std::u_int dir)> (& tensorize<std::mat, boost::spmat>));
-    def("tensorize", static_cast<std::mat (*) (const std::vector<std::mat> & input)> (& tensorize<std::mat, std::mat>));
-    def("tensorize", static_cast<std::mat (*) (const std::vector<boost::spmat> & input)> (& tensorize<std::mat, boost::spmat>));
-    def("tensorize_sp", static_cast<boost::spmat (*) (const std::mat & input, std::u_int dim, std::u_int dir)> (& tensorize<boost::spmat, std::mat>));
-    def("tensorize_sp", static_cast<boost::spmat (*) (const boost::spmat & input, std::u_int dim, std::u_int dir)> (& tensorize<boost::spmat, boost::spmat>));
-    def("tensorize_sp", static_cast<boost::spmat (*) (const std::vector<std::mat> & input)> (& tensorize<boost::spmat, std::mat>));
-    def("tensorize_sp", static_cast<boost::spmat (*) (const std::vector<boost::spmat> & input)> (& tensorize<boost::spmat, boost::spmat>));
+    def("project", static_cast<mat (*) (const mat & input, u_int dim, u_int dir)> (& project));
+    def("tensorize", static_cast<mat (*) (const mat & input, u_int dim, u_int dir)> (& tensorize<mat, mat>));
+    def("tensorize", static_cast<mat (*) (const spmat & input, u_int dim, u_int dir)> (& tensorize<mat, spmat>));
+    def("tensorize", static_cast<mat (*) (const vector<mat> & input)> (& tensorize<mat, mat>));
+    def("tensorize", static_cast<mat (*) (const vector<spmat> & input)> (& tensorize<mat, spmat>));
+    def("tensorize_sp", static_cast<spmat (*) (const mat & input, u_int dim, u_int dir)> (& tensorize<spmat, mat>));
+    def("tensorize_sp", static_cast<spmat (*) (const spmat & input, u_int dim, u_int dir)> (& tensorize<spmat, spmat>));
+    def("tensorize_sp", static_cast<spmat (*) (const vector<mat> & input)> (& tensorize<spmat, mat>));
+    def("tensorize_sp", static_cast<spmat (*) (const vector<spmat> & input)> (& tensorize<spmat, spmat>));
 
     // Converters between data types
-    def("to_numpy", static_cast<np::ndarray (*) (const std::mat & input)> (& to_numpy));
-    def("to_numpy", static_cast<np::ndarray (*) (const boost::c_mat & input)> (& to_numpy));
-    def("to_numpy", static_cast<np::ndarray (*) (const boost::c_mat & input)> (& to_numpy));
-    def("to_mat", static_cast<std::mat (*) (const np::ndarray & input)> (& to_mat));
+    def("to_numpy", static_cast<np::ndarray (*) (const mat & input)> (& to_numpy));
+    def("to_numpy", static_cast<np::ndarray (*) (const cmat & input)> (& to_numpy));
+    def("to_numpy", static_cast<np::ndarray (*) (const cmat & input)> (& to_numpy));
+    def("to_mat", static_cast<mat (*) (const np::ndarray & input)> (& to_mat));
     def("to_bmat", to_bmat);
 
     // For sparse matrices

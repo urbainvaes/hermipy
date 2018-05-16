@@ -5,18 +5,18 @@
 
 namespace hermite {
 
-std::vec discretize(
-        std::s_func func,
-        std::mat const & nodes,
-        std::vec const & translation,
-        std::mat const & dilation);
+vec discretize(
+        s_func func,
+        mat const & nodes,
+        vec const & translation,
+        mat const & dilation);
 
 void intern_function(std::string const & function_body);
-std::vec discretize_from_string(
+vec discretize_from_string(
         std::string function_body,
-        std::mat const & nodes,
-        std::vec const & translation,
-        std::mat const & dilation);
+        mat const & nodes,
+        vec const & translation,
+        mat const & dilation);
 
 }
 #endif

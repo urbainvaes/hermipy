@@ -14,9 +14,9 @@ namespace p = boost::python;
 namespace np = boost::python::numpy;
 namespace hermite {
 
-boost::c_mat test3(int n)
+boost::cmat test3(int n)
 {
-    boost::c_mat result = boost::contig_mat(n, n);
+    boost::cmat result = boost::contig_mat(n, n);
     for (u_int i = 0; i < result.shape()[0]; i++)
     {
         for (u_int j = 0; j < result.shape()[1]; j++)
@@ -29,7 +29,7 @@ boost::c_mat test3(int n)
 
 np::ndarray test2(int n)
 {
-    boost::c_mat result = test3(n);
+    boost::cmat result = test3(n);
     np::ndarray array = cmat_to_numpy(result);
     np::ndarray array2 = array;
     std::cout << p::extract<char const *>(p::str(array)) << std::endl ;
