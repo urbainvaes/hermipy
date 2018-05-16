@@ -66,6 +66,12 @@ def cache(hash_extend=None, error_extend=None):
     hash_fun = gen_hash(extend=hash_extend)
     error_fun = gen_error(extend=error_extend)
 
+    def numpy_extended_load(filename):
+        result = np.load(filename)
+        if result.shape is ():
+            result = float(result)
+        return result
+
     def cache_aux(function):
 
         @wraps(function)
@@ -85,12 +91,13 @@ def cache(hash_extend=None, error_extend=None):
             is_sparse = 'sparse' in kwargs and kwargs['sparse'] is True
             ext = '.npz' if is_sparse else '.npy'
             save = sparse.save_npz if is_sparse else np.save
-            load = sparse.load_npz if is_sparse else np.load
+            load = sparse.load_npz if is_sparse else numpy_extended_load
 
             cachedir = settings['cachedir']
             savefile = cachedir + '/' + prefix + '-' + str(hash_args) + ext
             try:
                 result_cache = load(savefile)
+
             except IOError:
                 result = function(*args, **kwargs)
                 save(savefile, result)

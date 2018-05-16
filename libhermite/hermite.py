@@ -125,31 +125,6 @@ class Quad:
     def __hash__(self):
         return self.hash
 
-    def linearize_at(arg_num):
-        def linearize_arg(func):
-            def wrapper(*args, **kwargs):
-                if not rc.get('tensorize'):
-                    return func(*args, **kwargs)
-                function = args[arg_num]
-                if isinstance(function, (float, int)):
-                    function = sym.Rational(function)
-                is_sym = isinstance(function, tuple(sym.core.all_classes))
-                if not is_sym:
-                    return func(*args, **kwargs)
-                function = function.expand()
-                is_addition = isinstance(function, sym.add.Add)
-                if not is_addition:
-                    return func(*args, **kwargs)
-                add_terms, results = function.args, []
-                for term in add_terms:
-                    new_args = list(args).copy()
-                    new_args[arg_num] = term
-                    func_term = func(*new_args, **kwargs)
-                    results.append(func_term)
-                return sum(results[1:], results[0])
-            return wrapper
-        return linearize_arg
-
     def tensorize_at(arg_num):
         def tensorize_arg(func):
             def wrapper(*args, **kwargs):
@@ -166,6 +141,14 @@ class Quad:
                 if not is_sym:
                     return func(*args, **kwargs)
                 quad, function = args[0], function.expand()
+                if isinstance(function, sym.add.Add):
+                    add_terms, results = function.args, []
+                    for term in add_terms:
+                        new_args = list(args).copy()
+                        new_args[arg_num] = term
+                        func_term = wrapper(*new_args, **kwargs)
+                        results.append(func_term)
+                    return sum(results[1:], results[0])
                 diag_cov = np.diag(np.diag(quad.cov))
                 is_diag = la.norm(quad.cov - diag_cov, 2) < 1e-10
                 if quad.dim == 1 or not is_diag:
@@ -224,7 +207,6 @@ class Quad:
                                      self.mean, self.factor)
         return function
 
-    @linearize_at(1)
     @tensorize_at(1)
     def integrate(self, function, l2=False):
         f_grid = self.discretize(function)
@@ -255,7 +237,6 @@ class Quad:
         return hm.transform(degree, coeffs, mapped_nodes,
                             self.weights, forward=False)
 
-    @linearize_at(1)
     @tensorize_at(1)
     def varf(self, function, degree, sparse=False):
         if settings['debug']:

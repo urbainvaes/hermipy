@@ -84,7 +84,8 @@ def discretize(function, nodes, translation, dilation):
 @log_stats
 def integrate(fgrid, nodes, weights):
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
-    return hm.integrate(fgrid, nodes, weights)
+    result = hm.integrate(fgrid, nodes, weights)
+    return result
 
 
 @cache()
