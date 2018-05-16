@@ -12,7 +12,7 @@
 # TODO: Implement composite quadrature (urbain, 02 May 2018)
 # }}}
 # {{{ Import packages
-from . import wrappers as hm
+from . import core
 from . import symlib as lib
 from .settings import settings
 from .cache import cache
@@ -87,8 +87,8 @@ class Series:
         return Series(new_coeffs, dim=self.dim, mean=self.mean, cov=self.cov)
 
     def project(self, direction):
-        direction = hm.to_numeric(direction)
-        p_coeffs = hm.project(self.coeffs, self.dim, direction)
+        direction = core.to_numeric(direction)
+        p_coeffs = core.project(self.coeffs, self.dim, direction)
         return Series(p_coeffs,
                       mean=[self.mean[direction]],
                       cov=[[self.cov[direction][direction]]])
@@ -168,7 +168,7 @@ class Quad:
                     print("Tensorizing results")
                 kwargs_func = {'sparse': kwargs['sparse']} \
                     if 'sparse' in kwargs else {}
-                return hm.tensorize(func_dirs, **kwargs_func)
+                return core.tensorize(func_dirs, **kwargs_func)
             return wrapper
         return tensorize_arg
 
@@ -203,8 +203,8 @@ class Quad:
     def discretize(self, f):
         function = lib.stringify(f)
         if isinstance(function, str):
-            function = hm.discretize(function, self.nodes,
-                                     self.mean, self.factor)
+            function = core.discretize(function, self.nodes,
+                                       self.mean, self.factor)
         return function
 
     @tensorize_at(1)
@@ -213,12 +213,12 @@ class Quad:
         if l2:
             w_grid = self.discretize(self.weight())
             f_grid = f_grid / w_grid
-        return hm.integrate(f_grid, self.nodes, self.weights)
+        return core.integrate(f_grid, self.nodes, self.weights)
 
     def transform(self, function, degree, norm=False):
         f_grid = self.discretize(function)
-        coeffs = hm.transform(degree, f_grid, self.nodes,
-                              self.weights, forward=True)
+        coeffs = core.transform(degree, f_grid, self.nodes,
+                                self.weights, forward=True)
         return Series(coeffs, self.dim, self.mean, self.cov,
                       norm=norm, degree=degree)
 
@@ -234,22 +234,23 @@ class Quad:
         mapped_nodes = self.nodes.copy()
         for i in range(len(self.nodes)):
             mapped_nodes[i] = self.nodes[i] * factor[i][i] + translation[i]
-        return hm.transform(degree, coeffs, mapped_nodes,
-                            self.weights, forward=False)
+        return core.transform(degree, coeffs, mapped_nodes,
+                              self.weights, forward=False)
 
     @tensorize_at(1)
     def varf(self, function, degree, sparse=False):
         if settings['debug']:
             print("Entering body of Quad.varf")
         f_grid = self.discretize(function)
-        return hm.varf(degree, f_grid, self.nodes, self.weights, sparse=sparse)
+        return core.varf(degree, f_grid, self.nodes,
+                         self.weights, sparse=sparse)
 
     def varfd(self, function, degree, directions):
-        directions = hm.to_numeric(directions)
+        directions = core.to_numeric(directions)
         var = self.varf(function, degree)
         eigval, _ = la.eig(self.cov)
         for d in directions:
-            var = hm.varfd(self.dim, degree, d, var)
+            var = core.varfd(self.dim, degree, d, var)
             var = var/np.sqrt(eigval[d])
         return var
 
@@ -257,7 +258,7 @@ class Quad:
     def discretize_op(self, op, func, degree, order):
         npolys = int(binom(degree + self.dim, degree))
         mat_operator = np.zeros((npolys, npolys))
-        mult = list(hm.multi_indices(self.dim, order))
+        mult = list(core.multi_indices(self.dim, order))
         splitop = lib.split_operator(op, func, order)
         for m, coeff in zip(mult, splitop):
             mat_operator += self.varfd(coeff, degree, ['x']*m[0] + ['y']*m[1])
@@ -288,7 +289,7 @@ class Quad:
         return normalization * sym.exp(-potential)
 
     def project(self, direction):
-        direction = hm.to_numeric(direction)
+        direction = core.to_numeric(direction)
         return Quad([self.nodes[direction]],
                     [self.weights[direction]],
                     mean=[self.mean[direction]],

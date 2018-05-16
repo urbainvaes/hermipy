@@ -1,6 +1,7 @@
 from . import hermite as hm
 from . import settings as rc
-from . import wrappers as wr
+from . import core
+
 import unittest
 import numpy as np
 import numpy.polynomial.hermite_e as herm
@@ -182,7 +183,7 @@ class TestTensorize(unittest.TestCase):
         quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
         coeffs_1d = quad_1d.transform('exp(x)', degree).coeffs
         coeffs_2d = quad_2d.transform('exp(x)', degree).coeffs
-        tensorized_coeffs_1d = wr.tensorize(coeffs_1d, 2, 0)
+        tensorized_coeffs_1d = core.tensorize(coeffs_1d, 2, 0)
         self.assertAlmostEqual(la.norm(coeffs_2d - tensorized_coeffs_1d, 2), 0)
 
     def test_tensorize_matrix(self):
@@ -193,7 +194,7 @@ class TestTensorize(unittest.TestCase):
         quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
         varf_1d = quad_1d.varf(function, degree)
         varf_2d = quad_2d.varf(function, degree)
-        tensorized_varf_1d = wr.tensorize(varf_1d, 2, 0)
+        tensorized_varf_1d = core.tensorize(varf_1d, 2, 0)
         diff = (la.norm(varf_2d - tensorized_varf_1d, 2))
         self.assertAlmostEqual(diff, 0)
 
@@ -206,7 +207,7 @@ class TestTensorize(unittest.TestCase):
         coeffs_x = quad_1d.transform(fx, degree).coeffs
         coeffs_y = quad_1d.transform(fy, degree).coeffs
         coeffs_2d = quad_2d.transform(f, degree).coeffs
-        tensorized_coeffs = wr.tensorize([coeffs_x, coeffs_y])
+        tensorized_coeffs = core.tensorize([coeffs_x, coeffs_y])
         diff = la.norm(coeffs_2d - tensorized_coeffs, 2)
         self.assertAlmostEqual(diff, 0)
 
@@ -219,7 +220,7 @@ class TestTensorize(unittest.TestCase):
         varf_x = quad_1d.varf(fx, degree)
         varf_y = quad_1d.varf(fy, degree)
         varf_2d = quad_2d.varf(f, degree)
-        tensorized_varf = wr.tensorize([varf_x, varf_y])
+        tensorized_varf = core.tensorize([varf_x, varf_y])
         diff = la.norm(varf_2d - tensorized_varf, 2)
         self.assertAlmostEqual(diff, 0)
 
@@ -230,7 +231,7 @@ class TestTensorize(unittest.TestCase):
         quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
         coeffs_1d = quad_1d.transform('exp(x)', degree).coeffs
         coeffs_2d = quad_2d.transform('exp(x)', degree).coeffs
-        projection = wr.project(coeffs_2d, 2, 0)
+        projection = core.project(coeffs_2d, 2, 0)
         diff = la.norm(coeffs_1d - projection, 2)
         self.assertAlmostEqual(diff, 0)
 
@@ -242,7 +243,7 @@ class TestTensorize(unittest.TestCase):
         quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
         varf_1d = quad_1d.varf(function, degree)
         varf_2d = quad_2d.varf(function, degree)
-        projection = wr.project(varf_2d, 2, 0)
+        projection = core.project(varf_2d, 2, 0)
         diff = (la.norm(varf_1d - projection, 2))
         self.assertAlmostEqual(diff, 0)
 
@@ -328,6 +329,49 @@ class TestTensorizeDecorator(unittest.TestCase):
         var_1 = self.quad_low.varf(function, degree, tensorize=True)
         var_2 = self.quad_low.varf(function, degree, tensorize=False)
         self.assertAlmostEqual(la.norm(var_1 - var_2), 0.)
+
+
+class TestSparseFunctions(unittest.TestCase):
+
+    def setUp(self):
+        n_points = 100
+        self.quad1 = hm.Quad.gauss_hermite(n_points)
+        self.quad2 = hm.Quad.gauss_hermite(n_points, dim=2)
+        self.v = [sym.symbols('v' + str(i)) for i in range(2)]
+        rc.settings['tensorize'] = False
+        rc.settings['cache'] = False
+
+    def tearDown(self):
+        rc.settings.update(settings)
+
+    def testSpVarfSimple(self):
+        degree = 30
+        function = '1'
+        sp_var = self.quad2.varf(function, degree, sparse=True)
+        self.assertEqual(sp_var.nnz, sp_var.shape[0])
+
+    def testSpVarf1d(self):
+        degree, degreef_max = 50, 7
+        x = sym.symbols('x')
+        function = 0
+        for deg in range(degreef_max):
+            function += x**deg
+            sp_var = self.quad1.varf(function, degree, sparse=True)
+            coords = sp_var.tocoo()
+            bw = 0
+            for i, j, v in zip(coords.row, coords.col, coords.data):
+                if abs(i - j) > bw:
+                    bw = abs(i - j)
+                    if bw > deg:
+                        print(i, j, v)
+            self.assertEqual(bw, deg)
+
+    def testSpVarf2d(self):
+        degree = 50
+        function = 1. + self.v[0] + self.v[1] + self.v[1]*self.v[0]
+        sp_var = self.quad2.varf(function, degree, sparse=True)
+        var = self.quad2.varf(function, degree)
+        self.assertAlmostEqual(la.norm(var - sp_var, 2), 0)
 
 
 class TestSparseFunctions(unittest.TestCase):

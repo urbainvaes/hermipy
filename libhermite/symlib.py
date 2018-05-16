@@ -1,4 +1,4 @@
-from .wrappers import multi_indices as multi_indices
+from .core import multi_indices
 
 import sympy as sym
 import math
