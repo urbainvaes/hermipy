@@ -260,8 +260,10 @@ class Quad:
         mat_operator = np.zeros((npolys, npolys))
         mult = list(core.multi_indices(self.dim, order))
         splitop = lib.split_operator(op, func, order)
+        v = ['x', 'y', 'z']
         for m, coeff in zip(mult, splitop):
-            mat_operator += self.varfd(coeff, degree, ['x']*m[0] + ['y']*m[1])
+            diff_vector = sum([[v[i]]*m[i] for i in range(self.dim)], [])
+            mat_operator += self.varfd(coeff, degree, diff_vector)
         return mat_operator
 
     #  TODO: Ensure order is right (urbain, Tue 01 May 2018)
