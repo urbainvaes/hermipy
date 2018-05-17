@@ -215,6 +215,11 @@ class Quad:
             f_grid = f_grid / w_grid
         return core.integrate(f_grid, self.nodes, self.weights)
 
+    # Norm 1 or 2, in weighted or not
+    def norm(self, function, n=2, l2=False):
+        func = function**2 if n is 2 else abs(function)
+        return np.sqrt(self.integrate(func, l2=l2))
+
     def transform(self, function, degree, norm=False):
         f_grid = self.discretize(function)
         coeffs = core.transform(degree, f_grid, self.nodes,
