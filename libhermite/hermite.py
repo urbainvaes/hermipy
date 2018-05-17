@@ -217,8 +217,10 @@ class Quad:
 
     # Norm 1 or 2, in weighted or not
     def norm(self, function, n=2, l2=False):
-        func = function**2 if n is 2 else abs(function)
-        return np.sqrt(self.integrate(func, l2=l2))
+        if n is 2:
+            return np.sqrt(self.integrate(function**2, l2=l2))
+        elif n is 1:
+            return self.integrate(abs(function), l2=l2)
 
     def transform(self, function, degree, norm=False):
         f_grid = self.discretize(function)
