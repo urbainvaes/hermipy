@@ -13,11 +13,13 @@ import numpy as np
 import numpy.linalg as la
 import scipy.sparse.linalg as las
 
-from libhermite import hermite as hm
-from libhermite import equations as eq
+from hermite import hermite as hm
+from hermite import equations as eq
+from hermite import cache as ca
 
 from scipy.special import binom
 
+cache = ca.cache()
 sym.init_printing()
 
 # Parse options
@@ -44,9 +46,13 @@ if args.epsilon:
     config.eq['ε'] = sym.Rational(args.epsilon)
 if args.verbose:
     config.misc['verbose'] = args.verbose
+if args.plots:
+    config.misc['plots'] = args.plots
 
-config.misc['plots'] = args.plots
 config.misc['verbose'] = args.verbose
+
+# Set library option
+hm.settings.update(config.misc)
 
 if config.misc['plots']:
     import matplotlib.pyplot as plt
@@ -55,8 +61,6 @@ if config.misc['plots']:
 # }}}
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
 
-# Set library option
-hm.settings.update(config.misc)
 
 # Variables and function
 x = eq.McKean_Vlasov.x
@@ -241,7 +245,7 @@ def compute_moment1(m_val):
     if config.misc['verbose']:
         print("Solving the eigenvalue problem for m = " + str(m_val) + ".")
     mat_operator = r_mat + m_val * m_mat
-    eig_vals, eig_vecs = hm.cache(las.eigs)(mat_operator, k=1, which='LR')
+    eig_vals, eig_vecs = cache(las.eigs)(mat_operator, k=1, which='LR')
     ground_state = np.real(eig_vecs.T[0])
     ground_state = ground_state * np.sign(ground_state[0])
     ground_series = quad_num.series(ground_state, norm=True)
@@ -264,13 +268,27 @@ r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
 if config.misc['verbose']:
     print(hm.stats)
 
+
 if args.mass:
     print(compute_moment1(float(args.mass)))
-    exit(0)
+    matrix = r_mat + float(args.mass) * m_mat
+    eig_vals, eig_vecs = cache(las.eigs)(matrix, k=1, which='LR')
+    ground_state = np.real(eig_vecs.T[0])
+    ground_state = ground_state * np.sign(ground_state[0])
+    ground_series = quad_num.series(ground_state)
+    ground_state_eval = quad_num.eval(ground_series)
+    factor_eval = quad_num.discretize(factor)
+    ground_state_eval = ground_state_eval * factor_eval
+    norm = quad_num.integrate(ground_state_eval, l2=True)
+    ground_state_eval = ground_state_eval / norm
+    fig, ax = plt.subplots(1, 1)
+    cont = quad_visu.plot(ground_series, degree, factor, ax)
+    plt.colorbar(cont, ax=ax)
+    plt.show()
 
 
 def convergence():
-    solution = equation.solve_gaussian(forward)
+    solution = eq.solve_gaussian(forward, f, [x, y])
     norm_sol = quad_num.integrate(solution, l2=True)
     assert abs(norm_sol - 1) < 1e-6
     v0 = None
@@ -285,9 +303,9 @@ def convergence():
             for i in range(len(v0)):
                 actual_v0[i] = v0[i]
             v0 = actual_v0
-            eig_vals, eig_vecs = hm.cache(las.eigs)(sub_mat, v0=v0, k=1, which='LR')
+            eig_vals, eig_vecs = cache(las.eigs)(sub_mat, v0=v0, k=1, which='LR')
         else:
-            eig_vals, eig_vecs = hm.cache(las.eigs)(sub_mat, k=1, which='LR')
+            eig_vals, eig_vecs = cache(las.eigs)(sub_mat, k=1, which='LR')
         ground_state = np.real(eig_vecs.T[0])
         v0 = ground_state.copy(order='C')
         ground_state = ground_state * np.sign(ground_state[0])
@@ -301,13 +319,13 @@ def convergence():
         error = la.norm(ground_state_eval - solution_eval, 2)
         degrees.append(d)
         errors.append(error)
-    # fig, ax = plt.subplots(1, 1)
-    # cont = quad_visu.plot(ground_series, degree, factor, ax)
-    # plt.colorbar(cont, ax=ax)
-    # plt.show()
-    # fig, ax = plt.subplots(1, 1)
-    # ax.semilogy(degrees, errors, 'k.')
-    # plt.show()
+    fig, ax = plt.subplots(1, 1)
+    cont = quad_visu.plot(ground_series, degree, factor, ax)
+    plt.colorbar(cont, ax=ax)
+    plt.show()
+    fig, ax = plt.subplots(1, 1)
+    ax.semilogy(degrees, errors, 'k.')
+    plt.show()
     # splot.contour(solution, (x, -1, 1), (y, -1, 1))
 
 
@@ -395,7 +413,7 @@ def plot_discretization_error():
 
 # plot_eigenfunctions()
 # plot_hermite_functions()
-# plot_ground_state()
+plot_ground_state()
 # plot_discretization_error()
 # plot_comparison_with_asym()
 

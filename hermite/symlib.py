@@ -1,4 +1,4 @@
-from .core import multi_indices
+from hermite.core import multi_indices
 
 import sympy as sym
 import math

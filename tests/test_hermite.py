@@ -1,7 +1,7 @@
-from . import core
-from . import hermite as hm
-from . import settings as rc
-from . import equations as eq
+import hermite.core as core
+import hermite.hermite as hm
+import hermite.settings as rc
+import hermite.equations as eq
 
 import unittest
 import numpy as np

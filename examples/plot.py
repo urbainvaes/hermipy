@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from libhermite import hermite as hm
+from hermite import hermite as hm
 
 
 def plot_hf(degrees, quad_num, quad_visu, ax):

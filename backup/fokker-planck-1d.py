@@ -8,7 +8,7 @@ import sympy.printing as syp
 import numpy as np
 import matplotlib.pyplot as plt
 
-from libhermite import hermite_python as sp
+from hermite import hermite_python as sp
 sy.init_printing()
 # }}}
 # ABSTRACT SYMBOLIC CALCULATIONS {{{

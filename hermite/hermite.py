@@ -12,13 +12,13 @@
 # TODO: Implement composite quadrature (urbain, 02 May 2018)
 # }}}
 # {{{ Import packages
-from . import core
-from . import symlib as lib
-from .settings import settings
-from .cache import cache
-from . import settings as rc
+import hermite.core as core
+import hermite.symlib as lib
+import hermite.settings as rc
 
+from hermite.cache import cache
 from scipy.special import binom
+
 import numpy as np
 import numpy.linalg as la
 import numpy.polynomial.hermite_e as herm
@@ -128,7 +128,7 @@ class Quad:
     def tensorize_at(arg_num):
         def tensorize_arg(func):
             def wrapper(*args, **kwargs):
-                do_tensorize = settings['tensorize']
+                do_tensorize = rc.settings['tensorize']
                 if 'tensorize' in kwargs:
                     do_tensorize = kwargs['tensorize']
                     del kwargs['tensorize']
@@ -164,7 +164,7 @@ class Quad:
                     new_args[arg_num] = split_term[d]
                     func_dir = func(*new_args, **kwargs)
                     func_dirs.append(func_dir)
-                if settings['debug']:
+                if rc.settings['debug']:
                     print("Tensorizing results")
                 kwargs_func = {'sparse': kwargs['sparse']} \
                     if 'sparse' in kwargs else {}
@@ -246,7 +246,7 @@ class Quad:
 
     @tensorize_at(1)
     def varf(self, function, degree, sparse=False):
-        if settings['debug']:
+        if rc.settings['debug']:
             print("Entering body of Quad.varf")
         f_grid = self.discretize(function)
         return core.varf(degree, f_grid, self.nodes,

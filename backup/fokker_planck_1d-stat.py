@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-from libhermite import hermite_python as hm
+from hermite import hermite_python as hm
 sy.init_printing()
 
 # }}}
