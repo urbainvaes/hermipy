@@ -12,6 +12,7 @@ import scipy.sparse.linalg as las
 import math
 import os
 import tempfile
+import matplotlib.pyplot as plt
 
 settings = {'cache': False, 'cachedir': '/tmp/test_hermite'}
 rc.settings.update(settings)
@@ -376,97 +377,143 @@ class TestSparseFunctions(unittest.TestCase):
         self.assertAlmostEqual(la.norm(var - sp_var, 2), 0)
 
 
-class TestSparseFunctions(unittest.TestCase):
-
-    def setUp(self):
-        n_points = 100
-        self.quad1 = hm.Quad.gauss_hermite(n_points)
-        self.quad2 = hm.Quad.gauss_hermite(n_points, dim=2)
-        self.v = [sym.symbols('v' + str(i)) for i in range(2)]
-        rc.settings['tensorize'] = False
-        rc.settings['cache'] = False
-
-    def tearDown(self):
-        rc.settings.update(settings)
-
-    def testSpVarfSimple(self):
-        degree = 30
-        function = '1'
-        sp_var = self.quad2.varf(function, degree, sparse=True)
-        self.assertEqual(sp_var.nnz, sp_var.shape[0])
-
-    def testSpVarf1d(self):
-        degree, degreef_max = 50, 7
-        x = sym.symbols('x')
-        function = 0
-        for deg in range(degreef_max):
-            function += x**deg
-            sp_var = self.quad1.varf(function, degree, sparse=True)
-            coords = sp_var.tocoo()
-            bw = 0
-            for i, j, v in zip(coords.row, coords.col, coords.data):
-                if abs(i - j) > bw:
-                    bw = abs(i - j)
-                    if bw > deg:
-                        print(i, j, v)
-            self.assertEqual(bw, deg)
-
-    def testSpVarf2d(self):
-        degree = 50
-        function = 1. + self.v[0] + self.v[1] + self.v[1]*self.v[0]
-        sp_var = self.quad2.varf(function, degree, sparse=True)
-        var = self.quad2.varf(function, degree)
-        self.assertAlmostEqual(la.norm(var - sp_var, 2), 0)
-
-
 class TestConvergence(unittest.TestCase):
 
-    def testFokkerPlanck1d(self):
+    def setUp(self):
 
         # Equation parameters
         equation = eq.Fokker_Planck_1d
-        x, f = equation.x, equation.f
-        β, Vp = sym.Rational(3), x*x*sym.Rational(1, 4)
-        forward = equation.equation({'β': β, 'Vp': Vp})
+        self.x, self.f = equation.x, equation.f
+        self.β = sym.Rational(3)
+
+        # Shorthand notation
+        x, f = self.x, self.f
+
+        # Potentials
+        self.potentials = {'gaussian': x*x/4, 'bistable': x**4/4 - x**2/2}
 
         # Parameters of potential associated with Hermite polynomials
-        m, s2 = sym.Rational(1, 10), sym.Rational(1, 5)
-        Vq = sym.Rational(1/2) * (x - m)*(x - m)/(β*s2)
+        m = {'gaussian': sym.Rational(1, 10), 'bistable': sym.Rational(1/10)}
+        s2 = {'gaussian': sym.Rational(1, 5), 'bistable': sym.Rational(1/10)}
 
-        # Map to appropriate space
-        factor = sym.exp(- sym.Rational(1, 2) * β * (Vq + Vp))
-        backward = eq.map_operator(forward, f, factor)
+        # Returned values
+        self.forward, self.backward, self.factor, self.quad = {}, {}, {}, {}
 
         # Numerical parameters
-        degree = 100
-        n_points_num = 2*degree + 1
+        self.degree = 100
+        n_points_num = 2*self.degree + 1
 
         # Calculation of the solution
         new_q = hm.Quad.gauss_hermite
-        quad_num = new_q(n_points_num, dim=1, mean=[m], cov=[[s2]])
-        mat = quad_num.discretize_op(backward, f, degree, 2)
-        factor = quad_num.discretize(factor)
 
-        # Calculate exact solution
-        solution = eq.solve_gaussian(forward, f, [x])
-        norm_sol = quad_num.integrate(solution, l2=True)
+        for name, Vp in self.potentials.items():
+
+            self.quad[name] = new_q(n_points_num, dim=1,
+                                    mean=[m[name]], cov=[[s2[name]]])
+
+            # Potential for approximation
+            Vq = sym.Rational(1/2)*(x-m[name])*(x-m[name])/(self.β*s2[name])
+
+            # Fokker Plarck operator
+            self.forward[name] = equation.equation({'β': self.β, 'Vp': Vp})
+
+            # Map to appropriate space
+            self.factor[name] = sym.exp(- self.β / 2 * (Vq + Vp))
+
+            # Mapped operator
+            self.backward[name] = eq.map_operator(self.forward[name], f,
+                                                  self.factor[name])
+
+            # Discretize factor
+            self.factor[name] = self.quad[name].discretize(self.factor[name])
+
+    def testFokkerPlanck1dGaussianExactSol(self):
+        forward = self.forward['gaussian']
+        solution = eq.solve_gaussian(forward, self.f, [self.x])
+        norm_sol = self.quad['gaussian'].integrate(solution, l2=True)
         assert abs(norm_sol - 1) < 1e-6
 
-        degrees = []
-        errors = []
-        for d in range(5, degree):
+    def solve(self, name, degrees):
+
+        # Shorthand notations
+        backward = self.backward[name]
+        quad, factor = self.quad[name], self.factor[name]
+
+        # Discretization of the operator
+        mat = quad.discretize_op(backward, self.f, self.degree, 2)
+
+        solutions = []
+        for d in degrees:
             sub_mat = (mat[0:d+1, 0:d+1]).copy(order='C')
             eig_vals, eig_vecs = las.eigs(sub_mat, k=1, which='LR')
             ground_state = np.real(eig_vecs.T[0])
             ground_state = ground_state * np.sign(ground_state[0])
-            ground_series = quad_num.series(ground_state)
-            ground_state_eval = quad_num.eval(ground_series)
-            ground_state_eval = ground_state_eval * factor
-            norm = quad_num.integrate(ground_state_eval, l2=True)
+            ground_state_eval = quad.eval(quad.series(ground_state))*factor
+            norm = quad.integrate(ground_state_eval, l2=True)
             ground_state_eval = ground_state_eval / norm
-            solution_eval = quad_num.discretize(solution)
-            error = la.norm(ground_state_eval - solution_eval, 2)
-            degrees.append(d)
+            solutions.append(ground_state_eval)
+        return solutions
+
+    def testFokkerPlanck1dGaussian(self):
+
+        # Exact Solution
+        forward = self.forward['gaussian']
+        solution = eq.solve_gaussian(forward, self.f, [self.x])
+        solution_eval = self.quad['gaussian'].discretize(solution)
+
+        # Numerical solutions
+        degrees = list(range(5, self.degree))
+        solutions = self.solve('gaussian', degrees)
+
+        # Associated errors
+        errors = []
+        for sol in solutions:
+            error = self.quad['gaussian'].norm(sol - solution_eval, l2=True)
+            print(error)
             errors.append(error)
-        
+
+        log_errors = np.log(errors)
+        poly_approx = np.polyfit(degrees, log_errors, 1)
+        errors_approx = np.exp(np.polyval(poly_approx, degrees))
+        error = la.norm(log_errors - np.log(errors_approx), 2)
+
+        plt.semilogy(degrees, errors, 'k.')
+        plt.semilogy(degrees, errors_approx)
+        plt.show()
+
         self.assertTrue(errors[-1] < 1e-12)
+        self.assertTrue(error < 5)
+
+    def testFokkerPlanck1dBistable(self):
+
+        # Exact Solution
+        exact_sol = sym.exp(-self.β * self.potentials['bistable'])
+        exact_sol = exact_sol / self.quad['bistable'].norm(exact_sol, n=1, l2=True)
+        solution_eval = self.quad['bistable'].discretize(exact_sol)
+        x_discretization = self.quad['bistable'].discretize('x')
+
+        degrees = list(range(10, self.degree))
+        solutions = self.solve('bistable', degrees)
+
+        plt.plot(x_discretization, solution_eval)
+        plt.plot(x_discretization, solutions[-1])
+        plt.show()
+
+        # Associated errors
+        errors = []
+        for sol in solutions:
+            error = self.quad['bistable'].norm(sol - solution_eval, l2=True)
+            print(error)
+            errors.append(error)
+
+        log_errors = np.log(errors)
+        poly_approx = np.polyfit(degrees, log_errors, 1)
+        errors_approx = np.exp(np.polyval(poly_approx, degrees))
+        error = la.norm(log_errors - np.log(errors_approx), 2)
+
+        plt.semilogy(degrees, errors, 'k.')
+        plt.semilogy(degrees, errors_approx)
+        plt.show()
+
+        self.assertTrue(errors[-1] < 1e-4)
+        self.assertTrue(error < 100)
