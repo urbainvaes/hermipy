@@ -377,67 +377,50 @@ class TestSparseFunctions(unittest.TestCase):
         self.assertAlmostEqual(la.norm(var - sp_var, 2), 0)
 
 
-class TestConvergence(unittest.TestCase):
+class TestConvergenceFokkerPlanck1d(unittest.TestCase):
 
     def setUp(self):
 
         # Equation parameters
         equation = eq.Fokker_Planck_1d
         self.x, self.f = equation.x, equation.f
+
+        # Inverse temperature
         self.β = sym.Rational(3)
 
-        # Shorthand notation
-        x, f = self.x, self.f
-
-        # Potentials
-        self.potentials = {'gaussian': x*x/4, 'bistable': x**4/4 - x**2/2}
-
-        # Parameters of potential associated with Hermite polynomials
-        m = {'gaussian': sym.Rational(1, 10), 'bistable': sym.Rational(1/10)}
-        s2 = {'gaussian': sym.Rational(1, 5), 'bistable': sym.Rational(1/10)}
-
-        # Returned values
-        self.forward, self.backward, self.factor, self.quad = {}, {}, {}, {}
-
-        # Numerical parameters
+        # Common parameters of numerical approximation
         self.degree = 100
-        n_points_num = 2*self.degree + 1
+        self.n_points_num = 2*self.degree + 1
+
+    def sym_calc(self, Vp, m, s2):
+
+        # Equation parameters
+        equation = eq.Fokker_Planck_1d
+        x, f = equation.x, equation.f
 
         # Calculation of the solution
         new_q = hm.Quad.gauss_hermite
 
-        for name, Vp in self.potentials.items():
+        quad = new_q(self.n_points_num, dim=1, mean=[m], cov=[[s2]])
 
-            self.quad[name] = new_q(n_points_num, dim=1,
-                                    mean=[m[name]], cov=[[s2[name]]])
+        # Potential for approximation
+        Vq = sym.Rational(1/2)*(x-m)*(x-m)/(self.β*s2)
 
-            # Potential for approximation
-            Vq = sym.Rational(1/2)*(x-m[name])*(x-m[name])/(self.β*s2[name])
+        # Fokker Plarck operator
+        forward = equation.equation({'β': self.β, 'Vp': Vp})
 
-            # Fokker Plarck operator
-            self.forward[name] = equation.equation({'β': self.β, 'Vp': Vp})
+        # Map to appropriate space
+        factor = sym.exp(- self.β / 2 * (Vq + Vp))
 
-            # Map to appropriate space
-            self.factor[name] = sym.exp(- self.β / 2 * (Vq + Vp))
+        # Mapped operator
+        backward = eq.map_operator(forward, f, factor)
 
-            # Mapped operator
-            self.backward[name] = eq.map_operator(self.forward[name], f,
-                                                  self.factor[name])
+        # Discretize factor
+        factor = quad.discretize(factor)
 
-            # Discretize factor
-            self.factor[name] = self.quad[name].discretize(self.factor[name])
+        return quad, forward, backward, factor
 
-    def testFokkerPlanck1dGaussianExactSol(self):
-        forward = self.forward['gaussian']
-        solution = eq.solve_gaussian(forward, self.f, [self.x])
-        norm_sol = self.quad['gaussian'].integrate(solution, l2=True)
-        assert abs(norm_sol - 1) < 1e-6
-
-    def solve(self, name, degrees):
-
-        # Shorthand notations
-        backward = self.backward[name]
-        quad, factor = self.quad[name], self.factor[name]
+    def solve(self, backward, quad, factor, degrees):
 
         # Discretization of the operator
         mat = quad.discretize_op(backward, self.f, self.degree, 2)
@@ -450,26 +433,35 @@ class TestConvergence(unittest.TestCase):
             ground_state = ground_state * np.sign(ground_state[0])
             ground_state_eval = quad.eval(quad.series(ground_state))*factor
             norm = quad.norm(ground_state_eval, n=1, l2=True)
-            # norm = quad.integrate(abs(ground_state_eval), l2=True)
             ground_state_eval = ground_state_eval / norm
             solutions.append(ground_state_eval)
         return solutions
 
-    def testFokkerPlanck1dGaussian(self):
+    def test_exact_sol_gaussian(self):
+
+        Vp, m, s2 = self.x*self.x/4, sym.Rational(1, 10), sym.Rational(1, 5)
+        quad, forward, backward, factor = self.sym_calc(Vp, m, s2)
+        solution = eq.solve_gaussian(forward, self.f, [self.x])
+        norm_sol = quad.integrate(solution, l2=True)
+        self.assertTrue(abs(norm_sol - 1) < 1e-6)
+
+    def test_gaussian(self):
+
+        Vp, m, s2 = self.x*self.x/4, sym.Rational(1, 10), sym.Rational(1, 5)
+        quad, forward, backward, factor = self.sym_calc(Vp, m, s2)
 
         # Exact Solution
-        forward = self.forward['gaussian']
         solution = eq.solve_gaussian(forward, self.f, [self.x])
-        solution_eval = self.quad['gaussian'].discretize(solution)
+        solution_eval = quad.discretize(solution)
 
         # Numerical solutions
         degrees = list(range(5, self.degree))
-        solutions = self.solve('gaussian', degrees)
+        solutions = self.solve(backward, quad, factor, degrees)
 
         # Associated errors
         errors = []
         for sol in solutions:
-            error = self.quad['gaussian'].norm(sol - solution_eval, l2=True)
+            error = quad.norm(sol - solution_eval, l2=True)
             errors.append(error)
 
         log_errors = np.log(errors)
@@ -479,36 +471,47 @@ class TestConvergence(unittest.TestCase):
 
         plt.semilogy(degrees, errors, 'k.')
         plt.semilogy(degrees, errors_approx)
-        plt.show()
+        # plt.show()
 
         self.assertTrue(errors[-1] < 1e-12)
         self.assertTrue(error < 5)
 
     def test_norm_solution_bistable(self):
-        sol_an = sym.exp(-self.β * self.potentials['bistable'])
-        sol_num = self.quad['bistable'].discretize(sol_an)
-        norm_1_an = self.quad['bistable'].norm(sol_an, n=1, l2=True)
-        norm_1_num = self.quad['bistable'].norm(sol_num, n=1, l2=True)
-        norm_2_an = self.quad['bistable'].norm(sol_an, n=2, l2=True)
-        norm_2_num = self.quad['bistable'].norm(sol_num, n=2, l2=True)
+
+        # Parameters of potential associated with Hermite polynomials
+        Vp = self.x**4/4 - self.x**2/2
+        m, s2 = sym.Rational(1/10), sym.Rational(1/10)
+        quad, forward, backward, factor = self.sym_calc(Vp, m, s2)
+
+        sol_an = sym.exp(-self.β * Vp)
+        sol_num = quad.discretize(sol_an)
+        norm_1_an = quad.norm(sol_an, n=1, l2=True)
+        norm_1_num = quad.norm(sol_num, n=1, l2=True)
+        norm_2_an = quad.norm(sol_an, n=2, l2=True)
+        norm_2_num = quad.norm(sol_num, n=2, l2=True)
         self.assertAlmostEqual(norm_1_an, norm_1_num)
         self.assertAlmostEqual(norm_2_an, norm_2_num)
 
-    def testFokkerPlanck1dBistable(self):
+    def test_bistable(self):
+
+        # Parameters of potential associated with Hermite polynomials
+        Vp = self.x**4/4 - self.x**2/2
+        m, s2 = sym.Rational(1/10), sym.Rational(1/10)
+        quad, forward, backward, factor = self.sym_calc(Vp, m, s2)
 
         # Exact Solution
-        exact_sol = sym.exp(-self.β * self.potentials['bistable'])
-        norm = self.quad['bistable'].norm(exact_sol, n=1, l2=True)
+        exact_sol = sym.exp(-self.β * Vp)
+        norm = quad.norm(exact_sol, n=1, l2=True)
         exact_sol = exact_sol / norm
-        solution_eval = self.quad['bistable'].discretize(exact_sol)
+        solution_eval = quad.discretize(exact_sol)
 
         degrees = list(range(10, self.degree))
-        solutions = self.solve('bistable', degrees)
+        solutions = self.solve(backward, quad, factor, degrees)
 
         # Associated errors
         errors = []
         for sol in solutions:
-            error = self.quad['bistable'].norm(sol - solution_eval, l2=True)
+            error = quad.norm(sol - solution_eval, l2=True)
             errors.append(error)
 
         log_errors = np.log(errors)
@@ -518,7 +521,7 @@ class TestConvergence(unittest.TestCase):
 
         plt.semilogy(degrees, errors, 'k.')
         plt.semilogy(degrees, errors_approx)
-        plt.show()
+        # plt.show()
 
         self.assertTrue(errors[-1] < 1e-10)
         self.assertTrue(error < 10)
