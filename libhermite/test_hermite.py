@@ -449,7 +449,8 @@ class TestConvergence(unittest.TestCase):
             ground_state = np.real(eig_vecs.T[0])
             ground_state = ground_state * np.sign(ground_state[0])
             ground_state_eval = quad.eval(quad.series(ground_state))*factor
-            norm = quad.integrate(ground_state_eval, l2=True)
+            norm = quad.norm(ground_state_eval, n=1, l2=True)
+            # norm = quad.integrate(abs(ground_state_eval), l2=True)
             ground_state_eval = ground_state_eval / norm
             solutions.append(ground_state_eval)
         return solutions
@@ -469,7 +470,6 @@ class TestConvergence(unittest.TestCase):
         errors = []
         for sol in solutions:
             error = self.quad['gaussian'].norm(sol - solution_eval, l2=True)
-            print(error)
             errors.append(error)
 
         log_errors = np.log(errors)
@@ -484,26 +484,31 @@ class TestConvergence(unittest.TestCase):
         self.assertTrue(errors[-1] < 1e-12)
         self.assertTrue(error < 5)
 
+    def test_norm_solution_bistable(self):
+        sol_an = sym.exp(-self.β * self.potentials['bistable'])
+        sol_num = self.quad['bistable'].discretize(sol_an)
+        norm_1_an = self.quad['bistable'].norm(sol_an, n=1, l2=True)
+        norm_1_num = self.quad['bistable'].norm(sol_num, n=1, l2=True)
+        norm_2_an = self.quad['bistable'].norm(sol_an, n=2, l2=True)
+        norm_2_num = self.quad['bistable'].norm(sol_num, n=2, l2=True)
+        self.assertAlmostEqual(norm_1_an, norm_1_num)
+        self.assertAlmostEqual(norm_2_an, norm_2_num)
+
     def testFokkerPlanck1dBistable(self):
 
         # Exact Solution
         exact_sol = sym.exp(-self.β * self.potentials['bistable'])
-        exact_sol = exact_sol / self.quad['bistable'].norm(exact_sol, n=1, l2=True)
+        norm = self.quad['bistable'].norm(exact_sol, n=1, l2=True)
+        exact_sol = exact_sol / norm
         solution_eval = self.quad['bistable'].discretize(exact_sol)
-        x_discretization = self.quad['bistable'].discretize('x')
 
         degrees = list(range(10, self.degree))
         solutions = self.solve('bistable', degrees)
-
-        plt.plot(x_discretization, solution_eval)
-        plt.plot(x_discretization, solutions[-1])
-        plt.show()
 
         # Associated errors
         errors = []
         for sol in solutions:
             error = self.quad['bistable'].norm(sol - solution_eval, l2=True)
-            print(error)
             errors.append(error)
 
         log_errors = np.log(errors)
@@ -515,5 +520,5 @@ class TestConvergence(unittest.TestCase):
         plt.semilogy(degrees, errors_approx)
         plt.show()
 
-        self.assertTrue(errors[-1] < 1e-4)
-        self.assertTrue(error < 100)
+        self.assertTrue(errors[-1] < 1e-10)
+        self.assertTrue(error < 10)
