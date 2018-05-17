@@ -12,8 +12,10 @@ import multiprocessing
 import numpy as np
 import numpy.linalg as la
 import scipy.sparse.linalg as las
-import equation
+
 from libhermite import hermite as hm
+from libhermite import equations as eq
+
 from scipy.special import binom
 
 sym.init_printing()
@@ -57,7 +59,9 @@ if config.misc['plots']:
 hm.settings.update(config.misc)
 
 # Variables and function
-x, y, f = equation.x, equation.y, equation.f
+x = eq.McKean_Vlasov.x
+y = eq.McKean_Vlasov.y
+f = eq.McKean_Vlasov.f
 
 # Parameters
 params = {}
@@ -85,7 +89,7 @@ class Parameter():
 
 def eq_params():
     eq_params = {}
-    for key, symbol in equation.forward_params().items():
+    for key, symbol in eq.McKean_Vlasov.params().items():
         value = config.eq[key] if key in config.eq else symbol
         eq_params[key] = Parameter(symbol, value, type='equation')
     extra_symbols = config.eq['Vp'].free_symbols - {x}
@@ -129,7 +133,7 @@ def forward_op(symbolic):
         elif symbolic == 0:
             value = params[k].eval()
         eq_params[k] = value
-    return equation.forward(eq_params)
+    return eq.McKean_Vlasov.equation(eq_params)
 
 
 def factors(symbolic, λ):
@@ -171,7 +175,7 @@ forward = forward_op(config.misc['symbolic'])
 
 # Mapped backward operator
 factor_x, factor_y, factor = factors(config.misc['symbolic'], config.num['λ'])
-backward = equation.map_operator(forward, factor)
+backward = eq.map_operator(forward, f, factor)
 
 forward, backward = evaluate([forward, backward])
 factor_x, factor_y, factor = evaluate([factor_x, factor_y, factor])
@@ -219,6 +223,7 @@ quad_num, quad_visu = compute_quads()
 
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
+
 
 def compute_m(series):
     quad_x = quad_num.project('x')
