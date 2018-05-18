@@ -8,14 +8,16 @@ import argparse
 import sympy as sym
 import sympy.printing as syp
 # import sympy.plotting as splot
+import importlib
 import multiprocessing
 import numpy as np
 import numpy.linalg as la
 import scipy.sparse.linalg as las
 
-from hermite import hermite as hm
-from hermite import equations as eq
-from hermite import cache as ca
+import hermite.cache as ca
+import hermite.equations as eq
+import hermite.hermite as hm
+import hermite.settings as rc
 
 from scipy.special import binom
 
@@ -36,7 +38,10 @@ parser.add_argument('-v', '--verbose', action='store_true',
                     help='Enable verbose output')
 args = parser.parse_args()
 
-config = __import__(args.config) if args.config else __import__("config")
+if args.config:
+    config = importlib.import_module(args.config)
+else:
+    importlib.import_module("examples.config")
 
 if args.beta:
     config.eq['β'] = sym.Rational(args.beta)
@@ -52,11 +57,11 @@ if args.plots:
 config.misc['verbose'] = args.verbose
 
 # Set library option
-hm.settings.update(config.misc)
+rc.settings.update(config.misc)
 
 if config.misc['plots']:
     import matplotlib.pyplot as plt
-    import plot
+    import examples.plot as plot
 
 # }}}
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{

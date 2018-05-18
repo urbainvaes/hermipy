@@ -1,4 +1,4 @@
-import equation
+from hermite.equations import McKean_Vlasov as equation
 import sympy as sym
 
 # Configuration dicionaries
