@@ -24,8 +24,7 @@ add_library(hermite_cpp SHARED ${Sources})
 target_link_libraries(hermite_cpp ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} ${CMAKE_DL_LIBS})
 
 # Don't prepend library name with lib
-set_target_properties(hermite_cpp PROPERTIES
-    PREFIX "" LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY})
+set_target_properties(hermite_cpp PROPERTIES PREFIX "")
 
 # Tests
 include(CTest)

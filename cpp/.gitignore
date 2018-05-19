@@ -1,0 +1,7 @@
+*.so
+*.gch
+
+build/*
+!*.gitkeep
+
+test.py
