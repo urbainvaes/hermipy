@@ -1,13 +1,11 @@
 __pycache__
 
-.cache/*
-build
+/.cache/*
+/build
+
 doc
 tags
 
-*.so
-*.gch
-
 !*.gitkeep
-
 Session.vim
+
