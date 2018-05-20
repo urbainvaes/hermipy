@@ -1,10 +1,11 @@
 import scipy.sparse as ss
 import numpy as np
+import hermite_cpp as hm
 
-from .cpp import hermite_cpp as hm
-from .settings import settings
-from .cache import cache
-from .stats import log_stats
+from hermite.settings import settings
+from hermite.stats import log_stats
+from hermite.cache import cache
+
 
 # Conversion functions {{{
 
