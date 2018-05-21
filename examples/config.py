@@ -14,7 +14,7 @@ r = sym.Rational
 num['degree'] = 30  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
 num['μx'] = r(1, 5)
-num['σx'] = r(1, 10)
+num['σx'] = r(1, 2)
 num['λ'] = r(1, 2)
 
 # Scalar parameters of the equation
@@ -34,6 +34,6 @@ eq['Vp'] = r(.5)*x*x/sx
 misc['cache'] = False
 misc['parallel'] = False
 misc['tensorize'] = False
-misc['trails'] = True
+misc['trails'] = False
 misc['plots'] = True
-misc['symbolic'] = 2  # Values 0, 1, 2
+misc['symbolic'] = 0  # Values 0, 1, 2

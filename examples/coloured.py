@@ -3,10 +3,10 @@
 #  TODO: Error with project (urbain, Fri 27 Apr 2018 05:23:07 PM BST)
 
 # IMPORT MODULES {{{
+import pdb
 
 import argparse
 import sympy as sym
-import sympy.printing as syp
 # import sympy.plotting as splot
 import importlib
 import multiprocessing
@@ -14,34 +14,48 @@ import numpy as np
 import numpy.linalg as la
 import scipy.sparse.linalg as las
 
-import hermite.cache as ca
+import hermite.stats
+import hermite.cache
 import hermite.equations as eq
-import hermite.hermite as hm
+import hermite.quad as hm
 import hermite.settings as rc
 
 from scipy.special import binom
+from sympy.printing import pprint
 
-cache = ca.cache()
+
+eigs = hermite.cache.cache(quiet=True)(las.eigs)
 sym.init_printing()
 
-# Parse options
+# }}}
+# Parse options {{{
 parser = argparse.ArgumentParser()
+
+parser.add_argument('-tc', '--convergence', action='store_true',
+                    help='Run convergence test')
+parser.add_argument('-tb', '--bifurcation', action='store_true',
+                    help='Run bifurcation test')
 
 parser.add_argument('-c', '--config', type=str, help='Configuration file')
 parser.add_argument('-b', '--beta', type=str, help='Value of β')
 parser.add_argument('-t', '--theta', type=str, help='Value of θ')
 parser.add_argument('-e', '--epsilon', type=str, help='Value of ε')
+parser.add_argument('-g', '--gamma', type=str, help='Value of γ')
 parser.add_argument('-m', '--mass', type=str, help='Value of m')
+
 parser.add_argument('-p', '--plots', action='store_true',
                     help='Enable plots')
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='Enable verbose output')
+parser.add_argument('--cache', action='store_true',
+                    help='Enable verbose output')
 args = parser.parse_args()
+
 
 if args.config:
     config = importlib.import_module(args.config)
 else:
-    importlib.import_module("examples.config")
+    config = importlib.import_module("examples.config")
 
 if args.beta:
     config.eq['β'] = sym.Rational(args.beta)
@@ -49,12 +63,31 @@ if args.theta:
     config.eq['θ'] = sym.Rational(args.theta)
 if args.epsilon:
     config.eq['ε'] = sym.Rational(args.epsilon)
+if args.gamma:
+    config.eq['γ'] = sym.Rational(args.gamma)
 if args.verbose:
     config.misc['verbose'] = args.verbose
+
 if args.plots:
     config.misc['plots'] = args.plots
+elif 'plots' not in config.misc:
+    config.misc['plots'] = False
 
-config.misc['verbose'] = args.verbose
+if args.cache:
+    config.misc['cache'] = args.cache
+elif 'plots' not in config.misc:
+    config.misc['cache'] = False
+
+if args.verbose:
+    config.misc['verbose'] = args.verbose
+elif 'verbose' not in config.misc:
+    config.misc['verbose'] = False
+
+
+def vprint(*args, **kwargs):
+    if config.misc['verbose']:
+        print(*args, **kwargs)
+
 
 # Set library option
 rc.settings.update(config.misc)
@@ -65,7 +98,7 @@ if config.misc['plots']:
 
 # }}}
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
-
+vprint("Symbolic calculations")
 
 # Variables and function
 x = eq.McKean_Vlasov.x
@@ -87,7 +120,8 @@ class Parameter():
     def eval(self):
         value = self.value
         sym_val = {params[k].symbol: params[k].value for k in params}
-        while value.free_symbols - {x, y, params['m'].symbol} != set():
+        m, β = params['m'].symbol, params['β'].symbol
+        while value.free_symbols - {x, y, m, β} != set():
             for symbol in self.value.free_symbols:
                 if symbol in sym_val:
                     value = value.subs(symbol, sym_val[symbol])
@@ -181,7 +215,6 @@ params.update({**vy(), **vq()})
 # Forward operator
 forward = forward_op(config.misc['symbolic'])
 
-
 # Mapped backward operator
 factor_x, factor_y, factor = factors(config.misc['symbolic'], config.num['λ'])
 backward = eq.map_operator(forward, f, factor)
@@ -190,8 +223,8 @@ forward, backward = evaluate([forward, backward])
 factor_x, factor_y, factor = evaluate([factor_x, factor_y, factor])
 
 if config.misc['verbose']:
-    syp.pprint(forward)
-    syp.pprint(backward)
+    pprint(forward)
+    pprint(backward)
 
 for key in params:
     params[key].value = params[key].eval()
@@ -201,6 +234,7 @@ n_points_num = config.num['n_points_num']
 
 # }}}
 # DEFINE QUADRATURES {{{
+vprint("Defining quadratures")
 
 
 def compute_quads():
@@ -233,73 +267,179 @@ quad_num, quad_visu = compute_quads()
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
 
+# vprint("Splitting operator in m-linear and m-independent parts")
+# m_operator = backward.diff(params['m'].symbol)
+# r_operator = (backward - params['m'].symbol*m_operator).cancel()
 
-def compute_m(series):
-    quad_x = quad_num.project('x')
-    series_x = series.project('x')
-    x_d = quad_x.discretize('x')
-    factor_d = quad_x.discretize(factor_x)
-    solution_d = quad_x.eval(series_x) * factor_d
-    weight_d = quad_x.discretize(quad_x.weight())
-    moment0 = quad_x.integrate(solution_d/weight_d)
-    moment1 = quad_x.integrate(solution_d/weight_d*x_d)
-    return moment1 / moment0
+# vprint("Discretizing operators")
+# m_mat = quad_num.discretize_op(m_operator, f, degree, 2)
+# r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
+# eig_vals, eig_vecs = eigs(r_mat, k=1, which='LR')
 
-
-def compute_moment1(m_val):
-    if config.misc['verbose']:
-        print("Solving the eigenvalue problem for m = " + str(m_val) + ".")
-    mat_operator = r_mat + m_val * m_mat
-    eig_vals, eig_vecs = cache(las.eigs)(mat_operator, k=1, which='LR')
-    ground_state = np.real(eig_vecs.T[0])
-    ground_state = ground_state * np.sign(ground_state[0])
-    ground_series = quad_num.series(ground_state, norm=True)
-    value = compute_m(ground_series)
-    if config.misc['verbose']:
-        print(value)
-    # if config.misc['plots']:
-        # fig, ax = plt.subplots(1, 1)
-        # cont = quad_visu.plot(ground_series, degree, factor, ax)
-        # plt.colorbar(cont, ax=ax)
-        # plt.show()
-    return value
+# if config.misc['verbose']:
+#     hermite.stats.print_stats()
 
 
-m_operator = backward.diff(params['m'].symbol)
-r_operator = (backward - params['m'].symbol*m_operator).cancel()
-m_mat = quad_num.discretize_op(m_operator, f, degree, 2)
-r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
+# if args.mass:
+#     print(compute_moment1(float(args.mass)))
+#     matrix = r_mat + float(args.mass) * m_mat
+#     eig_vals, eig_vecs = cache(las.eigs)(matrix, k=1, which='LR')
+#     ground_state = np.real(eig_vecs.T[0])
+#     ground_state = ground_state * np.sign(ground_state[0])
+#     ground_series = quad_num.series(ground_state)
+#     ground_state_eval = quad_num.eval(ground_series)
+#     factor_eval = quad_num.discretize(factor)
+#     ground_state_eval = ground_state_eval * factor_eval
+#     norm = quad_num.integrate(ground_state_eval, l2=True)
+#     ground_state_eval = ground_state_eval / norm
+#     fig, ax = plt.subplots(1, 1)
+#     cont = quad_visu.plot(ground_series, degree, factor, ax)
+#     plt.colorbar(cont, ax=ax)
+#     plt.show()
 
-if config.misc['verbose']:
-    print(hm.stats)
 
 
-if args.mass:
-    print(compute_moment1(float(args.mass)))
-    matrix = r_mat + float(args.mass) * m_mat
-    eig_vals, eig_vecs = cache(las.eigs)(matrix, k=1, which='LR')
-    ground_state = np.real(eig_vecs.T[0])
-    ground_state = ground_state * np.sign(ground_state[0])
-    ground_series = quad_num.series(ground_state)
-    ground_state_eval = quad_num.eval(ground_series)
-    factor_eval = quad_num.discretize(factor)
-    ground_state_eval = ground_state_eval * factor_eval
-    norm = quad_num.integrate(ground_state_eval, l2=True)
-    ground_state_eval = ground_state_eval / norm
-    fig, ax = plt.subplots(1, 1)
-    cont = quad_visu.plot(ground_series, degree, factor, ax)
-    plt.colorbar(cont, ax=ax)
-    plt.show()
+def plot():
+
+    print("[plot]")
+
+    def plot_eigenfunctions():
+        fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
+        axes = (ax11, ax12, ax21, ax22)
+        for e_val, e_vec, ax in zip(eig_vals, eig_vecs.T, axes):
+            e_vec = np.real(e_vec) * np.sign(np.real(e_vec[0]))
+            series = quad_num.series(e_vec, norm=True)
+            cont = quad_visu.plot(series, degree, factor, ax)
+            ax.set_title("Eigenvalue: " + str(e_val))
+            plt.colorbar(cont, ax=ax)
+        plt.show()
+
+
+    def plot_hermite_functions():
+        fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
+        plot.plot_hf((degree, 0), quad_num, quad_visu, ax11)
+        plot.plot_hf((0, degree), quad_num, quad_visu, ax12)
+        plot.plot_hf((degree // 2, degree // 2), quad_num, quad_visu, ax21)
+        plt.show()
+
+
+    def plot_ground_state():
+        ground_state = np.real(eig_vecs.T[0])
+        ground_state = ground_state * np.sign(ground_state[0])
+        ground_series = quad_num.series(ground_state, norm=True)
+        factors = {'x': factor_x, 'y': factor_y.subs(y, x)}
+        plot.plot_projections(ground_series, quad_visu, factors, degree)
+        plt.show()
+
+
+    def plot_comparison_with_asym():
+        fig, ax = plt.subplots(1, 1)
+        as_sol = sym.exp(- params['β'] * functions['Vp'])/factor_x
+        as_series = quad_num.project('x').transform(as_sol, degree, norm=True)
+        quad_visu.project('x').plot(as_series, degree, factor_x, ax)
+        plt.show()
+
+
+    def plot_discretization_error():
+        fig, ax = plt.subplots(1, 2)
+        quad_visu_x = quad_visu.project('x')
+        as_sol = sym.exp(- params['β'] * functions['Vp'])
+        as_series = quad_num.project('x').transform(as_sol/factor_x, degree)
+        norm_as = la.norm(as_series.coeffs, 2)
+        as_series.coeffs = as_series.coeffs / norm_as
+        quad_visu_x.plot(as_series, degree, factor_x, ax[0])
+        sol_x = quad_visu_x.discretize(as_sol)
+        ax[0].plot(quad_visu_x.discretize('x'), sol_x/norm_as)
+        plt.show()
+
+
+def bifurcation(factor_x, m_init):
+
+    def compute_m(series):
+        quad_x = quad_num.project('x')
+        series_x = series.project('x')
+        x_d = quad_x.discretize('x')
+        factor_d = quad_x.discretize(factor_x)
+        solution_d = quad_x.eval(series_x) * factor_d
+        weight_d = quad_x.discretize(quad_x.weight())
+        moment0 = quad_x.integrate(solution_d/weight_d)
+        moment1 = quad_x.integrate(solution_d/weight_d*x_d)
+        return moment1 / moment0
+
+    def compute_moment1(m_val):
+        if config.misc['verbose']:
+            print("Solving the eigenvalue problem for m = " + str(m_val) + ".")
+        mat_operator = r_mat + m_val * m_mat
+        eig_vals, eig_vecs = eigs(mat_operator, k=1, which='LR')
+        ground_state = np.real(eig_vecs.T[0])
+        ground_state = ground_state * np.sign(ground_state[0])
+        ground_series = quad_num.series(ground_state, norm=True)
+        value = compute_m(ground_series)
+        # if config.misc['verbose']:
+        #     print(value)
+        # if config.misc['plots']:
+        #     fig, ax = plt.subplots(1, 1)
+        #     cont = quad_visu.plot(ground_series, degree, factor, ax)
+        #     plt.colorbar(cont, ax=ax)
+        #     plt.show()
+        return value
+
+    # m_values = np.linspace(-2, 2, 41)
+    # m_values = [0]
+    m_converged = []
+
+    # if config.misc['parallel']:
+    #     with multiprocessing.Pool() as p:
+    #         images = p.map(compute_moment1, m_values)
+    # else:
+    #     for m_val in m_values:
+    #         images.append(compute_moment1(m_val))
+    for m_it in m_init:
+        error = 1
+        while abs(error) > 1e-4:
+            m_new = compute_moment1(m_it)
+            error = m_new - m_it
+            m_it = m_new
+        m_converged.append(m_it)
+    return m_converged
+
+    # fig, ax = plt.subplots(1, 1)
+    # ax.plot(m_values, m_values, label='m')
+    # ax.plot(m_values, images, label='R(m)')
+    # ax.legend()
+    # plt.show()
 
 
 def convergence():
-    solution = eq.solve_gaussian(forward, f, [x, y])
-    norm_sol = quad_num.integrate(solution, l2=True)
+    vprint("[convergence]")
+
+    factor_eval = quad_num.discretize(factor)
+
+    def get_ground_state(eig_vec):
+        eig_vec = eig_vec * np.sign(eig_vec[0])
+        ground_series = quad_num.series(eig_vec)
+        ground_state_eval = quad_num.eval(ground_series)
+        ground_state_eval = ground_state_eval * factor_eval
+        norm = quad_num.integrate(ground_state_eval, l2=True)
+        ground_state_eval = ground_state_eval / norm
+        return ground_state_eval
+
+    vprint("-- Calculating exact solution")
+    if params['Vp'].value.diff(x, x, x) == 0 and params['θ'].value == 0:
+        solution = eq.solve_gaussian(forward, f, [x, y])
+        solution_eval = quad_num.discretize(solution)
+    else:
+        eig_vals, eig_vecs = eigs(r_mat, k=1, which='LR')
+        eig_vec = np.real(eig_vecs.T[0])
+        solution_eval = get_ground_state(eig_vec)
+    norm_sol = quad_num.integrate(solution_eval, l2=True)
     assert abs(norm_sol - 1) < 1e-6
+
     v0 = None
     degrees = []
     errors = []
     for d in range(5, degree):
+        print("-- Solving for degree = " + str(d))
         npolys = int(binom(d + 2, d))
         sub_mat = (r_mat[0:npolys, 0:npolys]).copy(order='C')
         # sub_mat = sub_mat
@@ -308,23 +448,19 @@ def convergence():
             for i in range(len(v0)):
                 actual_v0[i] = v0[i]
             v0 = actual_v0
-            eig_vals, eig_vecs = cache(las.eigs)(sub_mat, v0=v0, k=1, which='LR')
-        else:
-            eig_vals, eig_vecs = cache(las.eigs)(sub_mat, k=1, which='LR')
-        ground_state = np.real(eig_vecs.T[0])
-        v0 = ground_state.copy(order='C')
-        ground_state = ground_state * np.sign(ground_state[0])
-        ground_series = quad_num.series(ground_state)
-        ground_state_eval = quad_num.eval(ground_series)
-        factor_eval = quad_num.discretize(factor)
-        ground_state_eval = ground_state_eval * factor_eval
-        norm = quad_num.integrate(ground_state_eval, l2=True)
-        ground_state_eval = ground_state_eval / norm
-        solution_eval = quad_num.discretize(solution)
+        eig_vals, eig_vecs = eigs(sub_mat, v0=v0, k=1, which='LR')
+        # else:
+        #     eig_vals, eig_vecs = cache(las.eigs)(sub_mat, k=1, which='LR')
+        eig_vec = np.real(eig_vecs.T[0])
+        v0 = eig_vec.copy(order='C')
+        ground_state_eval = get_ground_state(eig_vec)
         error = la.norm(ground_state_eval - solution_eval, 2)
         degrees.append(d)
         errors.append(error)
+
     fig, ax = plt.subplots(1, 1)
+    eig_vec = eig_vec * np.sign(eig_vec[0])
+    ground_series = quad_num.series(eig_vec)
     cont = quad_visu.plot(ground_series, degree, factor, ax)
     plt.colorbar(cont, ax=ax)
     plt.show()
@@ -334,92 +470,44 @@ def convergence():
     # splot.contour(solution, (x, -1, 1), (y, -1, 1))
 
 
-if params['Vp'].value.diff(x, x, x) == 0 and params['θ'].value == 0:
-    convergence()
+factor_sym = factor
+delta_arc_length = 0.1
+beta = 10
+# beta_range = np.arange(10, 1, delta_beta)
+betas, conv, conv1, conv2 = [], [], [], []
+m_init = [-2, 2]
 
-# asymptotic_sol_2d = sym.exp(- params['βx'].value * params['Vp'].value
-#                             - params['βy'].value * params['Vy'].value)
-# v0 = quad_num.transform(asymptotic_sol_2d/factor, degree, norm=True).coeffs
+while beta > 1:
+    betas.append(beta)
+    print("\n--> β = " + str(beta))
+    backward_b = backward.subs(params['β'].symbol, beta).simplify()
 
-m_values = np.linspace(-2, 2, 41)
-m_values = [0]
-images = []
-x_series = quad_num.transform('x', degree)
+    # vprint("Splitting operator in m-linear and m-independent parts")
+    m_operator = backward_b.diff(params['m'].symbol)
+    r_operator = (backward_b - params['m'].symbol*m_operator).cancel()
 
-if config.misc['parallel']:
-    with multiprocessing.Pool() as p:
-        images = p.map(compute_moment1, m_values)
-else:
-    for m_val in m_values:
-        images.append(compute_moment1(m_val))
+    # vprint("Discretizing operators")
+    m_mat = quad_num.discretize_op(m_operator, f, degree, 2)
+    r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
+    eig_vals, eig_vecs = eigs(r_mat, k=1, which='LR')
 
-# fig, ax = plt.subplots(1, 1)
-# ax.plot(m_values, m_values)
-# ax.plot(m_values, images)
-# plt.show()
-# exit(0)
-
-# Calculate eigenvalues of largest real part
-# sparse_operator = scipy.sparse.csr_matrix(mat_operator)
-
-# }}}
-# PLOTS {{{
-
-
-def plot_eigenfunctions():
-    fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
-    axes = (ax11, ax12, ax21, ax22)
-    for e_val, e_vec, ax in zip(eig_vals, eig_vecs.T, axes):
-        e_vec = np.real(e_vec) * np.sign(np.real(e_vec[0]))
-        series = quad_num.series(e_vec, norm=True)
-        cont = quad_visu.plot(series, degree, factor, ax)
-        ax.set_title("Eigenvalue: " + str(e_val))
-        plt.colorbar(cont, ax=ax)
-    plt.show()
-
-
-def plot_hermite_functions():
-    fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
-    plot.plot_hf((degree, 0), quad_num, quad_visu, ax11)
-    plot.plot_hf((0, degree), quad_num, quad_visu, ax12)
-    plot.plot_hf((degree // 2, degree // 2), quad_num, quad_visu, ax21)
-    plt.show()
-
-
-def plot_ground_state():
-    ground_state = np.real(eig_vecs.T[0])
-    ground_state = ground_state * np.sign(ground_state[0])
-    ground_series = quad_num.series(ground_state, norm=True)
-    factors = {'x': factor_x, 'y': factor_y.subs(y, x)}
-    plot.plot_projections(ground_series, quad_visu, factors, degree)
-    plt.show()
-
-
-def plot_comparison_with_asym():
-    fig, ax = plt.subplots(1, 1)
-    as_sol = sym.exp(- params['β'] * functions['Vp'])/factor_x
-    as_series = quad_num.project('x').transform(as_sol, degree, norm=True)
-    quad_visu.project('x').plot(as_series, degree, factor_x, ax)
-    plt.show()
-
-
-def plot_discretization_error():
-    fig, ax = plt.subplots(1, 2)
-    quad_visu_x = quad_visu.project('x')
-    as_sol = sym.exp(- params['β'] * functions['Vp'])
-    as_series = quad_num.project('x').transform(as_sol/factor_x, degree)
-    norm_as = la.norm(as_series.coeffs, 2)
-    as_series.coeffs = as_series.coeffs / norm_as
-    quad_visu_x.plot(as_series, degree, factor_x, ax[0])
-    sol_x = quad_visu_x.discretize(as_sol)
-    ax[0].plot(quad_visu_x.discretize('x'), sol_x/norm_as)
-    plt.show()
-
-
-# plot_eigenfunctions()
-# plot_hermite_functions()
-plot_ground_state()
-# plot_discretization_error()
-# plot_comparison_with_asym()
-
-# }}}
+    bif = hermite.cache.cache()(bifurcation)
+    conv.append(bifurcation(factor_x.subs(params['β'].symbol, beta), m_init))
+    if len(conv) > 1:
+        for i in range(len(m_init)):
+            length = np.sqrt((betas[-1] - betas[-2])**2 + (conv[-1][i] - conv[-2][i])**2)
+            delta_beta = (betas[-1] - betas[-2]) * delta_arc_length / length
+            slope = (conv[-1][i] - conv[-2][i]) / (betas[-1] - betas[-2])
+            beta = betas[-1] + delta_beta
+            m_init[i] = conv[-1][i] + slope * delta_beta
+    else:
+        m_init = conv[-1]
+        beta = beta - delta_arc_length
+    # print(conv)
+    # print(m_init)
+fig, ax = plt.subplots(1, 1)
+conv1 = [c[0] for c in conv]
+conv2 = [c[1] for c in conv]
+ax.plot(betas, conv1, 'k.')
+ax.plot(betas, conv2, 'k.')
+plt.show()
