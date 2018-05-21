@@ -21,3 +21,11 @@ def log_stats(function):
             print("Function " + key + ": " + str(time_end - time_start))
         return result
     return wrapper
+
+
+def print_stats():
+    print('\n-- [statistics] --')
+    for key in stats:
+        _calls, _time = str(stats[key]['Calls']), str(stats[key]['Time'])
+        print("| '" + key + "': Calls: " + _calls + ", Time: " + _time)
+    print('--')
