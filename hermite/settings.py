@@ -1,6 +1,6 @@
 settings = {
         'cache': False,
-        'cachedir': '/tmp',
+        'cachedir': '.cache',
         'tensorize': True,
         'trails': False,
         'debug': False
@@ -9,5 +9,5 @@ settings = {
 
 def get(name, **kwargs):
     if name in kwargs:
-        return kwargs['tensorize']
+        return kwargs[name]
     return settings[name]
