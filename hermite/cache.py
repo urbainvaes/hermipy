@@ -4,7 +4,8 @@ import sympy as sym
 import numpy as np
 from functools import wraps
 import scipy.sparse as sparse
-from .settings import settings
+
+from hermite.settings import settings
 
 
 def gen_hash(extend=None):
@@ -61,7 +62,7 @@ def gen_error(extend=None):
     return the_error
 
 
-def cache(hash_extend=None, error_extend=None):
+def cache(hash_extend=None, error_extend=None, quiet=False):
 
     hash_fun = gen_hash(extend=hash_extend)
     error_fun = gen_error(extend=error_extend)
@@ -107,7 +108,9 @@ def cache(hash_extend=None, error_extend=None):
                 return result_cache
             else:
                 result = function(*args, **kwargs)
-                assert error_fun(result, result_cache) < 1e-10
+                error = error_fun(result, result_cache)
+                if not quiet:
+                    assert error < 1e-10
                 return result
 
         return wrapper
