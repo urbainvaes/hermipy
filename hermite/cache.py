@@ -4,7 +4,7 @@ import sympy as sym
 import numpy as np
 from functools import wraps
 import scipy.sparse as sparse
-from .settings import settings
+from hermite.settings import settings
 
 
 def gen_hash(extend=None):
