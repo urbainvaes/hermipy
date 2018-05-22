@@ -16,6 +16,7 @@
 import hermite.core as core
 import hermite.symlib as lib
 import hermite.settings as rc
+import hermite.function as func
 
 from hermite.cache import cache
 from scipy.special import binom
@@ -202,15 +203,14 @@ class Quad:
         return np.asarray(np.vstack(coords_nodes)).T
 
     def discretize(self, f):
-        function = lib.stringify(f)
-        if isinstance(function, str):
-            function = core.discretize(function, self.nodes,
-                                       self.mean, self.factor)
+        function = core.discretize(str(func.Function(f)), self.nodes,
+                                   self.mean, self.factor)
         return function
 
     @tensorize_at(1)
-    def integrate(self, function, l2=False):
-        f_grid = self.discretize(function)
+    def integrate(self, f_grid, l2=False):
+        if not isinstance(f_grid, np.ndarray):
+            f_grid = self.discretize(f_grid)
         if l2:
             w_grid = self.discretize(self.weight())
             f_grid = f_grid / w_grid
@@ -223,8 +223,9 @@ class Quad:
         elif n is 1:
             return self.integrate(abs(function), l2=l2)
 
-    def transform(self, function, degree, norm=False):
-        f_grid = self.discretize(function)
+    def transform(self, f_grid, degree, norm=False):
+        if not isinstance(f_grid, np.ndarray):
+            f_grid = self.discretize(f_grid)
         coeffs = core.transform(degree, f_grid, self.nodes,
                                 self.weights, forward=True)
         return Series(coeffs, self.dim, self.mean, self.cov,
@@ -246,10 +247,11 @@ class Quad:
                               self.weights, forward=False)
 
     @tensorize_at(1)
-    def varf(self, function, degree, sparse=False):
+    def varf(self, f_grid, degree, sparse=False):
         if rc.settings['debug']:
             print("Entering body of Quad.varf")
-        f_grid = self.discretize(function)
+        if not isinstance(f_grid, np.ndarray):
+            f_grid = self.discretize(f_grid)
         return core.varf(degree, f_grid, self.nodes,
                          self.weights, sparse=sparse)
 
@@ -292,7 +294,7 @@ class Quad:
             return ax.contourf(*r_nodes, solution, 100)
 
     def weight(self):
-        var = [sym.symbols('v' + str(i)) for i in range(self.dim)]
+        var = [sym.symbols('v' + str(i), real=True) for i in range(self.dim)]
         inv_cov = la.inv(self.cov)
         potential = 0.5 * inv_cov.dot(var - self.mean).dot(var - self.mean)
         normalization = 1/(np.sqrt((2*np.pi)**self.dim * la.det(self.cov)))

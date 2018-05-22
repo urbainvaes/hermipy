@@ -2,32 +2,54 @@
 
 import sympy as sym
 from sympy.parsing.sympy_parser import parse_expr
-
 import re
+
+import pdb
 
 
 class Function():
 
-    xyz = list(sym.symbols('x y z w'))
-    v = [sym.symbols('v[{}]'.format(i)) for i in range(len(xyz))]
+    # xyz notation
+    xyz = list(sym.symbols('x y z v w', real=True))
 
-    conv_xyz = {xyz[i]: v[i] for i in range(len(xyz))}
+    # subscript notation
+    v_sub = [sym.symbols('v{}'.format(i), real=True)
+             for i in range(len(xyz))]
+
+    # array notation
+    v_array = [sym.symbols('v[{}]'.format(i), real=True)
+               for i in range(len(xyz))]
+
+    # Conversion between them
+    conv = {}
+    for i in range(len(xyz)):
+        conv[str(xyz[i])] = v_array[i]
+        conv[str(v_sub[i])] = v_array[i]
+        conv[str(v_array[i])] = v_array[i]
 
     def __init__(self, expr):
 
-        # Support for v0 v1 v2 notation
-        expr = re.sub(r'(?<=[v])([0-9]+)', r'[\1]', expr)
-
         if isinstance(expr, int) or isinstance(expr, float):
             expr = str(expr)
+
         if isinstance(expr, str):
-            sym_func = parse_expr(expr)
-        for s in sym_func.free_symbols:
-            if s in self.conv_xyz:
-                sym_func = sym_func.subs(s, self.conv_xyz[s])
+
+            # Parser does not work with array notation
+            for i in range(len(self.xyz)):
+                expr = re.sub(r'\bv\[{}\]'.format(i), str(self.v_sub[i]), expr)
+
+            expr = parse_expr(expr)
+
+        for s in expr.free_symbols:
+
+            # Ensure the resulting function is over reals
+            if str(s) in self.conv:
+                expr = expr.subs(s, self.conv[str(s)])
+
             else:
-                raise ValueError("Unrecognized variable")
-        self.sym_func = sym_func
+                raise ValueError("Unrecognized variable: " + str(s))
+
+        self.sym_func = expr
 
     def __eq__(self, other):
         return self.sym_func == other.sym_func
@@ -35,12 +57,16 @@ class Function():
     def __str__(self):
         return sym.ccode(self.sym_func)
 
-    def print(self, format='array'):
-        function = self.__str__()
+    def as_string(self, format='array'):
+        function = str(self)
         if format == 'array':
             return function
-        elif format == 'xyz':
-            function = re.sub(r'\bv[0]', 'x', function)
-            function = re.sub(r'\bv[1]', 'y', function)
-            function = re.sub(r'\bv[2]', 'z', function)
+        if format == 'xyz':
+            to = self.xyz
+        elif format == 'sub':
+            to = self.v_sub
+        else:
+            raise ValueError("Invalid format: " + format)
+        for i in range(len(self.xyz)):
+            function = re.sub(r'\bv\[{}\]'.format(i), str(to[i]), function)
         return function
