@@ -267,14 +267,14 @@ quad_num, quad_visu = compute_quads()
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
 
-# vprint("Splitting operator in m-linear and m-independent parts")
-# m_operator = backward.diff(params['m'].symbol)
-# r_operator = (backward - params['m'].symbol*m_operator).cancel()
+vprint("Splitting operator in m-linear and m-independent parts")
+m_operator = backward.diff(params['m'].symbol)
+r_operator = (backward - params['m'].symbol*m_operator).cancel()
 
-# vprint("Discretizing operators")
-# m_mat = quad_num.discretize_op(m_operator, f, degree, 2)
-# r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
-# eig_vals, eig_vecs = eigs(r_mat, k=1, which='LR')
+vprint("Discretizing operators")
+m_mat = quad_num.discretize_op(m_operator, f, degree, 2)
+r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
+eig_vals, eig_vecs = eigs(r_mat, k=1, which='LR')
 
 # if config.misc['verbose']:
 #     hermite.stats.print_stats()
@@ -469,6 +469,7 @@ def convergence():
     plt.show()
     # splot.contour(solution, (x, -1, 1), (y, -1, 1))
 
+convergence()
 
 factor_sym = factor
 delta_arc_length = 0.1

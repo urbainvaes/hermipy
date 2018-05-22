@@ -10,6 +10,7 @@
 # TODO: Add varf class (urbain, 02 May 2018)
 # TODO: Add support for tensorization of Series
 # TODO: Implement composite quadrature (urbain, 02 May 2018)
+# TODO: Improve linearize to notice constant * operator
 # }}}
 # {{{ Import packages
 import hermite.core as core

@@ -4,7 +4,6 @@ import sympy as sym
 import numpy as np
 from functools import wraps
 import scipy.sparse as sparse
-
 from hermite.settings import settings
 
 
