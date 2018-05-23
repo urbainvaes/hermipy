@@ -36,6 +36,34 @@ def solve_gaussian(operator, f, variables):
     return solution
 
 
+class Fokker_Planck_1d:
+
+    # Space variables
+    variables = sym.symbols('x', real=True)
+
+    # Sharthand notations
+    x = variables
+
+    # Unknown
+    f = sym.Function('f')(x)
+
+    @classmethod
+    def params(cls):
+        return {'β': sym.symbols('β', real=True, positive=True),
+                'Vp': sym.Function('Vp')(cls.x)}
+
+    @classmethod
+    def equation(cls, params):
+
+        β, Vp = (params[x] for x in ['β', 'Vp'])
+
+        # Shorthand notations
+        d, x, f = sym.diff, cls.x, cls.f
+
+        # Fokker planck operator
+        return d(d(Vp, x)*f + 1/β * d(f, x), x)
+
+
 class McKean_Vlasov:
 
     # Space variables
@@ -84,31 +112,3 @@ class McKean_Vlasov:
             + γ**2/β * (1/ε) * d(d(f, x), x) \
             + (1/ε**2) * d(y * f, y) \
             + (1/ε**2) * d(d(f, y), y)
-
-
-class Fokker_Planck_1d:
-
-    # Space variables
-    variables = sym.symbols('x', real=True)
-
-    # Sharthand notations
-    x = variables
-
-    # Unknown
-    f = sym.Function('f')(x)
-
-    @classmethod
-    def params(cls):
-        return {'β': sym.symbols('β', real=True, positive=True),
-                'Vp': sym.Function('Vp')(cls.x)}
-
-    @classmethod
-    def equation(cls, params):
-
-        β, Vp = (params[x] for x in ['β', 'Vp'])
-
-        # Shorthand notations
-        d, x, f = sym.diff, cls.x, cls.f
-
-        # Fokker planck operator
-        return d(d(Vp, x)*f + 1/β * d(f, x), x)
