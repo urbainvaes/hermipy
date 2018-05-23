@@ -16,7 +16,7 @@
 import hermite.core as core
 import hermite.symlib as lib
 import hermite.settings as rc
-import hermite.function as func
+import hermite.function as symfunc
 
 from hermite.cache import cache
 from scipy.special import binom
@@ -25,6 +25,7 @@ import numpy as np
 import numpy.linalg as la
 import numpy.polynomial.hermite_e as herm
 import sympy as sym
+import pdb
 # }}}
 # Auxiliary functions {{{
 
@@ -130,47 +131,47 @@ class Quad:
     def tensorize_at(arg_num):
         def tensorize_arg(func):
             def wrapper(*args, **kwargs):
+
                 do_tensorize = rc.settings['tensorize']
                 if 'tensorize' in kwargs:
                     do_tensorize = kwargs['tensorize']
                     del kwargs['tensorize']
                 if not do_tensorize:
                     return func(*args, **kwargs)
-                function = args[arg_num]
-                if isinstance(function, (float, int)):
-                    function = sym.Rational(function)
-                is_sym = isinstance(function, tuple(sym.core.all_classes))
-                if not is_sym:
-                    return func(*args, **kwargs)
-                quad, function = args[0], function.expand()
-                if isinstance(function, sym.add.Add):
-                    add_terms, results = function.args, []
-                    for term in add_terms:
-                        new_args = list(args).copy()
-                        new_args[arg_num] = term
-                        func_term = wrapper(*new_args, **kwargs)
-                        results.append(func_term)
-                    return sum(results[1:], results[0])
+
+                quad, function = args[0], args[arg_num]
                 diag_cov = np.diag(np.diag(quad.cov))
                 is_diag = la.norm(quad.cov - diag_cov, 2) < 1e-10
-                if quad.dim == 1 or not is_diag:
+                if not is_diag or isinstance(function, np.ndarray):
                     return func(*args, **kwargs)
-                dirs = ['v[' + str(i) + ']' for i in range(quad.dim)]
-                split_term = lib.split_product(function, dirs)
-                if split_term is False:
-                    return func(*args, **kwargs)
-                func_dirs = []
-                for d in dirs:
-                    new_args = list(args).copy()
-                    new_args[0] = quad.project(d)
-                    new_args[arg_num] = split_term[d]
-                    func_dir = func(*new_args, **kwargs)
-                    func_dirs.append(func_dir)
-                if rc.settings['debug']:
-                    print("Tensorizing results")
-                kwargs_func = {'sparse': kwargs['sparse']} \
-                    if 'sparse' in kwargs else {}
-                return core.tensorize(func_dirs, **kwargs_func)
+
+                results = []
+                # pdb.set_trace()
+                if not isinstance(function, symfunc.Function):
+                    function = symfunc.Function(function, dim=quad.dim)
+
+                for add in function.split():
+                    if len(add) == 2:
+                        new_args = list(args).copy()
+                        new_args[arg_num] = add[0]
+                        results.append(float(add[1])*func(*new_args, **kwargs))
+                        continue
+
+                    func_dirs = []
+                    for d in range(quad.dim):
+                        new_args = list(args).copy()
+                        new_args[0] = quad.project(d)
+                        new_args[arg_num] = add[d]
+                        func_dir = func(*new_args, **kwargs)
+                        func_dirs.append(func_dir)
+                    if rc.settings['debug']:
+                        print("Tensorizing results")
+                    kwargs_func = {'sparse': kwargs['sparse']} \
+                        if 'sparse' in kwargs else {}
+                    tensorized = core.tensorize(func_dirs, **kwargs_func)
+                    results.append(float(add[-1])*tensorized)
+
+                return sum(results[1:], results[0])
             return wrapper
         return tensorize_arg
 
@@ -203,8 +204,9 @@ class Quad:
         return np.asarray(np.vstack(coords_nodes)).T
 
     def discretize(self, f):
-        function = core.discretize(str(func.Function(f)), self.nodes,
-                                   self.mean, self.factor)
+        if not isinstance(f, symfunc.Function):
+            f = symfunc.Function(f)
+        function = core.discretize(str(f), self.nodes, self.mean, self.factor)
         return function
 
     @tensorize_at(1)
