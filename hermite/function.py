@@ -1,10 +1,6 @@
-# from hermite.core import multi_indices
-
 import sympy as sym
 from sympy.parsing.sympy_parser import parse_expr
 import re
-
-import pdb
 
 
 class Function():
@@ -20,14 +16,13 @@ class Function():
     v_array = [sym.symbols('v[{}]'.format(i), real=True)
                for i in range(len(xyz))]
 
-    # Conversion between them
     conv = {}
     for i in range(len(xyz)):
         conv[str(xyz[i])] = v_array[i]
         conv[str(v_sub[i])] = v_array[i]
         conv[str(v_array[i])] = v_array[i]
 
-    def __init__(self, expr):
+    def __init__(self, expr, dim=None):
 
         if isinstance(expr, int) or isinstance(expr, float):
             expr = str(expr)
@@ -40,6 +35,7 @@ class Function():
 
             expr = parse_expr(expr)
 
+        assert isinstance(expr, tuple(sym.core.all_classes))
         for s in expr.free_symbols:
 
             # Ensure the resulting function is over reals
@@ -51,11 +47,23 @@ class Function():
 
         self.sym_func = expr
 
+        if dim is not None:
+            assert len(expr.free_symbols) <= dim
+            self.dim = dim
+        else:
+            for i in range(len(self.v_array)):
+                if self.v_array[- 1 - i] in expr.free_symbols:
+                    self.dim = len(self.v_array) - i
+                    break
+
     def __eq__(self, other):
         return self.sym_func == other.sym_func
 
     def __str__(self):
         return sym.ccode(self.sym_func)
+
+    def __repr__(self):
+        return str(self)
 
     def as_string(self, format='array'):
         function = str(self)
@@ -70,3 +78,31 @@ class Function():
         for i in range(len(self.xyz)):
             function = re.sub(r'\bv\[{}\]'.format(i), str(to[i]), function)
         return function
+
+    def split(self):
+        is_add = isinstance(self.sym_func, sym.add.Add)
+        add_terms = self.sym_func.args if is_add else [self.sym_func]
+        to_return = []
+        for term in add_terms:
+            is_mul = isinstance(term, sym.mul.Mul)
+            mul_terms = term.args if is_mul else [term]
+            result, tensorizable = [sym.Rational('1')] * (self.dim + 1), True
+            for arg in mul_terms:
+                if len(arg.free_symbols) == 0:
+                    result[-1] *= (arg)  # Store constant in last element
+                else:
+                    if len(arg.free_symbols) == 1:
+                        symbol = list(arg.free_symbols)[0]
+                        x_ified = arg.subs(symbol, self.v_array[0])
+                        result[self.v_array.index(symbol)] *= x_ified
+                    else:
+                        result[0] *= arg
+                        tensorizable = False
+            if tensorizable:
+                for i in range(self.dim):
+                    result[i] = Function(result[i], dim=1)
+            else:
+                func = Function(term/result[-1], dim=self.dim)
+                result = [func, result[-1]]
+            to_return.append(result)
+        return to_return
