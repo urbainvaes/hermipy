@@ -35,3 +35,31 @@ class TestConstructor(unittest.TestCase):
         self.assertTrue(function.as_string(format='sub') == function_str1)
         self.assertTrue(function.as_string(format='array') == function_str2)
         self.assertTrue(function.as_string(format='xyz') == function_str3)
+
+    def test_auto_dim(self):
+        newf = func.Function
+        f1, f2, f3 = newf('x'), newf('x*y'), newf('x*y*z')
+        self.assertTrue(f1.dim == 1 and f2.dim == 2 and f3.dim == 3)
+
+
+class TestSplit(unittest.TestCase):
+
+    def test_simple_split(self):
+        newf = func.Function
+        f = func.Function('x*y**2 + 5*exp(z)*y + 3*log(x*z)')
+        split = f.split()
+        self.assertTrue(f.dim == 3)
+        self.assertTrue(len(split) == 3)
+        for i in range(3):
+            if split[i][-1] == 1:
+                self.assertTrue(len(split[i]) == 4)
+                self.assertTrue(split[i][0] == newf('x'))
+                self.assertTrue(split[i][1] == newf('x*x'))
+            if split[i][-1] == 5:
+                self.assertTrue(len(split[i]) == 4)
+                self.assertTrue(split[i][0] == newf('1'))
+                self.assertTrue(split[i][1] == newf('x'))
+                self.assertTrue(split[i][2] == newf('exp(x)'))
+            if split[i][-1] == 3:
+                self.assertTrue(len(split[i]) == 2)
+                self.assertTrue(split[i][0] == newf('log(x*z)'))
