@@ -10,7 +10,13 @@ import hermite.quad as hm
 import hermite.equations as eq
 import hermite.settings as rc
 
-settings = {'cache': False, 'cachedir': '/tmp/test_hermite'}
+from scipy.special import binom
+
+settings = {
+        'cache': False,
+        'cachedir': '/tmp/test_hermite',
+        'tensorize': False
+        }
 rc.settings.update(settings)
 if not os.path.exists(settings['cachedir']):
     os.makedirs(settings['cachedir'])
