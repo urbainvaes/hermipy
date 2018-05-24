@@ -1,4 +1,5 @@
 import os
+import pdb
 import unittest
 import sympy as sym
 import numpy as np
@@ -244,7 +245,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         r = sym.Rational
         params = {'β': r(3), 'ε': r(1), 'γ': 0, 'θ': 0, 'm': 0}
         Vp, m, s2 = self.x*self.x/4, sym.Rational(1, 10), sym.Rational(1, 5)
-        quad, forward, _, factor, _, _ = self.sym_calc(Vp, params, m, s2)
+        quad, forward, _, factor, _, _ = self.sym_calc(Vp, params, m, 1, 1)
         solution = eq.solve_gaussian(forward, self.f, [self.x, self.y])
         norm_sol = quad.norm(solution, n=1, l2=True)
         self.assertTrue(abs(norm_sol - 1) < 1e-6)
@@ -275,7 +276,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         for sol in solutions:
             error = quad.norm(sol - solution_eval, l2=True)
             errors.append(error)
-            print(error)
+            # print(error)
 
         log_errors = np.log(errors)
         poly_approx = np.polyfit(degrees, log_errors, 1)
@@ -284,7 +285,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
 
         plt.semilogy(degrees, errors, 'k.')
         plt.semilogy(degrees, errors_approx)
-        plt.show()
+        # plt.show()
 
         self.assertTrue(errors[-1] < 1e-6)
         self.assertTrue(error < 1)
