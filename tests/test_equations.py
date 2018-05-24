@@ -49,13 +49,13 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
         quad = new_q(self.n_points_num, dim=1, mean=[m], cov=[[s2]])
 
         # Potential for approximation
-        Vq = sym.Rational(1/2)*(x-m)*(x-m)/(self.β*s2)
+        Vq = sym.Rational(1, 2)*(x-m)*(x-m)/(self.β*s2)
 
         # Fokker Planck operator
         forward = equation.equation({'β': self.β, 'Vp': Vp})
 
         # Map to appropriate space
-        factor = sym.exp(- self.β / 2 * (Vq + Vp))
+        factor = sym.exp(- self.β / sym.Rational(2) * (Vq + Vp))
 
         # Mapped operator
         backward = eq.map_operator(forward, f, factor)
@@ -125,7 +125,7 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
 
         # Parameters of potential associated with Hermite polynomials
         Vp = self.x**4/4 - self.x**2/2
-        m, s2 = sym.Rational(1/10), sym.Rational(1/10)
+        m, s2 = sym.Rational(1, 10), sym.Rational(1, 10)
         quad, forward, backward, factor = self.sym_calc(Vp, m, s2)
 
         sol_an = sym.exp(-self.β * Vp)
@@ -141,7 +141,7 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
 
         # Parameters of potential associated with Hermite polynomials
         Vp = self.x**4/4 - self.x**2/2
-        m, s2 = sym.Rational(1/10), sym.Rational(1/10)
+        m, s2 = sym.Rational(1, 10), sym.Rational(1, 10)
         quad, forward, backward, factor = self.sym_calc(Vp, m, s2)
 
         # Exact Solution
