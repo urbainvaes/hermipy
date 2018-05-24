@@ -279,8 +279,9 @@ class Quad:
         return mat_operator
 
     #  TODO: Ensure order is right (urbain, Tue 01 May 2018)
-    def plot(self, series, degree, factor, ax=None):
-        factor = self.discretize(factor)
+    def plot(self, series, factor, ax=None):
+        if not isinstance(factor, np.ndarray):
+            factor = self.discretize(factor)
         if la.norm(self.cov - np.diag(np.diag(self.cov)), 2) > 1e-10:
             raise ValueError("Covariance matrix must be diagonal!")
         n_nodes = []
