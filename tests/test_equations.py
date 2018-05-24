@@ -227,7 +227,8 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
 
         solutions = []
         for d in degrees:
-            sub_mat = (mat[0:d+1, 0:d+1]).copy(order='C')
+            npolys = int(binom(d + 2, d))
+            sub_mat = (mat[0:npolys, 0:npolys]).copy(order='C')
             eig_vals, eig_vecs = las.eigs(sub_mat, k=1, which='LR')
             ground_state = np.real(eig_vecs.T[0])
             ground_state = ground_state * np.sign(ground_state[0])
@@ -235,7 +236,8 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
             norm = quad.norm(ground_state_eval, n=1, l2=True)
             ground_state_eval = ground_state_eval / norm
             solutions.append(ground_state_eval)
-        return solutions
+
+        return solutions, quad.series(ground_state)
 
     def test_exact_sol_gaussian(self):
 
@@ -247,52 +249,45 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         norm_sol = quad.norm(solution, n=1, l2=True)
         self.assertTrue(abs(norm_sol - 1) < 1e-6)
 
-#     def test_gaussian(self):
+    def test_gaussian(self):
 
-#         Vp, m, s2 = self.x*self.x/4, sym.Rational(1, 10), sym.Rational(1, 5)
-#         quad, forward, backward, factor = self.sym_calc(Vp, m, s2)
+        r = sym.Rational
+        Vp, m, s2x, s2y = self.x**2/4, r(1, 10), r(1, 2), 1/sym.sqrt(2)
+        params = {'β': r(1), 'ε': r(1), 'γ': 0, 'θ': 0, 'm': 0}
+        args = [Vp, params, m, s2x, s2y]
+        quad, forward, backward, factor, _, _ = self.sym_calc(*args)
 
-#         # Exact Solution
-#         solution = eq.solve_gaussian(forward, self.f, [self.x])
-#         solution_eval = quad.discretize(solution)
+        # Exact Solution
+        solution = eq.solve_gaussian(forward, self.f, [self.x, self.y])
+        solution_eval = quad.discretize(solution)
 
-#         # Numerical solutions
-#         degrees = list(range(5, self.degree))
-#         solutions = self.solve(backward, quad, factor, degrees)
+        # Numerical solutions
+        degrees = list(range(10, self.degree))
+        solutions, finest = self.solve(backward, quad, factor, degrees)
 
-#         # Associated errors
-#         errors = []
-#         for sol in solutions:
-#             error = quad.norm(sol - solution_eval, l2=True)
-#             errors.append(error)
+        # Plot of the finest solution
+        fig, ax = plt.subplots(1, 1)
+        quad.plot(finest, factor, ax=ax)
+        # plt.show()
 
-#         log_errors = np.log(errors)
-#         poly_approx = np.polyfit(degrees, log_errors, 1)
-#         errors_approx = np.exp(np.polyval(poly_approx, degrees))
-#         error = la.norm(log_errors - np.log(errors_approx), 2)
+        # Associated errors
+        errors = []
+        for sol in solutions:
+            error = quad.norm(sol - solution_eval, l2=True)
+            errors.append(error)
+            print(error)
 
-#         plt.semilogy(degrees, errors, 'k.')
-#         plt.semilogy(degrees, errors_approx)
-#         # plt.show()
+        log_errors = np.log(errors)
+        poly_approx = np.polyfit(degrees, log_errors, 1)
+        errors_approx = np.exp(np.polyval(poly_approx, degrees))
+        error = la.norm(log_errors - np.log(errors_approx), 2)
 
-#         self.assertTrue(errors[-1] < 1e-12)
-#         self.assertTrue(error < 5)
+        plt.semilogy(degrees, errors, 'k.')
+        plt.semilogy(degrees, errors_approx)
+        plt.show()
 
-#     def test_norm_solution_bistable(self):
-
-#         # Parameters of potential associated with Hermite polynomials
-#         Vp = self.x**4/4 - self.x**2/2
-#         m, s2 = sym.Rational(1/10), sym.Rational(1/10)
-#         quad, forward, backward, factor = self.sym_calc(Vp, m, s2)
-
-#         sol_an = sym.exp(-self.β * Vp)
-#         sol_num = quad.discretize(sol_an)
-#         norm_1_an = quad.norm(sol_an, n=1, l2=True)
-#         norm_1_num = quad.norm(sol_num, n=1, l2=True)
-#         norm_2_an = quad.norm(sol_an, n=2, l2=True)
-#         norm_2_num = quad.norm(sol_num, n=2, l2=True)
-#         self.assertAlmostEqual(norm_1_an, norm_1_num)
-#         self.assertAlmostEqual(norm_2_an, norm_2_num)
+        self.assertTrue(errors[-1] < 1e-6)
+        self.assertTrue(error < 1)
 
 #     def test_bistable(self):
 
