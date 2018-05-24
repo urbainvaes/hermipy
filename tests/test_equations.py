@@ -184,7 +184,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         self.degree = 50
         self.n_points_num = 2*self.degree + 1
 
-    def sym_calc(self, Vp, parameters, m, s2):
+    def sym_calc(self, Vp, parameters, m, s2x, s2y):
 
         # Equation parameters
         β = parameters['β']
@@ -195,18 +195,19 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         # Calculation of the solution
         new_q = hm.Quad.gauss_hermite
         quad = new_q(self.n_points_num, dim=2,
-                     mean=[m, 0], cov=[[s2, 0], [0, 1/sym.sqrt(2)]])
+                     mean=[m, 0], cov=[[s2x, 0], [0, s2y]])
 
         # Potential for approximation
-        Vq = sym.Rational(1/2)*(x-m)*(x-m)/(β*s2)
+        Vqx = sym.Rational(1/2)*(x-m)*(x-m)/(β*s2x)
+        Vqy = sym.Rational(1/2)*y*y/s2y
 
         # Fokker Planck for McKean-Vlasov equation
         parameters.update({'Vp': Vp})
         forward = equation.equation(parameters)
 
         # Map to appropriate space
-        factor_x = sym.exp(- β / 2 * (Vq + Vp))
-        factor_y = sym.exp(- sym.sqrt(2)*y*y)
+        factor_x = sym.exp(- β / 2 * (Vqx + Vp))
+        factor_y = sym.exp(- 1/2 * (Vqy + sym.sqrt(2)*y*y/2))
         factor = factor_x * factor_y
 
         # Mapped operator
