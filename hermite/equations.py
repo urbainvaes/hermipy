@@ -1,5 +1,6 @@
 import sympy as sym
 # import sympy.printing as syp
+import pdb
 sym.init_printing()
 
 
@@ -32,7 +33,7 @@ def solve_gaussian(operator, f, variables):
         sol_s2 = sym.solve(coeffs_list, s2)[s2]
         solution = ansatz.subs(s2, sol_s2)
 
-    assert operator.subs(f, solution).doit().expand() == 0
+    assert operator.subs(f, solution).doit().expand().cancel() == 0
     return solution
 
 
@@ -108,7 +109,9 @@ class McKean_Vlasov:
         d, x, y, f = sym.diff, cls.x, cls.y, cls.f
 
         # Fokker planck operator
-        return d(d(Vp, x)*f + θ*(x-m)*f + (1-γ)*sym.sqrt(2/β)*y*f/ε, x) \
+        operator = d(d(Vp, x)*f + θ*(x-m)*f + (1-γ)*sym.sqrt(2/β)*y*f/ε, x) \
             + γ**2/β * (1/ε) * d(d(f, x), x) \
             + (1/ε**2) * d(sym.sqrt(2) * y * f, y) \
             + (1/ε**2) * d(d(f, y), y)
+
+        return operator
