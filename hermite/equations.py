@@ -110,7 +110,7 @@ class McKean_Vlasov:
 
         # Fokker planck operator
         operator = d(d(Vp, x)*f + θ*(x-m)*f + (1-γ)*sym.sqrt(2/β)*y*f/ε, x) \
-            + γ**2/β * (1/ε) * d(d(f, x), x) \
+            + γ**2/β * d(d(f, x), x) \
             + (1/ε**2) * d(sym.sqrt(2) * y * f, y) \
             + (1/ε**2) * d(d(f, y), y)
 
