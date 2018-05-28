@@ -1,3 +1,5 @@
+import pdb
+
 import scipy.sparse as ss
 import numpy as np
 import hermite_cpp as hm
@@ -51,11 +53,46 @@ def to_cpp_array(*args):
 
 
 @log_stats
+def convert_to_cpp_sparse(mat):
+    assert type(mat) is ss.csr_matrix
+    data = hm.double_vec()
+    indices = hm.int_vec()
+    indptr = hm.int_vec()
+    data.extend(mat.data)
+    indices.extend(mat.indices.astype('uint32'))
+    indptr.extend(mat.indptr.astype('uint32'))
+    size1, size2 = mat.shape[0], mat.shape[1]
+    return hm.to_spmat(data, indices, indptr, size1, size2)
+
+
+@log_stats
 def to_csr(sp_matrix):
     assert isinstance(sp_matrix, hm.sparse_matrix)
     rcv = np.array(hm.row_col_val(sp_matrix))
     shape = (sp_matrix.size1(), sp_matrix.size2())
     return ss.csr_matrix((rcv[2], (rcv[0], rcv[1])), shape=shape)
+
+
+@log_stats
+def to_cpp(arg):
+    if type(arg) is np.ndarray or type(arg) is list:
+        return to_cpp_array(arg)
+    elif type(arg) is ss.csr_matrix:
+        return convert_to_cpp_sparse(arg)
+    else:
+        return arg
+
+
+@log_stats
+def to_numpy(arg):
+    if type(arg) == hm.double_vec:
+        return np.array(arg)
+    if type(arg) == hm.double_mat:
+        return hm.to_numpy(arg)
+    elif type(arg) == hm.double_cube:
+        return np.array(arg)
+    elif type(arg) == hm.sparse_matrix:
+        return to_csr(arg)
 
 
 def to_numeric(var):
@@ -109,20 +146,16 @@ def varf(degree, fgrid, nodes, weights, sparse=False):
         print("Entering varf with dim: " + str(len(nodes)))
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
     args = [degree, fgrid, nodes, weights]
-    if sparse:
-        function = hm.varf_sp
-        convert = to_csr
-    else:
-        function = hm.varf
-        convert = hm.to_numpy
-    return log_stats(convert)(function(*args))
+    function = hm.varf_sp if sparse else hm.varf
+    return log_stats(to_numpy)(log_stats(function)(*args))
 
 
 @cache()
 @log_stats
-def varfd(dim, degree, direction, var):
-    var = to_cpp_array(var)
-    return log_stats(hm.to_numpy)(hm.varfd(dim, degree, direction, var))
+def varfd(dim, degree, direction, var, numpy=True):
+    var = to_cpp(var)
+    result = log_stats(hm.varfd)(dim, degree, direction, var)
+    return log_stats(to_numpy)(result)
 
 
 @log_stats
@@ -159,3 +192,4 @@ def project(inp, dim, direction):
 def multi_indices(dim, degree):
     result = hm.list_multi_indices(dim, degree)
     return np.asarray(result, dtype=int)
+

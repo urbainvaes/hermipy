@@ -257,9 +257,9 @@ class Quad:
         return core.varf(degree, f_grid, self.nodes,
                          self.weights, sparse=sparse)
 
-    def varfd(self, function, degree, directions):
+    def varfd(self, function, degree, directions, sparse=False):
         directions = core.to_numeric(directions)
-        var = self.varf(function, degree)
+        var = self.varf(function, degree, sparse=sparse)
         eigval, _ = la.eig(self.cov)
         for d in directions:
             var = core.varfd(self.dim, degree, d, var)
