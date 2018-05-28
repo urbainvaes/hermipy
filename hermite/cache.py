@@ -10,7 +10,8 @@ from hermite.settings import settings
 def gen_hash(extend=None):
 
     def default_extend(argument):
-        raise ValueError("Argument type not supported")
+        raise ValueError("Argument type not supported: " +
+                         str(type(argument)))
 
     if extend is None:
         extend = default_extend
@@ -19,11 +20,15 @@ def gen_hash(extend=None):
         if isinstance(argument, str):
             encoded_str = argument.encode('utf-8')
             return hashlib.md5(encoded_str).hexdigest()
+        if isinstance(argument, sparse.csr_matrix):
+            a = argument
+            new_args = [a.data, a.indices, a.indptr, a.shape]
+            return the_hash(new_args)
         if isinstance(argument, np.ndarray):
             return hashlib.md5(argument).hexdigest()
         if isinstance(argument, tuple(sym.core.all_classes)):
             return the_hash(str(argument))
-        if isinstance(argument, list):
+        if isinstance(argument, (list, tuple)):
             hashes = [the_hash(e) for e in argument]
             return the_hash(hash(frozenset(hashes)))
         if isinstance(argument, dict):
