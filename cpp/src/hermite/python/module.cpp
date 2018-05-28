@@ -66,10 +66,10 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     // Triple products and variational formulations
     def("triple_products", triple_products_1d);
     def("varf", varf<mat>);
-    def("varfd", varfd);
-
-    // Sparse versions
     def("varf_sp", varf<spmat>);
+    def("varfd", static_cast<mat (*) (u_int dim, u_int degree, u_int dir, const mat & var)> (& varfd));
+    def("varfd", static_cast<spmat (*) (u_int dim, u_int degree, u_int dir, const spmat & var)> (& varfd));
+
 
     // Projection and tensorization of vectors
     def("project", static_cast<vec (*) (const vec & input, u_int dim, u_int dir)> (& project));
@@ -96,7 +96,8 @@ BOOST_PYTHON_MODULE(hermite_cpp)
 
     // For sparse matrices
     def("row_col_val", row_col_val);
-    def("to_spmat", to_spmat);
+    def("to_spmat", static_cast<spmat (*) (const mat & input)> (& to_spmat));
+    def("to_spmat", static_cast<spmat (*) (const vec & data, const ivec & indices, const ivec & indptr, u_int size1, u_int size2)> (& to_spmat));
     def("full", full);
 
     // Misc functions

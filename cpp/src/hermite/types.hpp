@@ -29,6 +29,10 @@ namespace hermite {
 
     // Sparse matrix
     typedef boost::numeric::ublas::compressed_matrix<double, boost::numeric::ublas::row_major> spmat;
+    typedef boost::numeric::ublas::compressed_matrix<double, boost::numeric::ublas::row_major>::iterator1 it1_t;
+    typedef boost::numeric::ublas::compressed_matrix<double, boost::numeric::ublas::row_major>::iterator2 it2_t;
+    typedef boost::numeric::ublas::compressed_matrix<double, boost::numeric::ublas::row_major>::const_iterator1 cit1_t;
+    typedef boost::numeric::ublas::compressed_matrix<double, boost::numeric::ublas::row_major>::const_iterator2 cit2_t;
 }
 
 #endif
