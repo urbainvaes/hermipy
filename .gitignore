@@ -1,3 +1,5 @@
+hermite_cpp.so
+
 __pycache__
 
 /.cache/*
@@ -8,4 +10,3 @@ tags
 
 !*.gitkeep
 Session.vim
-
