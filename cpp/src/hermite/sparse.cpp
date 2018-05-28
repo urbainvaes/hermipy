@@ -1,21 +1,17 @@
 #include "hermite/sparse.hpp"
-
-using namespace boost::numeric::ublas;
-typedef compressed_matrix<double, row_major>::iterator1 it1_t;
-typedef compressed_matrix<double, row_major>::iterator2 it2_t;
-typedef compressed_matrix<double, row_major> spmat;
+#include "hermite/io.hpp"
 
 using namespace std;
 namespace hermite
 {
 
-mat row_col_val(spmat input)
+mat row_col_val(const spmat & input)
 {
     mat result(3, vec(input.nnz(), 0.));
     int index = 0;
-    for (it1_t i1 = input.begin1(); i1 != input.end1(); ++i1)
+    for (cit1_t i1 = input.begin1(); i1 != input.end1(); ++i1)
     {
-        for (it2_t i2 = i1.begin(); i2 != i1.end(); ++i2)
+        for (cit2_t i2 = i1.begin(); i2 != i1.end(); ++i2)
         {
             result[0][index] = i2.index1();
             result[1][index] = i2.index2();
@@ -26,7 +22,7 @@ mat row_col_val(spmat input)
     return result;
 }
 
-spmat to_spmat(mat input)
+spmat to_spmat(const mat & input)
 {
     spmat result(input.size(), input[0].size());
     for (u_int i = 0; i < input.size(); i++)
