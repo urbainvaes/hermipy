@@ -115,3 +115,58 @@ class McKean_Vlasov:
             + (1/ε**2) * d(d(f, y), y)
 
         return operator
+
+
+class McKean_Vlasov_harmonic_noise:
+
+    # Space variables
+    variables = sym.symbols('x y z', real=True)
+
+    # Sharthand notations
+    x, y, z = variables
+
+    # Unknown
+    f = sym.Function('f')(x, y, z)
+
+    @classmethod
+    def params(cls):
+
+        params, functions = {}, {}
+
+        # Real positive parameters
+        options = {'real': True, 'positive': True}
+        for param in ['β', 'γ', 'ε']:
+            params[param] = sym.symbols(param, **options)
+
+        # Real parameters
+        options = {'real': True}
+        for param in ['θ', 'm']:
+            params[param] = sym.symbols(param, **options)
+
+        # Potential function
+        functions['Vp'] = sym.Function('Vp')(cls.x)
+
+        return {**params, **functions}
+
+    @classmethod
+    def equation(cls, params):
+
+        # Real parameters
+        β, γ, ε, θ, m = (params[x] for x in ['β', 'γ', 'ε', 'θ', 'm'])
+
+        # Functional parameter
+        Vp = params['Vp']
+
+        # Shorthand notations
+        d, x, y, z, f = sym.diff, cls.x, cls.y, cls.z, cls.f
+
+        # Friction coefficient
+        λ = 1
+
+        # Fokker planck operator
+        operator = d(d(Vp, x)*f + θ*(x-m)*f + (1-γ)*sym.sqrt(2/β)*z*f/ε, x) \
+            + γ**2/β * d(d(f, x), x) \
+            + (1/ε**2) * (-y*d(f, z) + z*d(f, y)) \
+            + (1/ε**2) * λ*d(f*y + d(f, y), y)
+
+        return operator
