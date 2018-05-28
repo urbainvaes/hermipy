@@ -136,7 +136,8 @@ u_int hash(ivec v, int degree) {
     return result;
 }
 
-string hash_print(ivec v) {
+string hash_print(ivec v)
+{
     string hash = "";
     for (u_int i = 0; i < v.size(); ++i)
     {
@@ -145,12 +146,7 @@ string hash_print(ivec v) {
     return hash;
 }
 
-// Only for cov = D!
-mat varfd(
-        u_int dim,
-        u_int degree,
-        u_int direction,
-        mat const & var)
+mat varfd(u_int dim, u_int degree, u_int direction, const mat & var)
 {
     Multi_index_iterator m1(dim, degree);
     Multi_index_iterator m2(dim, degree);
@@ -182,6 +178,48 @@ mat varfd(
         }
     }
 
+    return results;
+}
+
+spmat varfd(u_int dim, u_int degree, u_int direction, const spmat & var)
+{
+    Multi_index_iterator m(dim, degree);
+
+    u_int i;
+    imat multi_indices;
+    unordered_map<u_int, u_int> lin_indices;
+    for (i = 0, m.reset(); i < var.size1(); i++, m.increment())
+    {
+        lin_indices.insert(pair<u_int, u_int>(hash(m.get(), degree), i));
+        multi_indices.push_back(m.get());
+    }
+
+    spmat results = spmat(var.size1(), var.size2());
+    for (cit1_t i1 = var.begin1(); i1 != var.end1(); ++i1)
+    {
+        for (cit2_t i2 = i1.begin(); i2 != i1.end(); ++i2)
+        {
+            u_int row = i2.index1();
+            u_int col = i2.index2();
+            ivec m_col = multi_indices[col];
+            double value = *i2;
+
+            u_int sum = 0;
+            for(i = 0; i < m_col.size(); i++)
+            {
+                sum += m_col[i];
+            }
+            if (sum == degree)
+            {
+               continue;
+            }
+
+            ivec int_m2 = m_col;
+            int_m2[direction] += 1;
+            u_int id = lin_indices[hash(int_m2, degree)];
+            results(row, id) = value*sqrt(int_m2[direction]);
+        }
+    }
     return results;
 }
 

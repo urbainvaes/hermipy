@@ -8,7 +8,8 @@ namespace hermite {
 
 cube triple_products_1d(int degree);
 
-template<typename T> T varf(
+template<typename T>
+T varf(
         u_int degree,
         vec const & input,
         mat const & nodes,
@@ -18,7 +19,14 @@ mat varfd(
         u_int dim,
         u_int degree,
         u_int direction,
-        mat const & var);
+        const mat & var);
+
+spmat varfd(
+        u_int dim,
+        u_int degree,
+        u_int direction,
+        const spmat & var);
+
 }
 
 #endif

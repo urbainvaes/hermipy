@@ -49,6 +49,11 @@ class Multi_index_iterator : public Vector_iterator {
 
     public:
 
+    unsigned int get_sum() 
+    {
+        return sum;
+    }
+
     void increment();
     void reset();
     Multi_index_iterator(unsigned int dim, unsigned int upper_bound):
