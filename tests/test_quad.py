@@ -11,6 +11,9 @@ import math
 import os
 import tempfile
 
+import scipy.sparse as sp
+import scipy.sparse.linalg as las
+
 settings = {'cache': False, 'cachedir': '/tmp/test_hermite'}
 rc.settings.update(settings)
 if not os.path.exists(settings['cachedir']):
@@ -372,3 +375,13 @@ class TestSparseFunctions(unittest.TestCase):
         sp_var = self.quad2.varf(function, degree, sparse=True)
         var = self.quad2.varf(function, degree)
         self.assertAlmostEqual(la.norm(var - sp_var, 2), 0)
+
+    def test_sparse_varfd_1d(self):
+        n_points = 100
+        degree = 10
+        quad = hm.Quad.gauss_hermite(n_points)
+        mat1 = quad.varfd('1', degree, [0, 0], sparse=True)
+        mat2 = quad.varfd('x', degree, [0], sparse=True)
+        bk_ou = mat1 - mat2
+        off_diag = bk_ou - sp.diags(bk_ou.diagonal())
+        self.assertAlmostEqual(las.norm(off_diag), 0)
