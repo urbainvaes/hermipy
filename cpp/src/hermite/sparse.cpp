@@ -42,7 +42,34 @@ spmat to_spmat(mat input)
     return result;
 }
 
-mat full(spmat input)
+// spmat to_spmat(const mat & row_col_val, u_int size1, u_int size2)
+// {
+//     vec rows = row_col_val[0];
+//     vec cols = row_col_val[1];
+//     vec vals = row_col_val[2];
+//     spmat result (size1, size2);
+//     for (u_int i = 0; i < rows.size(); i++)
+//     {
+//         result(rows[i], cols[i]) = vals[i];
+//     }
+//     return result;
+// }
+
+spmat to_spmat(const vec & data, const ivec & indices, const ivec & indptr,
+               u_int size1, u_int size2)
+{
+    spmat result (size1, size2);
+    for (u_int i = 0; i < size1; i++)
+    {
+        for (u_int j = indptr[i]; j < indptr[i+1]; j++)
+        {
+            result(i, indices[j]) = data[j];
+        }
+    }
+    return result;
+}
+
+mat full(const spmat & input)
 {
     u_int s1 = input.size1(), s2 = input.size2();
     mat result(s1, vec(s2, 0));
