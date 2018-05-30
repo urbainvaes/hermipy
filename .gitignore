@@ -2,8 +2,9 @@ hermite_cpp.so
 
 __pycache__
 
-.cache/*
+/.cache/*
 /build
+/examples/.cache/*
 
 doc
 tags
