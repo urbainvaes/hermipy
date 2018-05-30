@@ -6,6 +6,7 @@
 #include "hermite/discretize.hpp"
 #include "hermite/iterators.hpp"
 #include "hermite/tensorize.hpp"
+#include "hermite/project.hpp"
 #include "hermite/transform.hpp"
 #include "hermite/types.hpp"
 #include "hermite/varf.hpp"
@@ -73,11 +74,14 @@ BOOST_PYTHON_MODULE(hermite_cpp)
 
     // Projection and tensorization of vectors
     def("project", static_cast<vec (*) (const vec & input, u_int dim, u_int dir)> (& project));
-    def("tensorize", static_cast<vec (*) (const vec & input, u_int dim, u_int dir)> (& tensorize));
-    def("tensorize", static_cast<vec (*) (const mat &)> (& tensorize));
+    def("project", static_cast<mat   (*) (const mat   & input, u_int dim, u_int dir)> (& project<mat>));
+    def("project", static_cast<spmat (*) (const spmat & input, u_int dim, u_int dir)> (& project<spmat>));
+    def("project", static_cast<mat   (*) (const mat   & input, u_int dim, const ivec & dirs)> (& project<mat>));
+    def("project", static_cast<spmat (*) (const spmat & input, u_int dim, const ivec & dirs)> (& project<spmat>));
 
     // Projection and tensorization of matrices
-    def("project", static_cast<mat (*) (const mat & input, u_int dim, u_int dir)> (& project));
+    def("tensorize", static_cast<vec (*) (const vec & input, u_int dim, u_int dir)> (& tensorize));
+    def("tensorize", static_cast<vec (*) (const mat &)> (& tensorize));
     def("tensorize", static_cast<mat (*) (const mat & input, u_int dim, u_int dir)> (& tensorize<mat, mat>));
     def("tensorize", static_cast<mat (*) (const spmat & input, u_int dim, u_int dir)> (& tensorize<mat, spmat>));
     def("tensorize", static_cast<mat (*) (const vector<mat> & input)> (& tensorize<mat, mat>));
