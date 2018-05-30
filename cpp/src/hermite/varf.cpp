@@ -183,6 +183,10 @@ mat varfd(u_int dim, u_int degree, u_int direction, const mat & var)
 
 spmat varfd(u_int dim, u_int degree, u_int direction, const spmat & var)
 {
+    #ifdef DEBUG
+    cout << "Entering varfd with sparse matrix" << endl;
+    #endif
+
     Multi_index_iterator m(dim, degree);
 
     u_int i;

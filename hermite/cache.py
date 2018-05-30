@@ -116,7 +116,5 @@ def cache(hash_extend=None, error_extend=None, quiet=False):
                 if not quiet:
                     assert error < 1e-10
                 return result
-
         return wrapper
-
     return cache_aux

@@ -17,7 +17,7 @@ import hermite.core as core
 import hermite.symlib as lib
 import hermite.settings as rc
 import hermite.function as symfunc
-import hermite.series as series
+import hermite.series as hs
 
 from hermite.cache import cache
 from scipy.special import binom
@@ -26,7 +26,7 @@ import numpy as np
 import numpy.linalg as la
 import numpy.polynomial.hermite_e as herm
 import sympy as sym
-import pdb
+import ipdb
 # }}}
 # Auxiliary functions {{{
 
@@ -116,6 +116,7 @@ class Quad:
                     kwargs_func = {'sparse': kwargs['sparse']} \
                         if 'sparse' in kwargs else {}
                     tensorized = core.tensorize(func_dirs, **kwargs_func)
+                    # pdb.set_trace()
                     results.append(float(add[-1])*tensorized)
 
                 return sum(results[1:], results[0])
@@ -177,12 +178,12 @@ class Quad:
             f_grid = self.discretize(f_grid)
         coeffs = core.transform(degree, f_grid, self.nodes,
                                 self.weights, forward=True)
-        return series.Series(coeffs, self.dim, self.mean, self.cov,
-                             norm=norm, degree=degree)
+        return hs.Series(coeffs, self.dim, self.mean, self.cov,
+                         norm=norm, degree=degree)
 
     def eval(self, series):
         if type(series) is np.ndarray:
-            series = series.Series(series, self.dim, self.mean, self.cov)
+            series = hs.Series(series, self.dim, self.mean, self.cov)
         degree, coeffs = series.degree, series.coeffs
         inv = la.inv(series.factor)
         translation = inv.dot(self.mean - series.mean)
@@ -196,7 +197,7 @@ class Quad:
                               self.weights, forward=False)
 
     @tensorize_at(1)
-    def varf(self, f_grid, degree, sparse=False):
+    def varf(self, f_grid, degree, sparse=False, numpy=True):
         if rc.settings['debug']:
             print("Entering body of Quad.varf")
         if not isinstance(f_grid, np.ndarray):
@@ -209,20 +210,22 @@ class Quad:
         var = self.varf(function, degree, sparse=sparse)
         eigval, _ = la.eig(self.cov)
         for d in directions:
+            # ipdb.set_trace()
             var = core.varfd(self.dim, degree, d, var)
             var = var/np.sqrt(eigval[d])
         return var
 
     @cache(hash_extend=hash_quad)
-    def discretize_op(self, op, func, degree, order):
+    def discretize_op(self, op, func, degree, order, sparse=False):
         npolys = int(binom(degree + self.dim, degree))
         mat_operator = np.zeros((npolys, npolys))
         mult = list(core.multi_indices(self.dim, order))
         splitop = lib.split_operator(op, func, order)
         v = ['x', 'y', 'z']
         for m, coeff in zip(mult, splitop):
-            diff_vector = sum([[v[i]]*m[i] for i in range(self.dim)], [])
-            mat_operator += self.varfd(coeff, degree, diff_vector)
+            d_vector = sum([[v[i]]*m[i] for i in range(self.dim)], [])
+            # ipdb.set_trace()
+            mat_operator += self.varfd(coeff, degree, d_vector, sparse=sparse)
         return mat_operator
 
     #  TODO: Ensure order is right (urbain, Tue 01 May 2018)
@@ -258,12 +261,12 @@ class Quad:
                     cov=[[self.cov[direction][direction]]])
 
     def series(self, coeffs, degree=None, norm=False):
-        return series.Series(coeffs,
-                             dim=self.dim,
-                             mean=self.mean,
-                             cov=self.cov,
-                             degree=degree,
-                             norm=norm)
+        return hs.Series(coeffs,
+                         dim=self.dim,
+                         mean=self.mean,
+                         cov=self.cov,
+                         degree=degree,
+                         norm=norm)
 # }}}
 #  Composite quadrature {{{
 
