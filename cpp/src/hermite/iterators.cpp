@@ -7,35 +7,31 @@ namespace hermite {
 
     void Multi_index_iterator::increment()
     {
-        if (multi_index[dim - 1] == sum)
+        u_int i;
+        for (i = 0; i < dim - 1; i++)
+        {
+            if (multi_index[i + 1]  != 0)
+            {
+                multi_index[i + 1] -= 1;
+                break;
+            }
+        }
+
+        if (i == dim - 1)
         {
             if (sum == upper_bound)
             {
                 full = true;
+                return;
             }
-            else
-            {
-                sum += 1;
-                multi_index[dim - 1] = 0;
-                multi_index[0] = sum;
-            }
-            return;
+            sum += 1;
         }
-        if (multi_index[0] > 0)
+
+        multi_index[i] = 1 + multi_index[0];
+
+        if (i > 0)
         {
-            multi_index[0] -= 1;
-            multi_index[1] += 1;
-        }
-        else
-        {
-            u_int i = 1;
-            while (multi_index[i] == 0)
-            {
-                i += 1;
-            }
-            multi_index[0] += multi_index[i] - 1;
-            multi_index[i] = 0;
-            multi_index[i+1] += 1;
+            multi_index[0] = 0;
         }
     }
 
