@@ -10,22 +10,18 @@ class Vector_iterator {
 
     protected:
 
-        unsigned int dim;
+        unsigned int const dim;
         ivec multi_index;
         bool full;
 
     public:
 
-        const ivec& get() const {
+        const ivec & get() const {
             return multi_index;
         }
 
-        int operator[](int i) {
+        int operator[](int i) const {
             return multi_index[i];
-        }
-
-        ivec get() {
-            return multi_index;
         }
 
         bool isFull() const {
@@ -43,13 +39,14 @@ class Vector_iterator {
 class Multi_index_iterator : public Vector_iterator {
 
     unsigned int sum;
+    unsigned int hash;
 
     // Upper bound included (like polynomial degree)
     const unsigned int upper_bound;
 
     public:
 
-    unsigned int get_sum() 
+    unsigned int get_sum()
     {
         return sum;
     }
