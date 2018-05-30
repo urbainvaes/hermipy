@@ -3,7 +3,22 @@
 
 #include <boost/math/special_functions/binomial.hpp>
 
-namespace hermite {
+namespace hermite 
+{
+
+    u_int Multi_index_iterator::index(const ivec & m_vec)
+    {
+        u_int sum = 0, result = 0;
+        for (u_int i = 0; i < m_vec.size(); i++)
+        {
+            sum += m_vec[i];
+            if (sum > 0)
+            {
+                result += (u_int) binomial_coefficient<double> (i + sum, i + 1);
+            }
+        }
+        return result;
+    }
 
     void Multi_index_iterator::increment()
     {
