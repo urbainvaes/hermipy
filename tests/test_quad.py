@@ -14,6 +14,8 @@ import tempfile
 import scipy.sparse as sp
 import scipy.sparse.linalg as las
 
+import ipdb
+
 settings = {'cache': False, 'cachedir': '/tmp/test_hermite'}
 rc.settings.update(settings)
 if not os.path.exists(settings['cachedir']):
@@ -239,8 +241,7 @@ class TestTensorize(unittest.TestCase):
         self.assertAlmostEqual(diff, 0)
 
     def test_project_matrix(self):
-        n_points = 200
-        degree = 10
+        n_points, degree = 200, 10
         function = 'exp(x)'
         quad_1d = hm.Quad.gauss_hermite(n_points, dim=1)
         quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
@@ -250,6 +251,27 @@ class TestTensorize(unittest.TestCase):
         diff = (la.norm(varf_1d - projection, 2))
         self.assertAlmostEqual(diff, 0)
 
+    def test_project_matrix_2d_subspace(self):
+        n_points, degree = 50, 10
+        function = 'exp(x) * cos(y)'
+        quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
+        quad_3d = hm.Quad.gauss_hermite(n_points, dim=3)
+        varf_2d = quad_2d.varf(function, degree)
+        varf_3d = quad_3d.varf(function, degree)
+        projection = core.project(varf_3d, 3, ['x', 'y'])
+        diff = (la.norm(varf_2d - projection, 2))
+        self.assertAlmostEqual(diff, 0)
+
+    def test_project_matrix_2d_subspace_sparse(self):
+        n_points, degree = 50, 10
+        function = 'exp(x) * cos(y)'
+        quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
+        quad_3d = hm.Quad.gauss_hermite(n_points, dim=3)
+        varf_2d = quad_2d.varf(function, degree, sparse=True)
+        varf_3d = quad_3d.varf(function, degree, sparse=True)
+        projection = core.project(varf_3d, 3, ['x', 'y'])
+        diff = (las.norm(varf_2d - projection))
+        self.assertAlmostEqual(diff, 0)
 
 class TestCache(unittest.TestCase):
 
