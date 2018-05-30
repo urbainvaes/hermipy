@@ -74,7 +74,10 @@ def to_csr(sp_matrix):
 
 
 @log_stats
-def to_cpp(arg):
+def to_cpp(*args):
+    if len(args) > 1:
+        return (to_cpp(arg) for arg in args)
+    arg = args[0]
     if type(arg) is np.ndarray or type(arg) is list:
         return to_cpp_array(arg)
     elif type(arg) is ss.csr_matrix:
@@ -181,10 +184,14 @@ def tensorize(inp, dim=None, direction=None, sparse=False):
 
 @cache()
 @log_stats
-def project(inp, dim, direction):
-    inp = to_cpp_array(inp)
-    direction = to_numeric(direction)
-    return np.array(hm.project(inp, dim, direction))
+def project(inp, dim, directions):
+    inp = to_cpp(inp)
+    directions = to_numeric(directions)
+    if type(directions) is list:
+        directions_cpp = hm.int_vec()
+        directions_cpp.extend(directions)
+        directions = directions_cpp
+    return to_numpy(hm.project(inp, dim, directions))
 
 
 @cache()
@@ -192,4 +199,3 @@ def project(inp, dim, direction):
 def multi_indices(dim, degree):
     result = hm.list_multi_indices(dim, degree)
     return np.asarray(result, dtype=int)
-

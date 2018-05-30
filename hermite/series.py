@@ -8,7 +8,6 @@ class Series:
 
     @staticmethod
     def natural_bissect(func, x1=0, x2=1000):
-        print(x1, x2)
         f1, f2 = func(x1), func(x2)
         if f1 is 0:
             return x1
@@ -20,7 +19,6 @@ class Series:
         replace_arg = 'x2' if f1*f3 <= 0 else 'x1'
         new_args = {'x1': x1, 'x2': x2}
         new_args[replace_arg] = x3
-        # pdb.set_trace()
         return Series.natural_bissect(func, **new_args)
 
     def __init__(self, coeffs, dim=1, mean=None, cov=None,
@@ -37,9 +35,8 @@ class Series:
         self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
 
         if degree is None:
-            def obj(x):
-                return int(binom(x + self.dim, x)) - len(self.coeffs)
-            self.degree = Series.natural_bissect(obj)
+            self.degree = Series.natural_bissect(
+                    lambda x: int(binom(x + self.dim, x)) - len(self.coeffs))
         else:
             self.degree = degree
 
