@@ -1,5 +1,4 @@
 #include <iostream>
-#include <unordered_map>
 
 #include <boost/math/special_functions/binomial.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
@@ -29,13 +28,12 @@ vec project(const vec & input, u_int dim, const ivec & dirs)
     Multi_index_iterator m_sub(dim_sub, degree);
 
     u_int i;
-    unordered_map<u_int, u_int> lin_indices = hash_table(dim_sub, degree);
     for (i = 0, m.reset(); !m.isFull(); i++, m.increment())
     {
         if (isAligned(m.get(), dirs))
         {
             ivec sub_vec = extract(m.get(), dirs);
-            u_int lin_index = lin_indices[hash_multi_ind(sub_vec, degree)];
+            u_int lin_index = Multi_index_iterator::index(sub_vec);
             results[lin_index] = input[i];
         }
     }
@@ -61,20 +59,19 @@ M project(const M & input, u_int dim, const ivec & dirs)
     Multi_index_iterator m_sub(dim_sub, degree);
 
     u_int i,j;
-    unordered_map<u_int, u_int> lin_indices = hash_table(dim_sub, degree);
     for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
     {
         if (isAligned(m1.get(), dirs))
         {
 
             ivec sub_m1 = extract(m1.get(), dirs);
-            u_int ind1 = lin_indices[hash_multi_ind(sub_m1, degree)];
+            u_int ind1 = Multi_index_iterator::index(sub_m1);
             for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
             {
                 if (isAligned(m2.get(), dirs))
                 {
                     ivec sub_m2 = extract(m2.get(), dirs);
-                    u_int ind2 = lin_indices[hash_multi_ind(sub_m2, degree)];
+                    u_int ind2 = Multi_index_iterator::index(sub_m2);
                     matrix::set(results, ind1, ind2, matrix::get(input, i, j));
                 }
             }

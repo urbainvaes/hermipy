@@ -3,11 +3,12 @@
 
 #include <boost/math/special_functions/binomial.hpp>
 
-namespace hermite 
+namespace hermite
 {
 
     u_int Multi_index_iterator::index(const ivec & m_vec)
     {
+        using boost::math::binomial_coefficient;
         u_int sum = 0, result = 0;
         for (u_int i = 0; i < m_vec.size(); i++)
         {

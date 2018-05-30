@@ -1,4 +1,3 @@
-#include <unordered_map>
 #include <boost/math/special_functions/binomial.hpp>
 #include "hermite/iterators.hpp"
 #include "hermite/lib.hpp"
@@ -82,18 +81,6 @@ u_int hash_multi_ind(ivec v, int degree)
         unit *= base;
     }
     return result;
-}
-
-unordered_map<u_int, u_int> hash_table(u_int dim, u_int degree)
-{
-    Multi_index_iterator m(dim, degree);
-    unordered_map<u_int, u_int> lin_indices;
-    for (u_int i = 0; !m.isFull(); i++, m.increment())
-    {
-        u_int hash = hash_multi_ind(m.get(), degree);
-        lin_indices.insert(pair<u_int, u_int>(hash, i));
-    }
-    return lin_indices;
 }
 
 bool isAligned(const ivec & m, u_int dir)

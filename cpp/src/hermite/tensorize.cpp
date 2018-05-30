@@ -1,5 +1,5 @@
 #include <iostream>
-#include <unordered_map>
+#include <assert.h>
 
 #include <boost/math/special_functions/binomial.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
@@ -15,6 +15,65 @@ using namespace std;
 using boost::math::binomial_coefficient;
 
 namespace hermite {
+
+// vec tensorize(const mat & inputs, const mat & dirs)
+// {
+//     u_int dim = 0;
+//     ivec dims(dirs.size(), 0);
+//     for (u_int i = 0; i < dirs.size(); i++)
+//     {
+//         dims[i] = dirs[i].size();
+//         dim += dims[i];
+//     }
+
+//     u_int degree = bissect_degree(dims[0], inputs[0].size());
+
+//     // Check that sizes are correct
+//     std::vector<u_int> n_polys(dirs.size(), 0)
+//     for (u_int i = 0; i < dirs.size(); i++)
+//     {
+//         n_polys[i] = (u_int) binomial_coefficient<double> (degree + dim, dim);
+//         if (n_polys[i] != inputs[i].size())
+//         {
+//             cout << "Size of input does not match dimension" << endl;
+//             exit(1);
+//         }
+//     }
+
+//     // Check that all the directions are present only once
+//     std::vector<bool> dirs_present (dim, false);
+//     for (u_int i = 0; i < dirs.size(); i++)
+//     {
+//         for (u_int j = 0; j < dims[i]; j++)
+//         {
+//             u_int dir = dirs[i][j];
+//             if (dirs_present[dir])
+//             {
+//                 cout << "The same direction appears twice, exiting ..." << endl;
+//                 exit(1);
+//             }
+//             else
+//             {
+//                 dirs_present[dir] = true;
+//             }
+//         }
+//     }
+
+//     for (u_int i = 0; i < dirs_present.size(); i++)
+//     {
+//         if (!dirs_present[dir])
+//         {
+//             cout << "Missing direction, exiting ..." << endl;
+//             exit(1);
+//         }
+//     }
+
+//     std::vector<Multi_index_iterator> m_dirs(dirs.size());
+//     for (u_int i = 0; i < dirs.size(); i++)
+//     {
+//         m_dirs[i] = Multi_index_iterator(dims[i], degree);
+//     }
+// }
 
 vec tensorize(const mat & inputs)
 {

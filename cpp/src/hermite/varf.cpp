@@ -1,7 +1,6 @@
 #include <cmath>
 
 #include <iostream>
-#include <unordered_map>
 #include <ctime>
 
 #include "hermite/hermite.hpp"
@@ -153,12 +152,6 @@ mat varfd(u_int dim, u_int degree, u_int direction, const mat & var)
 
     u_int i,j;
 
-    unordered_map<u_int, u_int> lin_indices;
-    for (i = 0, m1.reset(); i < var.size(); i++, m1.increment())
-    {
-        lin_indices.insert(pair<u_int, u_int>(hash(m1.get(), degree), i));
-    }
-
     mat results = mat(var.size(), vec(var.size(), 0));
     for (j = 0, m2.reset(); j < var.size(); j++, m2.increment())
     {
@@ -169,7 +162,7 @@ mat varfd(u_int dim, u_int degree, u_int direction, const mat & var)
 
         ivec diff_m2 = m2.get();
         diff_m2[direction] -= 1;
-        u_int id = lin_indices[hash(diff_m2, degree)];
+        u_int id = Multi_index_iterator::index(diff_m2);
 
         for (i = 0, m1.reset(); i < var.size(); i++, m1.increment())
         {
@@ -191,10 +184,8 @@ spmat varfd(u_int dim, u_int degree, u_int direction, const spmat & var)
 
     u_int i;
     imat multi_indices;
-    unordered_map<u_int, u_int> lin_indices;
     for (i = 0, m.reset(); i < var.size1(); i++, m.increment())
     {
-        lin_indices.insert(pair<u_int, u_int>(hash(m.get(), degree), i));
         multi_indices.push_back(m.get());
     }
 
@@ -220,7 +211,7 @@ spmat varfd(u_int dim, u_int degree, u_int direction, const spmat & var)
 
             ivec int_m2 = m_col;
             int_m2[direction] += 1;
-            u_int id = lin_indices[hash(int_m2, degree)];
+            u_int id = Multi_index_iterator::index(int_m2);
             results(row, id) = value*sqrt(int_m2[direction]);
         }
     }
