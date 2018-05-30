@@ -1,29 +1,20 @@
+#include <iostream>
+#include <unordered_map>
+
 #include <boost/math/special_functions/binomial.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
-#include <iostream>
 
 #include "hermite/matrix.hpp"
 #include "hermite/iterators.hpp"
 #include "hermite/tensorize.hpp"
 #include "hermite/templates.hpp"
 #include "hermite/types.hpp"
+#include "hermite/io.hpp"
 
 using namespace std;
 using boost::math::binomial_coefficient;
 
 namespace hermite {
-
-bool isAligned(const ivec & m, u_int dir)
-{
-    for (u_int j = 0; j < m.size(); j++)
-    {
-        if (m[j] != 0 && j != dir)
-        {
-            return false;
-        }
-    }
-    return true;
-}
 
 vec tensorize(const mat & inputs)
 {
@@ -54,52 +45,6 @@ vec tensorize(const vec & input, u_int dim, u_int dir)
     return tensorize(vecs);
 }
 
-vec project(const vec & input, u_int dim, u_int dir)
-{
-    u_int degree = 0, n_polys = input.size();
-    while ((u_int) binomial_coefficient<double> (degree + dim, dim) != n_polys)
-    {
-        degree++;
-    }
-    vec results(degree + 1, 0.);
-
-    Multi_index_iterator m(dim, degree);
-    for (u_int i = 0; !m.isFull(); i++, m.increment())
-    {
-        if (isAligned(m.get(), dir))
-        {
-            results[m[dir]] = input[i];
-        }
-    }
-    return results;
-}
-
-mat project(const mat & input, u_int dim, u_int dir)
-{
-    u_int degree = 0, n_polys = input.size();
-    while ((u_int) binomial_coefficient<double> (degree + dim, dim) != n_polys)
-    {
-        degree++;
-    }
-    mat results(degree + 1, vec(degree + 1, 0.));
-
-    Multi_index_iterator m1(dim, degree), m2(dim, degree);
-    u_int i,j;
-    for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
-    {
-        if (isAligned(m1.get(), dir))
-        {
-            for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
-            {
-                if (isAligned(m2.get(), dir))
-                {
-                    results[m1[dir]][m2[dir]] = input[i][j];
-                }
-            }
-        }
-    }
-    return results;
-}
 
 template <typename T, typename M>
 T tensorize(const vector<M> & inputs)
