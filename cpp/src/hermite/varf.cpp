@@ -123,28 +123,6 @@ template<typename T> T varf(
 template mat varf( u_int degree, vec const & input, mat const & nodes, mat const & weights);
 template spmat varf( u_int degree, vec const & input, mat const & nodes, mat const & weights);
 
-u_int hash(ivec v, int degree) {
-    u_int base = degree + 1;
-    u_int result = 0;
-    u_int unit = 1;
-    for(u_int i = 0; i < v.size(); i++)
-    {
-        result += v[i]*unit;
-        unit *= base;
-    }
-    return result;
-}
-
-string hash_print(ivec v)
-{
-    string hash = "";
-    for (u_int i = 0; i < v.size(); ++i)
-    {
-        hash += std::to_string(v[i]) + "-";
-    }
-    return hash;
-}
-
 mat varfd(u_int dim, u_int degree, u_int direction, const mat & var)
 {
     Multi_index_iterator m1(dim, degree);

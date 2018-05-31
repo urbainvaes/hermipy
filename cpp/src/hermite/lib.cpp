@@ -70,19 +70,6 @@ u_int find_dim(u_int degree, u_int n_polys)
     return dim;
 }
 
-u_int hash_multi_ind(ivec v, int degree)
-{
-    u_int base = degree + 1;
-    u_int result = 0;
-    u_int unit = 1;
-    for(u_int i = 0; i < v.size(); i++)
-    {
-        result += v[i]*unit;
-        unit *= base;
-    }
-    return result;
-}
-
 bool isAligned(const ivec & m, u_int dir)
 {
     for (u_int j = 0; j < m.size(); j++)

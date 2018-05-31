@@ -39,7 +39,6 @@ class Vector_iterator {
 class Multi_index_iterator : public Vector_iterator {
 
     unsigned int sum;
-    unsigned int hash;
 
     // Upper bound included (like polynomial degree)
     const unsigned int upper_bound;
