@@ -5,7 +5,6 @@
 
 namespace hermite
 {
-
     u_int Multi_index_iterator::index(const ivec & m_vec)
     {
         using boost::math::binomial_coefficient;
@@ -86,6 +85,12 @@ namespace hermite
         {
             multi_index[i] = 0;
         }
+    }
+
+    u_int Multi_index_iterator::size(u_int degree, u_int dim)
+    {
+        using boost::math::binomial_coefficient;
+        return (u_int) binomial_coefficient<double> (degree + dim, dim);
     }
 
     imat list_multi_indices(u_int dim, u_int upper_bound)

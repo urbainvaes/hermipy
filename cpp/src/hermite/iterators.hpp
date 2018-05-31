@@ -47,6 +47,7 @@ class Multi_index_iterator : public Vector_iterator {
 
     // Get linear index from multi-index
     static u_int index(const ivec & m_vec);
+    static u_int size(u_int degree, u_int dim);
 
     unsigned int get_sum()
     {
