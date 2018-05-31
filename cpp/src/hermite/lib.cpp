@@ -53,12 +53,12 @@ u_int bissect_degree(u_int dim, u_int n_polys)
 u_int find_dim(u_int degree, u_int n_polys)
 {
     u_int dim = 0;
-    u_int n_dim = (u_int) binomial_coefficient<double> (degree + dim, dim); 
+    u_int n_dim = (u_int) binomial_coefficient<double> (degree + dim, dim);
 
     while (n_dim < n_polys)
     {
         dim += 1;
-        n_dim = (u_int) binomial_coefficient<double> (degree + dim, dim); 
+        n_dim = (u_int) binomial_coefficient<double> (degree + dim, dim);
     }
 
     if (n_dim != n_polys)

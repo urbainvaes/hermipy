@@ -8,7 +8,8 @@
 #include "hermite/types.hpp"
 #include "hermite/sparse.hpp"
 
-namespace hermite { namespace matrix
+namespace hermite { 
+namespace matrix
 {
     inline void set(spmat & input, u_int i, u_int j, double val)
     {

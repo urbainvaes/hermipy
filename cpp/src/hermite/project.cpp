@@ -32,9 +32,9 @@ vec project(const vec & input, u_int dim, const ivec & dirs)
     {
         if (isAligned(m.get(), dirs))
         {
-            ivec sub_vec = extract(m.get(), dirs);
-            u_int lin_index = Multi_index_iterator::index(sub_vec);
-            results[lin_index] = input[i];
+            ivec sub = extract(m.get(), dirs);
+            u_int ind = Multi_index_iterator::index(sub);
+            results[ind] = input[i];
         }
     }
     return results;
@@ -63,15 +63,14 @@ M project(const M & input, u_int dim, const ivec & dirs)
     {
         if (isAligned(m1.get(), dirs))
         {
-
-            ivec sub_m1 = extract(m1.get(), dirs);
-            u_int ind1 = Multi_index_iterator::index(sub_m1);
+            ivec sub1 = extract(m1.get(), dirs);
+            u_int ind1 = Multi_index_iterator::index(sub1);
             for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
             {
                 if (isAligned(m2.get(), dirs))
                 {
-                    ivec sub_m2 = extract(m2.get(), dirs);
-                    u_int ind2 = Multi_index_iterator::index(sub_m2);
+                    ivec sub2 = extract(m2.get(), dirs);
+                    u_int ind2 = Multi_index_iterator::index(sub2);
                     matrix::set(results, ind1, ind2, matrix::get(input, i, j));
                 }
             }
