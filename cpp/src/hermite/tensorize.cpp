@@ -125,8 +125,49 @@ vec tensorize(const vec & input, u_int dim, u_int dir)
     return tensorize(vecs);
 }
 
-template <typename T, typename M>
-T tensorize(const vector<M> & inputs, const imat & dirs)
+template <typename T>
+T tensorize(const vector<mat> & inputs, const imat & dirs)
+{
+    u_int dim;
+    ivec dims(dirs.size());
+    set_dims(dirs, dim, dims);
+    u_int degree = bissect_degree(dims[0], matrix::size1(inputs[0]));
+    for (u_int i = 0; i < dirs.size(); i++)
+    {
+        check_degree(matrix::size1(inputs[i]), dims[i], degree);
+    }
+
+    u_int n_polys = Multi_index_iterator::size(degree, dim);
+    T product = matrix::construct<T>(n_polys, n_polys);
+
+    Multi_index_iterator m1(dim, degree);
+    Multi_index_iterator m2(dim, degree);
+
+    u_int i,j,k;
+    for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
+    {
+        for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
+        {
+            double result = 1.;
+            for (k = 0; k < dirs.size(); k++)
+            {
+                ivec sub1 = extract(m1.get(), dirs[k]);
+                ivec sub2 = extract(m2.get(), dirs[k]);
+                u_int ind1 = Multi_index_iterator::index(sub1);
+                u_int ind2 = Multi_index_iterator::index(sub2);
+                result *= matrix::get(inputs[k], ind1, ind2);
+            }
+            if (result != 0)
+            {
+                matrix::set(product, i, j, result);
+            }
+        }
+    }
+    return product;
+}
+
+template <typename T>
+T tensorize(const vector<spmat> & inputs, const imat & dirs)
 {
     u_int dim;
     ivec dims(dirs.size());
@@ -177,31 +218,31 @@ T tensorize(const vector<M> & inputs)
     }
     return tensorize<T,M> (inputs, dirs);
 
-    // u_int dim = inputs.size();
-    // u_int degree = matrix::size1(inputs[0]) - 1;
-    // u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
+    u_int dim = inputs.size();
+    u_int degree = matrix::size1(inputs[0]) - 1;
+    u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
 
-    // T product = matrix::construct<T>(n_polys, n_polys);
+    T product = matrix::construct<T>(n_polys, n_polys);
 
-    // Multi_index_iterator m1(dim, degree);
-    // Multi_index_iterator m2(dim, degree);
-    // u_int i,j,k;
-    // for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
-    // {
-    //     for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
-    //     {
-    //         double result = 1.;
-    //         for (k = 0; k < dim; k++)
-    //         {
-    //             result *= matrix::get(inputs[k], m1[k], m2[k]);
-    //         }
-    //         if (result != 0)
-    //         {
-    //             matrix::set(product, i, j, result);
-    //         }
-    //     }
-    // }
-    // return product;
+    Multi_index_iterator m1(dim, degree);
+    Multi_index_iterator m2(dim, degree);
+    u_int i,j,k;
+    for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
+    {
+        for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
+        {
+            double result = 1.;
+            for (k = 0; k < dim; k++)
+            {
+                result *= matrix::get(inputs[k], m1[k], m2[k]);
+            }
+            if (result != 0)
+            {
+                matrix::set(product, i, j, result);
+            }
+        }
+    }
+    return product;
 }
 
 

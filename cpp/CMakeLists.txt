@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.7)
 
 project(Hermite)
 set (PROJECT_VERSION_MAJOR 0)
@@ -8,7 +8,7 @@ set (CMAKE_BUILD_TYPE release)
 set (CMAKE_CXX_FLAGS_DEBUG "-DDEBUG")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -Wall -Wextra -Wpedantic") # Necessary to repeat
 set (CMAKE_CXX_LINKER_FLAGS  "${CMAKE_CXX_LINKER_FLAGS} -Wl,--no-undefined")
-# set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 
 # Find necessary packages
 find_package(PythonLibs 3 REQUIRED)
@@ -51,4 +51,4 @@ set(DOXYGEN_PROJECT_NAME ${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}-${PROJECT_VERS
 set(DOXYGEN_RECURSIVE YES)
 set(DOXYGEN_USE_MATHJAX YES)
 set(DOXYGEN_USE_MDFILE_AS_MAINPAGE README.md)
-doxygen_add_docs("doc")
+# doxygen_add_docs("doc")
