@@ -1,19 +1,24 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.10)
 
 project(Hermite)
 set (PROJECT_VERSION_MAJOR 0)
 set (PROJECT_VERSION_MINOR 0)
-set(CMAKE_VERBOSE_MAKEFILE OFF)
+set (CMAKE_VERBOSE_MAKEFILE OFF)
 set (CMAKE_BUILD_TYPE release)
 set (CMAKE_CXX_FLAGS_DEBUG "-DDEBUG")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -Wall -Wextra -Wpedantic") # Necessary to repeat
 set (CMAKE_CXX_LINKER_FLAGS  "${CMAKE_CXX_LINKER_FLAGS} -Wl,--no-undefined")
 set(CMAKE_CXX_STANDARD 14)
 
-# Find necessary packages
-find_package(PythonLibs 3 REQUIRED)
+# Find Boost
+# set (BOOST_INCLUDEDIR ~/.guix-profile/include)
+# set (BOOST_LIBRARYDIR ~/.guix-profile/lib)
 find_package(Boost COMPONENTS python3 numpy3 REQUIRED)
-include_directories(${Boost_INCLUDE_DIR} ${PYTHON_INCLUDE_DIRS})
+include_directories(SYSTEM ${Boost_INCLUDE_DIR})
+
+# Find Python
+find_package(PythonLibs 3 REQUIRED)
+include_directories(SYSTEM ${PYTHON_INCLUDE_DIRS})
 
 # Find sources and add include directory of sources
 file(GLOB_RECURSE Sources "src/hermite/*.cpp")
@@ -51,4 +56,4 @@ set(DOXYGEN_PROJECT_NAME ${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}-${PROJECT_VERS
 set(DOXYGEN_RECURSIVE YES)
 set(DOXYGEN_USE_MATHJAX YES)
 set(DOXYGEN_USE_MDFILE_AS_MAINPAGE README.md)
-# doxygen_add_docs("doc")
+doxygen_add_docs("doc")

@@ -98,22 +98,6 @@ vec tensorize(const mat & inputs)
         dirs[i][0] = i;
     }
     return tensorize(inputs, dirs);
-
-    // u_int degree = inputs[0].size() - 1;
-    // u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
-    // vec results(n_polys, 0.);
-
-    // Multi_index_iterator m(dim, degree);
-    // u_int i,j;
-    // for (i = 0; !m.isFull(); i++, m.increment())
-    // {
-    //     results[i] = 1;
-    //     for (j = 0; j < dim; j++)
-    //     {
-    //         results[i] *= inputs[j][m[j]];
-    //     }
-    // }
-    // return results;
 }
 
 vec tensorize(const vec & input, u_int dim, u_int dir)
@@ -216,33 +200,7 @@ T tensorize(const vector<M> & inputs)
     {
         dirs[i][0] = i;
     }
-    return tensorize<T,M> (inputs, dirs);
-
-    u_int dim = inputs.size();
-    u_int degree = matrix::size1(inputs[0]) - 1;
-    u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
-
-    T product = matrix::construct<T>(n_polys, n_polys);
-
-    Multi_index_iterator m1(dim, degree);
-    Multi_index_iterator m2(dim, degree);
-    u_int i,j,k;
-    for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
-    {
-        for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
-        {
-            double result = 1.;
-            for (k = 0; k < dim; k++)
-            {
-                result *= matrix::get(inputs[k], m1[k], m2[k]);
-            }
-            if (result != 0)
-            {
-                matrix::set(product, i, j, result);
-            }
-        }
-    }
-    return product;
+    return tensorize<T> (inputs, dirs);
 }
 
 
