@@ -57,7 +57,9 @@ void check_degree(u_int size, u_int dim, u_int degree)
     u_int n_polys = Multi_index_iterator::size(degree, dim);
     if (n_polys != size)
     {
-        cout << "Size of input does not match dimension" << endl;
+        cout << "Size of input does not match dimension!" << endl;
+        cout << "Expected dimension: " << n_polys << endl;
+        cout << "Actual dimension: " << size << endl;
         exit(1);
     }
 }

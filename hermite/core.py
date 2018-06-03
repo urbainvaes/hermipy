@@ -163,13 +163,22 @@ def varfd(dim, degree, direction, var, numpy=True):
 
 @log_stats
 def tensorize(inp, dim=None, direction=None, sparse=False):
+
+    # Scalar case
     is_scalar = isinstance(inp[0], (float, int))
     if is_scalar and dim is None and direction is None:
         return np.prod(inp)
+
+    # Works only with dense arguments at the moment
     if isinstance(inp[0], ss.csr_matrix):
         inp = [np.array(m.todense()) for m in inp]
+
+    # Convert to cpp array
     inp = to_cpp_array(inp)
-    if dim is not None and direction is not None:
+
+    if dim is not None:
+        if direction is None:
+            raise ValueError("Direction must be defined!")
         args = [inp, dim, direction]
     else:
         args = [inp]
