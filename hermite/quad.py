@@ -12,41 +12,27 @@
 # TODO: Implement composite quadrature (urbain, 02 May 2018)
 # TODO: Improve linearize to notice constant * operator
 # }}}
-# {{{ Import packages
 import hermite.core as core
 import hermite.symlib as lib
 import hermite.settings as rc
 import hermite.function as symfunc
 import hermite.series as hs
+import hermite.lib as lib
 
 from hermite.cache import cache
 from scipy.special import binom
 
 import numpy as np
 import numpy.linalg as la
-import numpy.polynomial.hermite_e as herm
 import sympy as sym
 import ipdb
-# }}}
-# Auxiliary functions {{{
 
 
-def hermegauss_nd(n_points):
-    dim = len(n_points)
-    nodes_multidim = []
-    weights_multidim = []
-    for i in range(dim):
-        nodes_1d, weights_1d = herm.hermegauss(n_points[i])
-        weights_1d = weights_1d/np.sqrt(2*np.pi)  # Normalize
-        nodes_multidim.append(nodes_1d)
-        weights_multidim.append(weights_1d)
-    return nodes_multidim, weights_multidim
-
-# }}}
-# Class Quad {{{
+very_small = 1e-10
 
 
 class Quad:
+
     def __init__(self, nodes, weights, mean=None, cov=None):
         self.nodes = np.asarray(nodes, float)
         self.weights = np.asarray(weights, float)
@@ -59,6 +45,9 @@ class Quad:
 
         eigval, eigvec = la.eig(self.cov)
         self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
+
+        diag_cov = np.diag(np.diag(self.cov))
+        self.is_diag = la.norm(self.cov - diag_cov, 2) < 1e-10
 
         self.hash = hash(frozenset({
             self.dim,
@@ -87,9 +76,7 @@ class Quad:
                     return func(*args, **kwargs)
 
                 quad, function = args[0], args[arg_num]
-                diag_cov = np.diag(np.diag(quad.cov))
-                is_diag = la.norm(quad.cov - diag_cov, 2) < 1e-10
-                if not is_diag or isinstance(function, np.ndarray):
+                if not quad.is_diag or isinstance(function, np.ndarray):
                     return func(*args, **kwargs)
 
                 results = []
@@ -129,7 +116,7 @@ class Quad:
             n_points = np.full(dim, n_points)
         elif isinstance(n_points, int):
             n_points = [n_points]
-        nodes, weights = hermegauss_nd(n_points)
+        nodes, weights = lib.hermegauss_nd(n_points)
         return cls(nodes, weights, mean=mean, cov=cov)
 
     @classmethod
@@ -230,10 +217,9 @@ class Quad:
 
     #  TODO: Ensure order is right (urbain, Tue 01 May 2018)
     def plot(self, series, factor, ax=None):
+        assert self.is_diag
         if not isinstance(factor, np.ndarray):
             factor = self.discretize(factor)
-        if la.norm(self.cov - np.diag(np.diag(self.cov)), 2) > 1e-10:
-            raise ValueError("Covariance matrix must be diagonal!")
         n_nodes = []
         r_nodes = []
         for i in range(self.dim):
@@ -253,12 +239,48 @@ class Quad:
         normalization = 1/(np.sqrt((2*np.pi)**self.dim * la.det(self.cov)))
         return normalization * sym.exp(-potential)
 
-    def project(self, direction):
-        direction = core.to_numeric(direction)
-        return Quad([self.nodes[direction]],
-                    [self.weights[direction]],
-                    mean=[self.mean[direction]],
-                    cov=[[self.cov[direction][direction]]])
+    #  Only works with ints
+    def project(self, directions):
+        assert self.is_diag
+        if type(directions) is int:
+            directions = [directions]
+        dim = len(directions)
+        nodes, weights = [], []
+        mean = np.zeros(dim)
+        cov = np.zeros((dim, dim))
+        for i in range(len(directions)):
+            d = directions[i]
+            assert d < self.dim
+            nodes.append(self.nodes[d])
+            weights.append(self.weights[d])
+            mean[i] = self.mean[d]
+            cov[i][i] = self.cov[d][d]
+        return Quad(nodes, weights, mean, cov)
+
+    def __mul__(self, other):
+        assert self.is_diag and other.is_diag
+        dim = self.dim + other.dim
+        nodes = [*self.nodes, *other.nodes]
+        weights = [*self.weights, *other.weights]
+        mean = np.zeros(dim)
+        cov = np.zeros((dim, dim))
+        for i in range(self.dim):
+            mean[i] = self.mean[i]
+            cov[i][i] = self.cov[i][i]
+        for i in range(other.dim):
+            off = self.dim
+            mean[off + i] = other.mean[i]
+            cov[off + i][off + i] = other.cov[i][i]
+        return Quad(nodes, weights, mean, cov)
+
+    def __eq__(self, other):
+        assert type(other) is Quad
+
+        return self.dim == other.dim \
+            and la.norm(self.mean - other.mean, 2) < very_small \
+            and la.norm(self.cov - other.cov, 2) < very_small \
+            and la.norm(self.nodes - other.nodes) < very_small \
+            and la.norm(self.weights - other.weights) < very_small
 
     def series(self, coeffs, degree=None, norm=False):
         return hs.Series(coeffs,
