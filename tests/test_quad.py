@@ -1,5 +1,6 @@
 import hermite.quad as hm
 import hermite.settings as rc
+import hermite.lib as lib
 
 import unittest
 import numpy as np
@@ -155,14 +156,15 @@ class TestHermiteVarf(unittest.TestCase):
         n_points = 100
         degree = 30
         quad = hm.Quad.gauss_hermite(n_points, dim=2)
-        var = quad.varf('1', degree)
+        var = quad.varf('1', degree).matrix
         self.assertAlmostEqual(la.norm(var - np.eye(len(var)), 2), 0)
 
     def test_simple_dvarf(self):
         n_points = 100
         degree = 10
         quad = hm.Quad.gauss_hermite(n_points)
-        bk_ou = quad.varfd('1', degree, [0, 0]) - quad.varfd('x', degree, [0])
+        bk_ou = quad.varfd('1', degree, [0, 0]).matrix \
+            + quad.varfd('-x', degree, [0]).matrix
         off_diag = bk_ou - np.diag(np.diag(bk_ou))
         self.assertAlmostEqual(la.norm(off_diag, 2), 0)
 
@@ -172,8 +174,8 @@ class TestHermiteVarf(unittest.TestCase):
         quad = hm.Quad.gauss_hermite(n_points, dim=2)
         x, y = sym.symbols('x y')
         function = x*x*sym.cos(x) + sym.exp(y)*x + sym.sqrt(2) + 2
-        v1 = quad.varf(function, degree, tensorize=False)
-        v2 = quad.varf(function, degree, tensorize=True)
+        v1 = quad.varf(function, degree, tensorize=False).matrix
+        v2 = quad.varf(function, degree, tensorize=True).matrix
         diff = la.norm(v1 - v2, 2)
         self.assertAlmostEqual(diff, 0)
 
@@ -242,23 +244,22 @@ class TestTensorizeDecorator(unittest.TestCase):
     def test_sparse_varf_5d_simple(self):
         degree = 12
         function = 1
-        sp_var = self.quad.varf(function, degree, sparse=True)
-        ipdb.set_trace()
+        sp_var = self.quad.varf(function, degree, sparse=True).matrix
         self.assertTrue(sp_var.nnz == sp_var.shape[0])
 
     def test_sparse_varf_5d(self):
         degree = 10
         function = 1. + self.v[0] + self.v[1] + self.v[1]*self.v[0] \
             + self.v[2]**2 + self.v[3]**3 + self.v[4]
-        sp_var = self.quad.varf(function, degree, sparse=True)
+        sp_var = self.quad.varf(function, degree, sparse=True).matrix
         self.assertTrue(sp_var.nnz < sp_var.shape[0] * sp_var.shape[1])
 
     def test_consistency(self):
         degree = 3
         function = 1. + self.v[0] + self.v[1] + self.v[1]*self.v[0] \
             + self.v[2]**2 + self.v[3]**3 + self.v[4]
-        var_1 = self.quad_low.varf(function, degree, tensorize=True)
-        var_2 = self.quad_low.varf(function, degree, tensorize=False)
+        var_1 = self.quad_low.varf(function, degree, tensorize=True).matrix
+        var_2 = self.quad_low.varf(function, degree, tensorize=False).matrix
         self.assertAlmostEqual(la.norm(var_1 - var_2), 0.)
 
 
@@ -278,7 +279,7 @@ class TestSparseFunctions(unittest.TestCase):
     def test_sparse_varf_simple(self):
         degree = 30
         function = '1'
-        sp_var = self.quad2.varf(function, degree, sparse=True)
+        sp_var = self.quad2.varf(function, degree, sparse=True).matrix
         self.assertEqual(sp_var.nnz, sp_var.shape[0])
 
     def test_sparse_varf1d(self):
@@ -287,7 +288,7 @@ class TestSparseFunctions(unittest.TestCase):
         function = 0
         for deg in range(degreef_max):
             function += x**deg
-            sp_var = self.quad1.varf(function, degree, sparse=True)
+            sp_var = self.quad1.varf(function, degree, sparse=True).matrix
             coords = sp_var.tocoo()
             bw = 0
             for i, j, v in zip(coords.row, coords.col, coords.data):
@@ -301,15 +302,15 @@ class TestSparseFunctions(unittest.TestCase):
         degree = 50
         function = 1. + self.v[0] + self.v[1] + self.v[1]*self.v[0]
         sp_var = self.quad2.varf(function, degree, sparse=True)
-        var = self.quad2.varf(function, degree)
-        self.assertAlmostEqual(la.norm(var - sp_var, 2), 0)
+        var = self.quad2.varf(function, degree, sparse=False)
+        self.assertAlmostEqual(la.norm(var.matrix - sp_var.matrix, 2), 0)
 
     def test_sparse_varfd_1d(self):
         n_points = 100
         degree = 10
         quad = hm.Quad.gauss_hermite(n_points)
-        mat1 = quad.varfd('1', degree, [0, 0], sparse=True)
-        mat2 = quad.varfd('x', degree, [0], sparse=True)
+        mat1 = quad.varfd('1', degree, [0, 0], sparse=True).matrix
+        mat2 = quad.varfd('x', degree, [0], sparse=True).matrix
         bk_ou = mat1 - mat2
         off_diag = bk_ou - sp.diags(bk_ou.diagonal())
         self.assertAlmostEqual(las.norm(off_diag), 0)

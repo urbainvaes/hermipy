@@ -2,11 +2,6 @@ import hermite.function as func
 import sympy as sym
 import unittest
 
-# import math
-# import numpy as np
-# import numpy.polynomial.hermite_e as herm
-# import numpy.linalg as la
-
 x, y, z = sym.symbols('x y z')
 
 v = [sym.symbols('v[{}]'.format(i)) for i in range(3)]
