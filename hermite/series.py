@@ -59,7 +59,7 @@ class Series:
 
     def __add__(self, other):
 
-        if isinstance(other, (float, np.float64)):
+        if isinstance(other, (int, float, np.float64)):
             new_coeffs = self.coeffs + other
 
         elif type(other) is Series:
@@ -75,7 +75,7 @@ class Series:
 
     def __mul__(self, other):
 
-        if isinstance(other, (float, np.float64)):
+        if isinstance(other, (int, float, np.float64)):
             new_coeffs = self.coeffs * other
             return Series(new_coeffs, dim=self.dim,
                           mean=self.mean, cov=self.cov)

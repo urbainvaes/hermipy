@@ -14,7 +14,7 @@ import hermite.settings as rc
 from scipy.special import binom
 
 settings = {
-        'cache': True,
+        'cache': False,
         'cachedir': '/tmp/test_hermite',
         'tensorize': False
         }
@@ -69,7 +69,7 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
     def solve(self, backward, quad, factor, degrees):
 
         # Discretization of the operator
-        mat = quad.discretize_op(backward, self.f, self.degree, 2)
+        mat = quad.discretize_op(backward, self.f, self.degree, 2).matrix
 
         solutions = []
         for d in degrees:
@@ -230,7 +230,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
     def solve(self, backward, quad, factor, degrees):
 
         # Discretization of the operator
-        mat = quad.discretize_op(backward, self.f, degrees[-1], 2)
+        mat = quad.discretize_op(backward, self.f, degrees[-1], 2).matrix
 
         solutions = []
 
@@ -398,7 +398,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
     def solve(self, backward, quad, factor, degrees):
 
         # Discretization of the operator
-        mat = quad.discretize_op(backward, self.f, degrees[-1], 2)
+        mat = quad.discretize_op(backward, self.f, degrees[-1], 2).matrix
 
         solutions = []
 

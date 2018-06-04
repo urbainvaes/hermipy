@@ -64,7 +64,7 @@ class Varf:
 
     def __add__(self, other):
 
-        if isinstance(other, (float, np.float64)):
+        if isinstance(other, (int, float, np.float64)):
             new_matrix = self.matrix + other
 
         elif type(other) is Varf:
@@ -80,7 +80,7 @@ class Varf:
 
     def __mul__(self, other):
 
-        if isinstance(other, (float, np.float64)):
+        if isinstance(other, (int, float, np.float64)):
             new_matrix = self.matrix * other
             return Varf(new_matrix, dim=self.dim, mean=self.mean, cov=self.cov)
 

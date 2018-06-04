@@ -13,9 +13,6 @@ import hermite.function as symfunc
 import hermite.series as hs
 import hermite.varf as hv
 
-from hermite.cache import cache
-from scipy.special import binom
-
 import numpy as np
 import numpy.linalg as la
 import sympy as sym
@@ -226,17 +223,16 @@ class Quad:
             mat = mat/np.sqrt(eigval[d])
         return hv.Varf(mat, self.dim, self.mean, self.cov, degree=degree)
 
-    @cache(hash_extend=hash_quad)
     def discretize_op(self, op, func, degree, order, sparse=False):
-        npolys = int(binom(degree + self.dim, degree))
-        mat_operator = np.zeros((npolys, npolys))
+        mat_operator = 0.
         mult = list(core.multi_indices(self.dim, order))
         splitop = lib.split_operator(op, func, order)
         v = ['x', 'y', 'z']
         for m, coeff in zip(mult, splitop):
             d_vector = sum([[v[i]]*m[i] for i in range(self.dim)], [])
             # ipdb.set_trace()
-            mat_operator += self.varfd(coeff, degree, d_vector, sparse=sparse)
+            varf_part = self.varfd(coeff, degree, d_vector, sparse=sparse)
+            mat_operator = varf_part + mat_operator
         return mat_operator
 
     #  TODO: Ensure order is right (urbain, Tue 01 May 2018)
