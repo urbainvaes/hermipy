@@ -81,22 +81,55 @@ template<typename T> T varf(
         mat const & nodes,
         mat const & weights)
 {
+
     u_int dim = nodes.size();
     u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
 
     #ifdef DEBUG
-    cout << "Calculating varf in dimension " << dim << "." << endl;
+    cout << "Entering varf in dimension " << dim << "." << endl;
+    cout << "--> Calculating Hermite transform." << endl;
     #endif
 
     // Hermite transform of input function
     vec Hf = transform(2*degree, input, nodes, weights, true);
+
+    #ifdef DEBUG
+    cout << "--> Determining whether to use sparse matrices." << endl;
+    #endif
+
+    // Polynomial of highest degree
+    Multi_index_iterator m(dim, 2*degree); m.reset();
+    u_int max_degree = 0;
+    for (u_int i = 0; i < Hf.size(); i++, m.increment())
+    {
+        if (abs(Hf[i]) < 1e-12)
+        {
+            continue;
+        }
+
+        u_int sum = 0;
+        for (u_int i : m.get())
+        {
+            sum += i;
+        }
+
+        if (sum > max_degree)
+        {
+            max_degree = sum;
+        }
+    }
+
+    bool use_sparse = max_degree < 10;
+
+    #ifdef DEBUG
+    cout << "--> Using sparse matrices? " << use_sparse << endl;
+    #endif
 
     cube products = triple_products_1d(degree);
 
     // To store results
     T result = matrix::construct<T>(n_polys, n_polys);
 
-    Multi_index_iterator m(dim, 2*degree); m.reset();
     for (u_int i = 0; i < Hf.size(); i++, m.increment())
     {
         if (abs(Hf[i]) < 1e-12)
@@ -105,7 +138,7 @@ template<typename T> T varf(
         }
 
         #ifdef DEBUG
-        cout << "i = " << i << ", and m = " << m.get() << ", and Hf[i] = " << Hf[i] << endl;
+        cout << "--> i = " << i << ", and m = " << m.get() << ", and Hf[i] = " << Hf[i] << endl;
         #endif
 
         cube factors(dim);
@@ -114,8 +147,20 @@ template<typename T> T varf(
             factors[d] = products[m[d]];
         }
 
-        result = result + tensorize<T, mat>(factors)*Hf[i];
+        #ifdef DEBUG
+        cout << "--> Tensorizing for current mult-index." << endl;
+        #endif
+        auto result_iteration = tensorize<T, mat>(factors)*Hf[i];
+
+        #ifdef DEBUG
+        cout << "--> Adding to global matrix." << endl;
+        #endif
+        result = result + result_iteration;
     }
+
+    #ifdef DEBUG
+    cout << "--> End of varf." << endl;
+    #endif
 
     return result;
 }
