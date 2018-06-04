@@ -1,5 +1,5 @@
 import os
-import pdb
+import ipdb
 import unittest
 import sympy as sym
 import numpy as np
@@ -16,7 +16,8 @@ from scipy.special import binom
 settings = {
         'cache': False,
         'cachedir': '/tmp/test_hermite',
-        'tensorize': False
+        'tensorize': False,
+        'trails': True,
         }
 rc.settings.update(settings)
 if not os.path.exists(settings['cachedir']):
@@ -355,6 +356,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         equation = eq.McKean_Vlasov_harmonic_noise
         self.x, self.y, self.z = equation.x, equation.y, equation.z
         self.f = equation.f
+        self.dim = 3
 
     def sym_calc(self, Vp, parameters, s2x, s2y, s2z, degree=10):
 
@@ -364,13 +366,13 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         # Equation parameters
         β = parameters['β']
 
-        equation = eq.McKean_Vlasov
+        equation = eq.McKean_Vlasov_harmonic_noise
         x, y, z, f = self.x, self.y, self.z, self.f
 
         # Calculation of the solution
         new_q = hm.Quad.gauss_hermite
         cov = [[s2x, 0, 0], [0, s2y, 0], [0, 0, s2z]]
-        quad = new_q(n_points_num, dim=2, mean=[0]*3, cov=cov)
+        quad = new_q(n_points_num, dim=3, mean=[0]*3, cov=cov)
 
         # Potential for approximation
         Vqx = sym.Rational(1/2)*x*x/(β*s2x)
@@ -398,6 +400,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
     def solve(self, backward, quad, factor, degrees):
 
         # Discretization of the operator
+        rc.settings['tensorize'] = True
         mat = quad.discretize_op(backward, self.f, degrees[-1], 2).matrix
 
         solutions = []
@@ -405,7 +408,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         v0, eig_vec = None, None
         for d in degrees:
             print(d)
-            npolys = int(binom(d + 2, d))
+            npolys = int(binom(d + self.dim, d))
             if d is not degrees[0]:
                 v0 = np.zeros(npolys)
                 for i in range(len(eig_vec)):
@@ -426,40 +429,40 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
         return solutions, quad.series(ground_state)
 
-#     def test_bistable(self):
+    def test_bistable(self):
 
-#         r = sym.Rational
-#         Vp, degree = self.x**4/4 - self.x**2/2, 40
-#         m, s2x, s2y = r(1, 10), r(1, 20), 1/2
-#         params = {'β': r(10), 'ε': r(.5), 'γ': 0, 'θ': 0, 'm': 0}
-#         args = [Vp, params, m, s2x, s2y, degree]
-#         quad, forward, backward, factor, _, _ = self.sym_calc(*args)
+        r = sym.Rational
+        Vp, degree = self.x**4/4 - self.x**2/2, 30
+        m, s2x, s2y = r(1, 10), r(1, 20), 1/2
+        params = {'β': r(10), 'ε': r(.5), 'γ': 0, 'θ': 0, 'm': 0}
+        args = [Vp, params, m, s2x, s2y, degree]
+        quad, forward, backward, factor, _ = self.sym_calc(*args)
 
-#         # Numerical solutions
-#         degrees = list(range(5, degree))
-#         solutions, finest = self.solve(backward, quad, factor, degrees)
-#         finest_eval = solutions[-1]
+        # Numerical solutions
+        degrees = list(range(5, degree))
+        solutions, finest = self.solve(backward, quad, factor, degrees)
+        finest_eval = solutions[-1]
 
-#         # Plot of the finest solution
-#         fig, ax = plt.subplots(1, 1)
-#         quad.plot(finest, factor, ax=ax)
-#         plt.show()
+        # Plot of the finest solution
+        fig, ax = plt.subplots(1, 1)
+        quad.plot(finest, factor, ax=ax)
+        plt.show()
 
-#         # Associated errors
-#         errors, degrees = [], degrees[0:-1]
-#         for sol in solutions[0:-1]:
-#             error = quad.norm(sol - finest_eval, l2=True)
-#             errors.append(error)
-#             print(error)
+        # Associated errors
+        errors, degrees = [], degrees[0:-1]
+        for sol in solutions[0:-1]:
+            error = quad.norm(sol - finest_eval, l2=True)
+            errors.append(error)
+            print(error)
 
-#         log_errors = np.log(errors)
-#         poly_approx = np.polyfit(degrees, log_errors, 1)
-#         errors_approx = np.exp(np.polyval(poly_approx, degrees))
-#         error = la.norm(log_errors - np.log(errors_approx), 2)
+        log_errors = np.log(errors)
+        poly_approx = np.polyfit(degrees, log_errors, 1)
+        errors_approx = np.exp(np.polyval(poly_approx, degrees))
+        error = la.norm(log_errors - np.log(errors_approx), 2)
 
-#         plt.semilogy(degrees, errors, 'k.')
-#         plt.semilogy(degrees, errors_approx)
-#         plt.show()
+        plt.semilogy(degrees, errors, 'k.')
+        plt.semilogy(degrees, errors_approx)
+        plt.show()
 
-#         self.assertTrue(errors[-1] < 1e-3)
-#         self.assertTrue(error < 1)
+        self.assertTrue(errors[-1] < 1e-3)
+        self.assertTrue(error < 1)
