@@ -2,6 +2,8 @@ import hermite.core as core
 import hermite.lib as lib
 
 from scipy.special import binom
+import scipy.sparse as ss
+
 import numpy as np
 import numpy.linalg as la
 
@@ -11,7 +13,7 @@ very_small = 1e-10
 
 class Varf:
 
-    def __init__(self, coeffs, dim=1, mean=None, cov=None, degree=None):
+    def __init__(self, matrix, dim=1, mean=None, cov=None, degree=None):
 
         self.dim = dim
         self.mean = np.zeros(self.dim) if mean is None \
@@ -22,9 +24,12 @@ class Varf:
         diag_cov = np.diag(np.diag(self.cov))
         self.is_diag = la.norm(self.cov - diag_cov, 2) < 1e-10
 
+        self.matrix = matrix
+        self.is_sparse = isinstance(matrix, ss.csr_matrix)
+
         if degree is None:
             self.degree = lib.natural_bissect(
-                    lambda x: int(binom(x + self.dim, x)) - len(self.coeffs))
+                    lambda x: int(binom(x + self.dim, x)) - len(self.matrix))
         else:
             self.degree = degree
 
@@ -33,29 +38,29 @@ class Varf:
         return self.dim == other.dim \
             and la.norm(self.mean - other.mean, 2) < very_small \
             and la.norm(self.cov - other.cov, 2) < very_small \
-            and la.norm(self.coeffs - other.coeffs) < very_small
+            and la.norm(self.matrix - other.matrix) < very_small
 
     def __add__(self, other):
 
         if isinstance(other, (float, np.float64)):
-            new_coeffs = self.coeffs + other
+            new_matrix = self.matrix + other
 
         elif type(other) is Varf:
             assert self.dim == other.dim
             assert la.norm(self.mean - other.mean, 2) < very_small
             assert la.norm(self.cov - other.cov, 2) < very_small
-            new_coeffs = self.coeffs + other.coeffs
+            new_matrix = self.matrix + other.matrix
 
         else:
             raise TypeError("Invalid type!)")
 
-        return Varf(new_coeffs, dim=self.dim, mean=self.mean, cov=self.cov)
+        return Varf(new_matrix, dim=self.dim, mean=self.mean, cov=self.cov)
 
     def __mul__(self, other):
 
         if isinstance(other, (float, np.float64)):
-            new_coeffs = self.coeffs * other
-            return Varf(new_coeffs, dim=self.dim, mean=self.mean, cov=self.cov)
+            new_matrix = self.matrix * other
+            return Varf(new_matrix, dim=self.dim, mean=self.mean, cov=self.cov)
 
         elif type(other) is Varf:
             assert self.is_diag and other.is_diag
@@ -69,15 +74,15 @@ class Varf:
                 off = self.dim
                 mean[off + i] = other.mean[i]
                 cov[off + i][off + i] = other.cov[i][i]
-            coeffs = core.tensorize([self.coeffs, other.coeffs])
-            return Varf(coeffs, dim=dim, mean=mean, cov=cov)
+            matrix = core.tensorize([self.matrix, other.matrix])
+            return Varf(matrix, dim=dim, mean=mean, cov=cov)
 
         else:
             raise TypeError("Invalid type: " + str(type(other)))
 
     def project(self, direction):
         direction = core.to_numeric(direction)
-        p_coeffs = core.project(self.coeffs, self.dim, direction)
-        return Varf(p_coeffs,
+        p_matrix = core.project(self.matrix, self.dim, direction)
+        return Varf(p_matrix,
                     mean=[self.mean[direction]],
                     cov=[[self.cov[direction][direction]]])

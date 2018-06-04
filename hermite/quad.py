@@ -13,11 +13,11 @@
 # TODO: Improve linearize to notice constant * operator
 # }}}
 import hermite.core as core
-import hermite.symlib as lib
+import hermite.lib as lib
 import hermite.settings as rc
 import hermite.function as symfunc
 import hermite.series as hs
-import hermite.lib as lib
+import hermite.varf as hv
 
 from hermite.cache import cache
 from scipy.special import binom
@@ -56,6 +56,30 @@ class Quad:
             hash(frozenset(self.mean.flatten())),
             hash(frozenset(self.cov.flatten()))}))
 
+    def __mul__(self, other):
+        assert self.is_diag and other.is_diag
+        dim = self.dim + other.dim
+        nodes = [*self.nodes, *other.nodes]
+        weights = [*self.weights, *other.weights]
+        mean = np.zeros(dim)
+        cov = np.zeros((dim, dim))
+        for i in range(self.dim):
+            mean[i] = self.mean[i]
+            cov[i][i] = self.cov[i][i]
+        for i in range(other.dim):
+            off = self.dim
+            mean[off + i] = other.mean[i]
+            cov[off + i][off + i] = other.cov[i][i]
+        return Quad(nodes, weights, mean, cov)
+
+    def __eq__(self, other):
+        assert type(other) is Quad
+
+        return self.dim == other.dim \
+            and la.norm(self.mean - other.mean, 2) < very_small \
+            and la.norm(self.cov - other.cov, 2) < very_small \
+            and la.norm(self.nodes - other.nodes) < very_small \
+            and la.norm(self.weights - other.weights) < very_small
     def hash_quad(argument):
         if isinstance(argument, Quad):
             return hash(argument)
@@ -189,18 +213,20 @@ class Quad:
             print("Entering body of Quad.varf")
         if not isinstance(f_grid, np.ndarray):
             f_grid = self.discretize(f_grid)
-        return core.varf(degree, f_grid, self.nodes,
-                         self.weights, sparse=sparse)
+        var = core.varf(degree, f_grid, self.nodes,
+                        self.weights, sparse=sparse)
+        return hv.Varf(var, self.dim, self.mean, self.cov, degree=degree)
 
     def varfd(self, function, degree, directions, sparse=False):
         directions = core.to_numeric(directions)
         var = self.varf(function, degree, sparse=sparse)
+        mat = var.matrix
         eigval, _ = la.eig(self.cov)
         for d in directions:
             # ipdb.set_trace()
-            var = core.varfd(self.dim, degree, d, var)
-            var = var/np.sqrt(eigval[d])
-        return var
+            mat = core.varfd(self.dim, degree, d, mat)
+            mat = mat/np.sqrt(eigval[d])
+        return hv.Varf(mat, self.dim, self.mean, self.cov, degree=degree)
 
     @cache(hash_extend=hash_quad)
     def discretize_op(self, op, func, degree, order, sparse=False):
@@ -256,31 +282,6 @@ class Quad:
             mean[i] = self.mean[d]
             cov[i][i] = self.cov[d][d]
         return Quad(nodes, weights, mean, cov)
-
-    def __mul__(self, other):
-        assert self.is_diag and other.is_diag
-        dim = self.dim + other.dim
-        nodes = [*self.nodes, *other.nodes]
-        weights = [*self.weights, *other.weights]
-        mean = np.zeros(dim)
-        cov = np.zeros((dim, dim))
-        for i in range(self.dim):
-            mean[i] = self.mean[i]
-            cov[i][i] = self.cov[i][i]
-        for i in range(other.dim):
-            off = self.dim
-            mean[off + i] = other.mean[i]
-            cov[off + i][off + i] = other.cov[i][i]
-        return Quad(nodes, weights, mean, cov)
-
-    def __eq__(self, other):
-        assert type(other) is Quad
-
-        return self.dim == other.dim \
-            and la.norm(self.mean - other.mean, 2) < very_small \
-            and la.norm(self.cov - other.cov, 2) < very_small \
-            and la.norm(self.nodes - other.nodes) < very_small \
-            and la.norm(self.weights - other.weights) < very_small
 
     def series(self, coeffs, degree=None, norm=False):
         return hs.Series(coeffs,
