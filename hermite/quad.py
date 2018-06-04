@@ -16,7 +16,6 @@ import hermite.position as pos
 
 import numpy as np
 import numpy.linalg as la
-import sympy as sym
 import ipdb
 
 
@@ -190,8 +189,7 @@ class Quad:
             f_grid = self.discretize(f_grid)
         var = core.varf(degree, f_grid, self.nodes,
                         self.weights, sparse=sparse)
-        return hv.Varf(var, self.dim,
-                       self.position.mean, self.position.cov, degree=degree)
+        return hv.Varf(var, self.position, degree=degree)
 
     def varfd(self, function, degree, directions, sparse=False):
         directions = core.to_numeric(directions)
@@ -202,8 +200,7 @@ class Quad:
             # ipdb.set_trace()
             mat = core.varfd(self.dim, degree, d, mat)
             mat = mat/np.sqrt(eigval[d])
-        return hv.Varf(mat, self.dim,
-                       self.position.mean, self.position.cov, degree=degree)
+        return hv.Varf(mat, self.position, degree=degree)
 
     def discretize_op(self, op, func, degree, order, sparse=False):
         mat_operator = 0.
