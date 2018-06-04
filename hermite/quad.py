@@ -165,17 +165,14 @@ class Quad:
             f_grid = self.discretize(f_grid)
         coeffs = core.transform(degree, f_grid, self.nodes,
                                 self.weights, forward=True)
-        return hs.Series(coeffs, self.dim,
-                         self.position.mean, self.position.cov,
-                         norm=norm, degree=degree)
+        return hs.Series(coeffs, self.position, norm=norm, degree=degree)
 
     def eval(self, series):
         if type(series) is np.ndarray:
-            series = hs.Series(series, self.dim,
-                               self.position.mean, self.position.cov)
+            series = hs.Series(series, self.position)
         degree, coeffs = series.degree, series.coeffs
-        inv = la.inv(series.factor)
-        translation = inv.dot(self.position.mean - series.mean)
+        inv = la.inv(series.position.factor)
+        translation = inv.dot(self.position.mean - series.position.mean)
         factor = inv * self.position.factor
         if la.norm(factor - np.diag(np.diag(factor)), 2) > 1e-8:
             raise ValueError("Incompatible covariance matrices")
@@ -252,9 +249,4 @@ class Quad:
         return Quad(nodes, weights, pos.mean, pos.cov)
 
     def series(self, coeffs, degree=None, norm=False):
-        return hs.Series(coeffs,
-                         dim=self.dim,
-                         mean=self.position.mean,
-                         cov=self.position.cov,
-                         degree=degree,
-                         norm=norm)
+        return hs.Series(coeffs, self.position, degree=degree, norm=norm)
