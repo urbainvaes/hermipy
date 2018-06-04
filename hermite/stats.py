@@ -3,22 +3,30 @@ from functools import wraps
 import time
 
 stats = {}
+indent = 0
+threshold = 1e-3
 
 
 def log_stats(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
+        global indent, threshold
+        indent += 1
         time_start = time.time()
         result = function(*args, **kwargs)
         time_end = time.time()
+        indent -= 1
 
-        key = function.__name__
+        key = function.__name__ + '-' + function.__module__
         if key not in stats:
             stats[key] = {'Calls': 0, 'Time': 0}
         stats[key]['Calls'] += 1
         stats[key]['Time'] += time_end - time_start
         if rc.settings['trails']:
-            print("Function " + key + ": " + str(time_end - time_start))
+            delta_time = time_end - time_start
+            if delta_time > threshold:
+                print(str(indent) + " Function " + key
+                      + ": " + str(delta_time))
         return result
     return wrapper
 
