@@ -80,6 +80,7 @@ class Quad:
             and la.norm(self.cov - other.cov, 2) < very_small \
             and la.norm(self.nodes - other.nodes) < very_small \
             and la.norm(self.weights - other.weights) < very_small
+
     def hash_quad(argument):
         if isinstance(argument, Quad):
             return hash(argument)
@@ -112,7 +113,7 @@ class Quad:
                     if len(add) == 2:
                         new_args = list(args).copy()
                         new_args[arg_num] = add[0]
-                        results.append(float(add[1])*func(*new_args, **kwargs))
+                        results.append(func(*new_args, **kwargs)*float(add[1]))
                         continue
 
                     func_dirs = []
@@ -126,9 +127,12 @@ class Quad:
                         print("Tensorizing results")
                     kwargs_func = {'sparse': kwargs['sparse']} \
                         if 'sparse' in kwargs else {}
-                    tensorized = core.tensorize(func_dirs, **kwargs_func)
+                    t = type(func_dirs[0])
+                    tens_fun = t.tensorize if t is hv.Varf or t is hs.Series \
+                        else core.tensorize
+                    tensorized = tens_fun(func_dirs, **kwargs_func)
                     # pdb.set_trace()
-                    results.append(float(add[-1])*tensorized)
+                    results.append(tensorized*float(add[-1]))
 
                 return sum(results[1:], results[0])
             return wrapper

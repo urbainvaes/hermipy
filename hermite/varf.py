@@ -7,11 +7,29 @@ import scipy.sparse as ss
 import numpy as np
 import numpy.linalg as la
 
+import ipdb
+
 
 very_small = 1e-10
 
 
 class Varf:
+
+    @staticmethod
+    def tensorize(varfs, dim=None, direction=None, sparse=False):
+        assert len(varfs) > 1
+        dim, mean, cov, mats = 0, [], [], []
+        for a in varfs:
+            assert type(a) is Varf
+            assert a.is_diag
+            dim += a.dim
+            mean.extend(a.mean)
+            cov.extend(np.diag(a.cov))
+            mats.append(a.matrix)
+        mean = np.asarray(mean)
+        cov = np.diag(cov)
+        tens_mat = core.tensorize(mats, sparse=sparse)
+        return Varf(tens_mat, dim=dim, mean=mean, cov=cov)
 
     def __init__(self, matrix, dim=1, mean=None, cov=None, degree=None):
 
@@ -63,19 +81,7 @@ class Varf:
             return Varf(new_matrix, dim=self.dim, mean=self.mean, cov=self.cov)
 
         elif type(other) is Varf:
-            assert self.is_diag and other.is_diag
-            dim = self.dim + other.dim
-            mean = np.zeros(dim)
-            cov = np.zeros((dim, dim))
-            for i in range(self.dim):
-                mean[i] = self.mean[i]
-                cov[i][i] = self.cov[i][i]
-            for i in range(other.dim):
-                off = self.dim
-                mean[off + i] = other.mean[i]
-                cov[off + i][off + i] = other.cov[i][i]
-            matrix = core.tensorize([self.matrix, other.matrix])
-            return Varf(matrix, dim=dim, mean=mean, cov=cov)
+            return Varf.tensorize([self, other])
 
         else:
             raise TypeError("Invalid type: " + str(type(other)))

@@ -4,12 +4,29 @@ import hermite.lib as lib
 from scipy.special import binom
 import numpy as np
 import numpy.linalg as la
+import ipdb
 
 
 very_small = 1e-10
 
 
 class Series:
+
+    @staticmethod
+    def tensorize(args):
+        assert len(args) > 1
+        dim, mean, cov, vecs = 0, [], [], []
+        for a in args:
+            assert type(a) is Series
+            assert a.is_diag
+            dim += a.dim
+            mean.extend(a.mean)
+            cov.extend(np.diag(a.cov))
+            vecs.append(a.coeffs)
+        mean = np.asarray(mean)
+        cov = np.diag(cov)
+        tens_vec = core.tensorize(vecs)
+        return Series(tens_vec, dim=dim, mean=mean, cov=cov)
 
     def __init__(self, coeffs, dim=1, mean=None, cov=None,
                  degree=None, norm=False):
@@ -64,19 +81,7 @@ class Series:
                           mean=self.mean, cov=self.cov)
 
         elif type(other) is Series:
-            assert self.is_diag and other.is_diag
-            dim = self.dim + other.dim
-            mean = np.zeros(dim)
-            cov = np.zeros((dim, dim))
-            for i in range(self.dim):
-                mean[i] = self.mean[i]
-                cov[i][i] = self.cov[i][i]
-            for i in range(other.dim):
-                off = self.dim
-                mean[off + i] = other.mean[i]
-                cov[off + i][off + i] = other.cov[i][i]
-            coeffs = core.tensorize([self.coeffs, other.coeffs])
-            return Series(coeffs, dim=dim, mean=mean, cov=cov)
+            return Series.tensorize([self, other])
 
         else:
             raise TypeError("Invalid type: " + str(type(other)))
