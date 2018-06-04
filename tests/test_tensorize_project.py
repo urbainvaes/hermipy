@@ -1,12 +1,19 @@
 import hermite.core as core
 import hermite.quad as hm
+import hermite.settings as rc
+
 import unittest
 import numpy.linalg as la
 import scipy.sparse.linalg as las
 
 import ipdb
 
-class TestTensorize(unittest.TestCase):
+
+class TestProject(unittest.TestCase):
+
+    def setUp(self):
+        rc.settings['tensorize'] = True
+        rc.settings['cache'] = False
 
     def test_project_vector(self):
         n_points = 200
@@ -24,8 +31,8 @@ class TestTensorize(unittest.TestCase):
         function = 'exp(x)'
         quad_1d = hm.Quad.gauss_hermite(n_points, dim=1)
         quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
-        varf_1d = quad_1d.varf(function, degree)
-        varf_2d = quad_2d.varf(function, degree)
+        varf_1d = quad_1d.varf(function, degree).matrix
+        varf_2d = quad_2d.varf(function, degree).matrix
         projection = core.project(varf_2d, 2, 0)
         diff = (la.norm(varf_1d - projection, 2))
         self.assertAlmostEqual(diff, 0)
@@ -35,22 +42,30 @@ class TestTensorize(unittest.TestCase):
         function = 'exp(x) * cos(y)'
         quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
         quad_3d = hm.Quad.gauss_hermite(n_points, dim=3)
-        varf_2d = quad_2d.varf(function, degree)
-        varf_3d = quad_3d.varf(function, degree)
+        varf_2d = quad_2d.varf(function, degree).matrix
+        varf_3d = quad_3d.varf(function, degree).matrix
         projection = core.project(varf_3d, 3, ['x', 'y'])
         diff = (la.norm(varf_2d - projection, 2))
         self.assertAlmostEqual(diff, 0)
 
     def test_project_matrix_2d_subspace_sparse(self):
+        # rc.settings['tensorize'] = False
         n_points, degree = 50, 10
         function = 'exp(x) * cos(y)'
         quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
         quad_3d = hm.Quad.gauss_hermite(n_points, dim=3)
-        varf_2d = quad_2d.varf(function, degree, sparse=True)
-        varf_3d = quad_3d.varf(function, degree, sparse=True)
+        varf_2d = quad_2d.varf(function, degree, sparse=True).matrix
+        varf_3d = quad_3d.varf(function, degree, sparse=True).matrix
         projection = core.project(varf_3d, 3, ['x', 'y'])
         diff = (las.norm(varf_2d - projection))
         self.assertAlmostEqual(diff, 0)
+
+
+class TestTensorize(unittest.TestCase):
+
+    def setUp(self):
+        rc.settings['tensorize'] = False
+        rc.settings['cache'] = False
 
     def test_tensorize_vector(self):
         n_points = 200
@@ -68,8 +83,8 @@ class TestTensorize(unittest.TestCase):
         function = 'exp(x)'
         quad_1d = hm.Quad.gauss_hermite(n_points, dim=1)
         quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
-        varf_1d = quad_1d.varf(function, degree)
-        varf_2d = quad_2d.varf(function, degree)
+        varf_1d = quad_1d.varf(function, degree).matrix
+        varf_2d = quad_2d.varf(function, degree).matrix
         tensorized_varf_1d = core.tensorize(varf_1d, 2, 0)
         diff = (la.norm(varf_2d - tensorized_varf_1d, 2))
         self.assertAlmostEqual(diff, 0)
@@ -93,9 +108,9 @@ class TestTensorize(unittest.TestCase):
         f, fx, fy = 'exp(x) * (y*y*y)', 'exp(x)', 'x*x*x'
         quad_1d = hm.Quad.gauss_hermite(n_points, dim=1)
         quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
-        varf_x = quad_1d.varf(fx, degree)
-        varf_y = quad_1d.varf(fy, degree)
-        varf_2d = quad_2d.varf(f, degree)
+        varf_x = quad_1d.varf(fx, degree).matrix
+        varf_y = quad_1d.varf(fy, degree).matrix
+        varf_2d = quad_2d.varf(f, degree).matrix
         tensorized_varf = core.tensorize([varf_x, varf_y])
         diff = la.norm(varf_2d - tensorized_varf, 2)
         self.assertAlmostEqual(diff, 0)
@@ -116,15 +131,15 @@ class TestTensorize(unittest.TestCase):
         series_y = series_y * (1/series_y.coeffs[0])
         self.assertTrue(series_x * series_y == series)
 
-#     def test_tensorize_varf(self):
-#         n_points = 200
-#         degree = 10
-#         f, fx, fy = 'exp(x) * (y*y*y)', 'exp(x)', 'x*x*x'
-#         quad = hm.Quad.gauss_hermite(n_points, dim=2)
-#         varf_x = quad.project(0).varf(fx, degree)
-#         varf_y = quad.project(1).varf(fy, degree)
-#         varf_xy = quad.varf(f, degree)
-#         self.assertTrue(varf_x * varf_y == varf_xy)
+    def test_tensorize_varf(self):
+        n_points = 200
+        degree = 10
+        f, fx, fy = 'exp(x) * (y*y*y)', 'exp(x)', 'x*x*x'
+        quad = hm.Quad.gauss_hermite(n_points, dim=2)
+        varf_x = quad.project(0).varf(fx, degree)
+        varf_y = quad.project(1).varf(fy, degree)
+        varf_xy = quad.varf(f, degree)
+        self.assertTrue(varf_x * varf_y == varf_xy)
 
 #         n_points, degree = 200, 10
 #         mean, cov = [.1, .2], [[1, 0], [0, 2]]

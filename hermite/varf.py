@@ -25,7 +25,10 @@ class Varf:
             dim += a.dim
             mean.extend(a.mean)
             cov.extend(np.diag(a.cov))
-            mats.append(a.matrix)
+            if type(a.matrix) is ss.csr_matrix:
+                mats.append(a.matrix.todense().A)
+            else:
+                mats.append(a.matrix)
         mean = np.asarray(mean)
         cov = np.diag(cov)
         tens_mat = core.tensorize(mats, sparse=sparse)
@@ -46,8 +49,9 @@ class Varf:
         self.is_sparse = isinstance(matrix, ss.csr_matrix)
 
         if degree is None:
+            npolys = self.matrix.shape[0]
             self.degree = lib.natural_bissect(
-                    lambda x: int(binom(x + self.dim, x)) - len(self.matrix))
+                    lambda x: int(binom(x + self.dim, x)) - npolys)
         else:
             self.degree = degree
 

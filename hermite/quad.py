@@ -1,14 +1,8 @@
 # Todos {{{
-# TODO: Add support for sparse matrices
 # TODO: Implement composite quadrature
 # TODO: Ensure directions match
-# TODO: Ensure variables v[0] and x can be used interchangeably
-# TODO: Implement project to two dimensional subset
-# TODO: Add function class?
 # TODO: Can varfd be tensorized?
 # TODO: Improve separability: for example f(x,y) * g(z)
-# TODO: Add varf class (urbain, 02 May 2018)
-# TODO: Add support for tensorization of Series
 # TODO: Implement composite quadrature (urbain, 02 May 2018)
 # TODO: Improve linearize to notice constant * operator
 # }}}

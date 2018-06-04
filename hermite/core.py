@@ -8,7 +8,6 @@ from hermite.settings import settings
 from hermite.stats import log_stats
 from hermite.cache import cache
 
-
 # Conversion functions {{{
 
 
