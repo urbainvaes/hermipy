@@ -94,12 +94,21 @@ vec tensorize(const mat & inputs, const imat & dirs)
 vec tensorize(const mat & inputs)
 {
     u_int dim = inputs.size();
-    imat dirs(dim, ivec(1, 0));
-    for (u_int i = 0; i < dim; i++)
+    u_int degree = inputs[0].size() - 1;
+    u_int n_polys = Multi_index_iterator::size(degree, dim);
+    vec results(n_polys, 0.);
+
+    Multi_index_iterator m(dim, degree);
+    u_int i,j;
+    for (i = 0; !m.isFull(); i++, m.increment())
     {
-        dirs[i][0] = i;
+        results[i] = 1;
+        for (j = 0; j < dim; j++)
+        {
+            results[i] *= inputs[j][m[j]];
+        }
     }
-    return tensorize(inputs, dirs);
+    return results;
 }
 
 vec tensorize(const vec & input, u_int dim, u_int dir)
@@ -197,12 +206,30 @@ template <typename T, typename M>
 T tensorize(const vector<M> & inputs)
 {
     u_int dim = inputs.size();
-    imat dirs(dim, ivec(1, 0));
-    for (u_int i = 0; i < dim; i++)
+    u_int degree = matrix::size1(inputs[0]) - 1;
+    u_int n_polys = Multi_index_iterator::size(degree, dim);
+
+    T product = matrix::construct<T>(n_polys, n_polys);
+
+    Multi_index_iterator m1(dim, degree);
+    Multi_index_iterator m2(dim, degree);
+    u_int i,j,k;
+    for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
     {
-        dirs[i][0] = i;
+        for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
+        {
+            double result = 1.;
+            for (k = 0; k < dim; k++)
+            {
+                result *= matrix::get(inputs[k], m1[k], m2[k]);
+            }
+            if (result != 0)
+            {
+                matrix::set(product, i, j, result);
+            }
+        }
     }
-    return tensorize<T> (inputs, dirs);
+    return product;
 }
 
 
