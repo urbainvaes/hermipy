@@ -361,7 +361,7 @@ def bifurcation(factor_x, m_init):
         x_d = quad_x.discretize('x')
         factor_d = quad_x.discretize(factor_x)
         solution_d = quad_x.eval(series_x) * factor_d
-        weight_d = quad_x.discretize(quad_x.weight())
+        weight_d = quad_x.discretize(quad_x.position.weight())
         moment0 = quad_x.integrate(solution_d/weight_d)
         moment1 = quad_x.integrate(solution_d/weight_d*x_d)
         return moment1 / moment0

@@ -12,6 +12,7 @@ import hermite.settings as rc
 import hermite.function as symfunc
 import hermite.series as hs
 import hermite.varf as hv
+import hermite.position as pos
 
 import numpy as np
 import numpy.linalg as la
@@ -27,48 +28,26 @@ class Quad:
     def __init__(self, nodes, weights, mean=None, cov=None):
         self.nodes = np.asarray(nodes, float)
         self.weights = np.asarray(weights, float)
-
         self.dim = len(self.nodes)
-        self.mean = np.zeros(self.dim) if mean is None \
-            else np.asarray(mean, float)
-        self.cov = np.eye(self.dim) if cov is None \
-            else np.asarray(cov, float)
-
-        eigval, eigvec = la.eig(self.cov)
-        self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
-
-        diag_cov = np.diag(np.diag(self.cov))
-        self.is_diag = la.norm(self.cov - diag_cov, 2) < 1e-10
+        self.position = pos.Position(dim=self.dim, mean=mean, cov=cov)
 
         self.hash = hash(frozenset({
-            self.dim,
             hash(frozenset(self.nodes.flatten())),
             hash(frozenset(self.weights.flatten())),
-            hash(frozenset(self.mean.flatten())),
-            hash(frozenset(self.cov.flatten()))}))
+            hash(self.position)}))
 
     def __mul__(self, other):
-        assert self.is_diag and other.is_diag
-        dim = self.dim + other.dim
+        assert self.position.is_diag and other.position.is_diag
         nodes = [*self.nodes, *other.nodes]
         weights = [*self.weights, *other.weights]
-        mean = np.zeros(dim)
-        cov = np.zeros((dim, dim))
-        for i in range(self.dim):
-            mean[i] = self.mean[i]
-            cov[i][i] = self.cov[i][i]
-        for i in range(other.dim):
-            off = self.dim
-            mean[off + i] = other.mean[i]
-            cov[off + i][off + i] = other.cov[i][i]
+        position = self.position * other.position
+        mean, cov = position.mean, position.cov
         return Quad(nodes, weights, mean, cov)
 
     def __eq__(self, other):
         assert type(other) is Quad
 
-        return self.dim == other.dim \
-            and la.norm(self.mean - other.mean, 2) < very_small \
-            and la.norm(self.cov - other.cov, 2) < very_small \
+        return self.position == other.position \
             and la.norm(self.nodes - other.nodes) < very_small \
             and la.norm(self.weights - other.weights) < very_small
 
@@ -92,7 +71,8 @@ class Quad:
                     return func(*args, **kwargs)
 
                 quad, function = args[0], args[arg_num]
-                if not quad.is_diag or isinstance(function, np.ndarray):
+                if not quad.position.is_diag or \
+                        isinstance(function, np.ndarray):
                     return func(*args, **kwargs)
 
                 results = []
@@ -160,7 +140,8 @@ class Quad:
     def discretize(self, f):
         if not isinstance(f, symfunc.Function):
             f = symfunc.Function(f)
-        function = core.discretize(str(f), self.nodes, self.mean, self.factor)
+        function = core.discretize(str(f), self.nodes,
+                                   self.position.mean, self.position.factor)
         return function
 
     @tensorize_at(1)
@@ -168,7 +149,7 @@ class Quad:
         if not isinstance(f_grid, np.ndarray):
             f_grid = self.discretize(f_grid)
         if l2:
-            w_grid = self.discretize(self.weight())
+            w_grid = self.discretize(self.position.weight())
             f_grid = f_grid / w_grid
         return core.integrate(f_grid, self.nodes, self.weights)
 
@@ -184,16 +165,18 @@ class Quad:
             f_grid = self.discretize(f_grid)
         coeffs = core.transform(degree, f_grid, self.nodes,
                                 self.weights, forward=True)
-        return hs.Series(coeffs, self.dim, self.mean, self.cov,
+        return hs.Series(coeffs, self.dim,
+                         self.position.mean, self.position.cov,
                          norm=norm, degree=degree)
 
     def eval(self, series):
         if type(series) is np.ndarray:
-            series = hs.Series(series, self.dim, self.mean, self.cov)
+            series = hs.Series(series, self.dim,
+                               self.position.mean, self.position.cov)
         degree, coeffs = series.degree, series.coeffs
         inv = la.inv(series.factor)
-        translation = inv.dot(self.mean - series.mean)
-        factor = inv * self.factor
+        translation = inv.dot(self.position.mean - series.mean)
+        factor = inv * self.position.factor
         if la.norm(factor - np.diag(np.diag(factor)), 2) > 1e-8:
             raise ValueError("Incompatible covariance matrices")
         mapped_nodes = self.nodes.copy()
@@ -210,18 +193,20 @@ class Quad:
             f_grid = self.discretize(f_grid)
         var = core.varf(degree, f_grid, self.nodes,
                         self.weights, sparse=sparse)
-        return hv.Varf(var, self.dim, self.mean, self.cov, degree=degree)
+        return hv.Varf(var, self.dim,
+                       self.position.mean, self.position.cov, degree=degree)
 
     def varfd(self, function, degree, directions, sparse=False):
         directions = core.to_numeric(directions)
         var = self.varf(function, degree, sparse=sparse)
         mat = var.matrix
-        eigval, _ = la.eig(self.cov)
+        eigval, _ = la.eig(self.position.cov)
         for d in directions:
             # ipdb.set_trace()
             mat = core.varfd(self.dim, degree, d, mat)
             mat = mat/np.sqrt(eigval[d])
-        return hv.Varf(mat, self.dim, self.mean, self.cov, degree=degree)
+        return hv.Varf(mat, self.dim,
+                       self.position.mean, self.position.cov, degree=degree)
 
     def discretize_op(self, op, func, degree, order, sparse=False):
         mat_operator = 0.
@@ -237,7 +222,7 @@ class Quad:
 
     #  TODO: Ensure order is right (urbain, Tue 01 May 2018)
     def plot(self, series, factor, ax=None):
-        assert self.is_diag
+        assert self.position.is_diag
         if not isinstance(factor, np.ndarray):
             factor = self.discretize(factor)
         n_nodes = []
@@ -252,35 +237,24 @@ class Quad:
         elif self.dim == 2:
             return ax.contourf(*r_nodes, solution, 100)
 
-    def weight(self):
-        var = [sym.symbols('v' + str(i), real=True) for i in range(self.dim)]
-        inv_cov = la.inv(self.cov)
-        potential = 0.5 * inv_cov.dot(var - self.mean).dot(var - self.mean)
-        normalization = 1/(np.sqrt((2*np.pi)**self.dim * la.det(self.cov)))
-        return normalization * sym.exp(-potential)
-
     #  Only works with ints
     def project(self, directions):
-        assert self.is_diag
         if type(directions) is int:
             directions = [directions]
         dim = len(directions)
         nodes, weights = [], []
-        mean = np.zeros(dim)
-        cov = np.zeros((dim, dim))
-        for i in range(len(directions)):
+        for i in range(dim):
             d = directions[i]
             assert d < self.dim
             nodes.append(self.nodes[d])
             weights.append(self.weights[d])
-            mean[i] = self.mean[d]
-            cov[i][i] = self.cov[d][d]
-        return Quad(nodes, weights, mean, cov)
+        pos = self.position.project(directions)
+        return Quad(nodes, weights, pos.mean, pos.cov)
 
     def series(self, coeffs, degree=None, norm=False):
         return hs.Series(coeffs,
                          dim=self.dim,
-                         mean=self.mean,
-                         cov=self.cov,
+                         mean=self.position.mean,
+                         cov=self.position.cov,
                          degree=degree,
                          norm=norm)

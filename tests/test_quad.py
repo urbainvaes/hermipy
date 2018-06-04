@@ -78,7 +78,7 @@ class TestIntegrate(unittest.TestCase):
         mean = np.random.random(dim)
         cov = np.matmul(rand_mat.T, rand_mat)
         quad_aligned = hm.Quad.gauss_hermite(8, dim=dim, mean=mean, cov=cov)
-        gaussian = quad_aligned.weight()
+        gaussian = quad_aligned.position.weight()
         integral = quad_aligned.integrate(gaussian, l2=True)
         self.assertAlmostEqual(integral, 1.)
 
@@ -88,8 +88,8 @@ class TestIntegrate(unittest.TestCase):
         mean = [0.5, 1]
         quad_ali = hm.Quad.gauss_hermite(50, dim=dim, mean=mean, cov=cov)
         quad_std = hm.Quad.gauss_hermite(50, dim=dim)
-        gaussian_ali = quad_ali.weight()
-        gaussian_std = quad_std.weight()
+        gaussian_ali = quad_ali.position.weight()
+        gaussian_std = quad_std.position.weight()
         integral_1 = quad_ali.integrate(gaussian_std, l2=True)
         integral_2 = quad_std.integrate(gaussian_ali, l2=True)
         self.assertTrue(abs(integral_1 - 1.) < .01)

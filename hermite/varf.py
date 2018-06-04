@@ -16,10 +16,10 @@ very_small = 1e-10
 class Varf:
 
     @staticmethod
-    def tensorize(varfs, dim=None, direction=None, sparse=False):
-        assert len(varfs) > 1
+    def tensorize(args, sparse=False):
+        assert len(args) > 1
         dim, mean, cov, mats = 0, [], [], []
-        for a in varfs:
+        for a in args:
             assert type(a) is Varf
             assert a.is_diag
             dim += a.dim
