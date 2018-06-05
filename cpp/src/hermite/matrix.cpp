@@ -19,7 +19,15 @@ namespace hermite { namespace matrix {
         return cmat(dims);
     }
 
-    template<typename T, typename S> T convert(const S & input)
+    template<typename T> T convert(const mat & input);
+    template<typename T> T convert(const spmat & input);
+
+    template <> mat convert (const mat & input)
+    {
+        return input;
+    }
+
+    template <> spmat convert (const spmat & input)
     {
         return input;
     }
@@ -33,9 +41,4 @@ namespace hermite { namespace matrix {
     {
         return to_spmat(input);
     }
-
-    // Template instanciation
-    template spmat convert(const spmat & input);
-    template mat convert(const mat & input);
-
 }}

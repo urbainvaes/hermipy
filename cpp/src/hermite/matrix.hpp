@@ -8,7 +8,7 @@
 #include "hermite/types.hpp"
 #include "hermite/sparse.hpp"
 
-namespace hermite { 
+namespace hermite {
 namespace matrix
 {
     inline void set(spmat & input, u_int i, u_int j, double val)
@@ -51,7 +51,9 @@ namespace matrix
         return input[i][j];
     }
 
-    template<typename T, typename S> T convert(const S & input);
+
+    template<typename T> T convert(const mat & input);
+    template<typename T> T convert(const spmat & input);
     template<typename T> T construct(u_int size1, u_int size2);
     template<typename T> T eye(u_int size)
     {
