@@ -99,6 +99,8 @@ template<typename T> T varf(
 
     // Polynomial of highest degree
     Multi_index_iterator m(dim, 2*degree); m.reset();
+
+    #ifdef DEBUG
     u_int max_degree = 0;
     for (u_int i = 0; i < Hf.size(); i++, m.increment())
     {
@@ -119,17 +121,14 @@ template<typename T> T varf(
         }
     }
 
-    bool use_sparse = max_degree < 10;
-
-    #ifdef DEBUG
-    cout << "--> Using sparse matrices? " << use_sparse << endl;
+    cout << "--> Maximal degree " << max_degree << endl;
     #endif
 
     cube products = triple_products_1d(degree);
 
     // To store results
+    m.reset();
     T result = matrix::construct<T>(n_polys, n_polys);
-
     for (u_int i = 0; i < Hf.size(); i++, m.increment())
     {
         if (abs(Hf[i]) < 1e-12)
@@ -150,12 +149,12 @@ template<typename T> T varf(
         #ifdef DEBUG
         cout << "--> Tensorizing for current mult-index." << endl;
         #endif
-        auto result_iteration = tensorize<T, mat>(factors)*Hf[i];
+        auto result_iteration = tensorize<T, mat>(factors);
 
         #ifdef DEBUG
-        cout << "--> Adding to global matrix." << endl;
+        cout << "--> Adding to global matrix."<< endl;
         #endif
-        result = result + result_iteration;
+        result = result + result_iteration*Hf[i];
     }
 
     #ifdef DEBUG
