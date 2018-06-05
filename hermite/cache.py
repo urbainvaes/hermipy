@@ -6,6 +6,8 @@ from functools import wraps
 import scipy.sparse as sparse
 from hermite.settings import settings
 
+import ipdb
+
 
 def gen_hash(extend=None):
 

@@ -154,7 +154,7 @@ def varf(degree, fgrid, nodes, weights, sparse=False):
 
 @cache()
 @log_stats
-def varfd(dim, degree, direction, var, numpy=True):
+def varfd(dim, degree, direction, var, sparse=True):
     var = to_cpp(var)
     result = log_stats(hm.varfd)(dim, degree, direction, var)
     return log_stats(to_numpy)(result)

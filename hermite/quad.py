@@ -75,7 +75,6 @@ class Quad:
                     return func(*args, **kwargs)
 
                 results = []
-                # pdb.set_trace()
                 if not isinstance(function, symfunc.Function):
                     function = symfunc.Function(function, dim=quad.dim)
 
@@ -198,7 +197,7 @@ class Quad:
         eigval, _ = la.eig(self.position.cov)
         for d in directions:
             # ipdb.set_trace()
-            mat = core.varfd(self.dim, degree, d, mat)
+            mat = core.varfd(self.dim, degree, d, mat, sparse=sparse)
             mat = mat/np.sqrt(eigval[d])
         return hv.Varf(mat, self.position, degree=degree)
 
@@ -209,7 +208,6 @@ class Quad:
         v = ['x', 'y', 'z']
         for m, coeff in zip(mult, splitop):
             d_vector = sum([[v[i]]*m[i] for i in range(self.dim)], [])
-            # ipdb.set_trace()
             varf_part = self.varfd(coeff, degree, d_vector, sparse=sparse)
             mat_operator = varf_part + mat_operator
         return mat_operator
