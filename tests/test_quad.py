@@ -296,6 +296,7 @@ class TestSparseFunctions(unittest.TestCase):
                     bw = abs(i - j)
                     if bw > deg:
                         print(i, j, v)
+                    self.assertTrue(bw <= deg)
             self.assertEqual(bw, deg)
 
     def test_sparse_varf_2d(self):

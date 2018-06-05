@@ -17,7 +17,7 @@ settings = {
         'cache': False,
         'cachedir': '/tmp/test_hermite',
         'tensorize': False,
-        'trails': True,
+        'trails': False,
         }
 rc.settings.update(settings)
 if not os.path.exists(settings['cachedir']):
@@ -401,7 +401,10 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
         # Discretization of the operator
         rc.settings['tensorize'] = True
-        mat = quad.discretize_op(backward, self.f, degrees[-1], 2).matrix
+        rc.settings['trails'] = True
+        mat = quad.discretize_op(backward, self.f,
+                                 degrees[-1], 2,
+                                 sparse=True).matrix
 
         solutions = []
 
@@ -413,8 +416,9 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
                 v0 = np.zeros(npolys)
                 for i in range(len(eig_vec)):
                     v0[i] = eig_vec[i]
-            sub_mat = (mat[0:npolys, 0:npolys]).copy(order='C')
-            # pdb.set_trace()
+            sub_mat = (mat[0:npolys, 0:npolys])
+            if type(mat) is np.ndarray:
+                sub_mat = sub_mat.copy(order='C')
             eig_vals, eig_vecs = las.eigs(sub_mat, k=1, v0=v0, which='LR')
             eig_vec = np.real(eig_vecs.T[0])
             ground_state = eig_vec * np.sign(eig_vec[0])
