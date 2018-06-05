@@ -15,15 +15,9 @@ using namespace std;
 
 namespace hermite {
 
-void set_dims(const imat & dirs, u_int & dim, ivec & dims)
+// Auxiliary functions {{{
+void check_dims(const imat & dirs, u_int dim)
 {
-    dim = 0;
-    for (u_int i = 0; i < dirs.size(); i++)
-    {
-        dims[i] = dirs[i].size();
-        dim += dims[i];
-    }
-
     std::vector<bool> dirs_present (dim, false);
     for (u_int i = 0; i < dirs.size(); i++)
     {
@@ -64,16 +58,26 @@ void check_degree(u_int size, u_int dim, u_int degree)
     }
 }
 
+// }}}
+// Tensorization of vectors {{{
+
 vec tensorize(const mat & inputs, const imat & dirs)
 {
-    u_int dim;
+    u_int dim = 0;
     ivec dims(dirs.size());
-    set_dims(dirs, dim, dims);
-    u_int degree = bissect_degree(dims[0], inputs[0].size());
     for (u_int i = 0; i < dirs.size(); i++)
     {
-        check_degree(inputs[i].size(), dims[i], degree);
+        dims[i] = dirs[i].size();
+        dim += dims[i];
     }
+
+    u_int degree = bissect_degree(dims[0], inputs[0].size());
+
+    #ifdef DEBUG
+    check_dims(dirs, dim);
+    for (u_int i = 0; i < dirs.size(); i++)
+        check_degree(inputs[i].size(), dims[i], degree);
+    #endif
 
     u_int n_polys = Multi_index_iterator::size(degree, dim);
     vec results(n_polys, 0.);
@@ -94,21 +98,10 @@ vec tensorize(const mat & inputs, const imat & dirs)
 vec tensorize(const mat & inputs)
 {
     u_int dim = inputs.size();
-    u_int degree = inputs[0].size() - 1;
-    u_int n_polys = Multi_index_iterator::size(degree, dim);
-    vec results(n_polys, 0.);
-
-    Multi_index_iterator m(dim, degree);
-    u_int i,j;
-    for (i = 0; !m.isFull(); i++, m.increment())
-    {
-        results[i] = 1;
-        for (j = 0; j < dim; j++)
-        {
-            results[i] *= inputs[j][m[j]];
-        }
-    }
-    return results;
+    imat dirs(dim, ivec(1, 0));
+    for (u_int i = 0; i < dim; i++)
+        dirs[i][0] = i;
+    return tensorize(inputs, dirs);
 }
 
 vec tensorize(const vec & input, u_int dim, u_int dir)
@@ -120,142 +113,259 @@ vec tensorize(const vec & input, u_int dim, u_int dir)
     return tensorize(vecs);
 }
 
-template <typename T>
-T tensorize(const vector<mat> & inputs, const imat & dirs)
+// }}}
+// Tensorization of matrices {{{
+
+void tensorize_dirs(const ivec & dA, const ivec & dB,
+                    ivec & result, ivec & dA_to_ind, ivec & dB_to_ind)
 {
-    u_int dim;
-    ivec dims(dirs.size());
-    set_dims(dirs, dim, dims);
-    u_int degree = bissect_degree(dims[0], matrix::size1(inputs[0]));
-    for (u_int i = 0; i < dirs.size(); i++)
+    // Calculate compounded directions
+    u_int sA = dA.size(),
+          sB = dB.size();
+
+    #ifdef DEGUB
+    for (u_int i = 0; i < sA - 1; i++)
+        assert(dA[i + 1] > dA[i]);
+
+    for (u_int i = 0; i < sB - 1; i++)
+        assert(dB[i + 1] > dB[i]);
+    #endif
+
+    u_int dim = sA + sB,
+          iA = 0,
+          iB = 0;
+
+    dA_to_ind.resize(sA),
+    dB_to_ind.resize(sB);
+    result.resize(dim);
+
+    for (u_int i = 0; i < dim; i++)
     {
-        check_degree(matrix::size1(inputs[i]), dims[i], degree);
+        if (iB == sB || (iA < sA && dA[iA] < dB[iB]) )
+        {
+            result[i] = dA[iA];
+            dA_to_ind[iA++] = i;
+            continue;
+        }
+        else
+        {
+            result[i] = dB[iB];
+            dB_to_ind[iB++] = i;
+            continue;
+        }
     }
+}
+
+spmat tensorize(const spmat & A, const spmat & B,
+                const ivec & dA, const ivec & dB)
+{
+    #ifdef DEBUG
+    cout << "Entering tensorize(A, B, dA, dB)" << endl;
+    #endif
+
+    // Calculate compounded directions
+    u_int sA = dA.size(),
+          sB = dB.size();
+    u_int dim = sA + sB;
+
+    ivec d, dA_to_ind, dB_to_ind;
+    tensorize_dirs(dA, dB, d, dA_to_ind, dB_to_ind);
+
+    u_int degree = bissect_degree(sA, A.size1());
+
+    #ifdef DEBUG
+    assert(bissect_degree(sB, B.size1()) == degree);
+    #endif
 
     u_int n_polys = Multi_index_iterator::size(degree, dim);
-    T product = matrix::construct<T>(n_polys, n_polys);
+    spmat product = matrix::construct<spmat>(n_polys, n_polys);
 
-    Multi_index_iterator m1(dim, degree);
-    Multi_index_iterator m2(dim, degree);
+    imat multi_indices_A = list_multi_indices(sA, degree);
+    imat multi_indices_B = list_multi_indices(sB, degree);
 
-    u_int i,j,k;
-    for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
+    #ifdef DEBUG
+    cout << "--> Starting for loop" << endl;
+    #endif
+    for (cit1_t iA1 = A.begin1(); iA1 != A.end1(); ++iA1)
     {
-        for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
+        for (cit2_t iA2 = iA1.begin(); iA2 != iA1.end(); ++iA2)
         {
-            double result = 1.;
-            for (k = 0; k < dirs.size(); k++)
+            #ifdef DEBUG
+            cout << "--> Iteration outer loop!" << endl;
+            #endif
+
+            ivec m_row_A = multi_indices_A[iA2.index1()];
+            ivec m_col_A = multi_indices_A[iA2.index2()];
+            double elem_A = *iA2;
+
+            #ifdef DEBUG
+            cout << "--> Multi-indices: " << m_row_A << " and " << m_col_A << endl;
+            #endif
+
+            ivec multi_index_row_base(dim, 0),
+                 multi_index_col_base(dim, 0);
+
+            for (u_int i = 0; i < sA; i++)
             {
-                ivec sub1 = extract(m1.get(), dirs[k]);
-                ivec sub2 = extract(m2.get(), dirs[k]);
-                u_int ind1 = Multi_index_iterator::index(sub1);
-                u_int ind2 = Multi_index_iterator::index(sub2);
-                result *= matrix::get(inputs[k], ind1, ind2);
+                multi_index_row_base[dA_to_ind[i]] = m_row_A[i];
+                multi_index_col_base[dA_to_ind[i]] = m_col_A[i];
             }
-            if (result != 0)
+
+            #ifdef DEBUG
+            cout << "-----> Starting inner for loop" << endl;
+            #endif
+            for (cit1_t iB1 = B.begin1(); iB1 != B.end1(); ++iB1)
             {
-                matrix::set(product, i, j, result);
+                for (cit2_t iB2 = iB1.begin(); iB2 != iB1.end(); ++iB2)
+                {
+                    ivec m_row_B = multi_indices_B[iB2.index1()];
+                    ivec m_col_B = multi_indices_B[iB2.index2()];
+                    double elem_B = *iB2;
+
+                    ivec multi_index_row = multi_index_row_base,
+                         multi_index_col = multi_index_col_base;
+
+                    for (u_int i = 0; i < sB; i++)
+                    {
+                        multi_index_row[dB_to_ind[i]] = m_row_B[i];
+                        multi_index_col[dB_to_ind[i]] = m_col_B[i];
+                    }
+
+                    u_int ind_row = Multi_index_iterator::index(multi_index_row);
+                    u_int ind_col = Multi_index_iterator::index(multi_index_col);
+
+                    if (ind_row >= matrix::size1(product) || ind_col >= matrix::size2(product))
+                        continue;
+
+                    #ifdef DEBUG
+                    cout << "-----> Setting matrix entry " << ind_row << "," << ind_col << endl;
+                    #endif
+                    matrix::set(product, ind_row, ind_col, elem_A * elem_B);
+                }
             }
         }
     }
     return product;
 }
 
-template <typename T>
-T tensorize(const vector<spmat> & inputs, const imat & dirs)
+template <typename T, typename S>
+T tensorize(const vector<S> & inputs, const imat & dirs)
 {
-    u_int dim;
+    #ifdef DEBUG
+    cout << "Entering tensorize with dirs = " << endl << dirs << endl;
+    cout << "--> Calculating dimensions." << endl;
+    assert (inputs.size() == dirs.size());
+    #endif
+    u_int dim = 0;
     ivec dims(dirs.size());
-    set_dims(dirs, dim, dims);
-    u_int degree = bissect_degree(dims[0], matrix::size1(inputs[0]));
     for (u_int i = 0; i < dirs.size(); i++)
     {
+        dims[i] = dirs[i].size();
+        dim += dims[i];
+    }
+
+    #ifdef DEBUG
+    cout << "--> Dimension = " << dim << endl;
+    cout << "--> Converting arguments to sparse matrices." << endl;
+    #endif
+    vector<spmat> sp_inputs(inputs.size());
+    for (u_int i = 0; i < inputs.size(); i++)
+        sp_inputs[i] = matrix::convert<spmat>(inputs[i]);
+
+    #ifdef DEBUG
+    cout << "--> Running checks for dimensions." << endl;
+    check_dims(dirs, dim);
+    cout << "--> Passed check." << endl;
+
+    cout << "--> Running checks for degrees." << endl;
+    u_int degree = bissect_degree(dims[0], matrix::size1(inputs[0]));
+    for (u_int i = 1; i < inputs.size(); i++)
         check_degree(matrix::size1(inputs[i]), dims[i], degree);
-    }
+    cout << "--> Passed check." << endl;
+    #endif
 
-    u_int n_polys = Multi_index_iterator::size(degree, dim);
-    T product = matrix::construct<T>(n_polys, n_polys);
-
-    Multi_index_iterator m1(dim, degree);
-    Multi_index_iterator m2(dim, degree);
-
-    u_int i,j,k;
-    for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
+    spmat result = sp_inputs[0];
+    ivec d = dirs[0], d_old, _a1, _a2;
+    for (u_int i = 0; i < inputs.size() - 1; i++)
     {
-        for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
-        {
-            double result = 1.;
-            for (k = 0; k < dirs.size(); k++)
-            {
-                ivec sub1 = extract(m1.get(), dirs[k]);
-                ivec sub2 = extract(m2.get(), dirs[k]);
-                u_int ind1 = Multi_index_iterator::index(sub1);
-                u_int ind2 = Multi_index_iterator::index(sub2);
-                result *= matrix::get(inputs[k], ind1, ind2);
-            }
-            if (result != 0)
-            {
-                matrix::set(product, i, j, result);
-            }
-        }
+        #ifdef DEBUG
+        cout << "--> Tensorizing directions " << d << " and " << dirs[i+1] << endl;
+        #endif
+
+        d_old = d;
+        tensorize_dirs(d_old, dirs[i+1], d, _a1, _a2);
+
+        #ifdef DEBUG
+        cout << "--> Tensorizing matrices" << endl;
+        #endif
+        result = tensorize(result, sp_inputs[i+1], d_old, dirs[i+1]);
+
     }
-    return product;
+
+    return matrix::convert<T>(result);
 }
 
-template <typename T, typename M>
-T tensorize(const vector<M> & inputs)
+template <typename T, typename S>
+T tensorize(const vector<S> & inputs)
 {
     u_int dim = inputs.size();
-    u_int degree = matrix::size1(inputs[0]) - 1;
-    u_int n_polys = Multi_index_iterator::size(degree, dim);
+    imat dirs(dim, ivec(1, 0));
+    for (u_int i = 0; i < dim; i++)
+        dirs[i][0] = i;
+    return tensorize<T,S>(inputs, dirs);
 
-    T product = matrix::construct<T>(n_polys, n_polys);
+    // u_int dim = inputs.size();
+    // u_int degree = matrix::size1(inputs[0]) - 1;
+    // u_int n_polys = Multi_index_iterator::size(degree, dim);
 
-    Multi_index_iterator m1(dim, degree);
-    Multi_index_iterator m2(dim, degree);
-    u_int i,j,k;
-    for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
-    {
-        for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
-        {
-            double result = 1.;
-            for (k = 0; k < dim; k++)
-            {
-                result *= matrix::get(inputs[k], m1[k], m2[k]);
-            }
-            if (result != 0)
-            {
-                matrix::set(product, i, j, result);
-            }
-        }
-    }
-    return product;
+    // T product = matrix::construct<T>(n_polys, n_polys);
+
+    // Multi_index_iterator m1(dim, degree);
+    // Multi_index_iterator m2(dim, degree);
+    // u_int i,j,k;
+    // for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
+    // {
+    //     for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
+    //     {
+    //         double result = 1.;
+    //         for (k = 0; k < dim; k++)
+    //         {
+    //             result *= matrix::get(inputs[k], m1[k], m2[k]);
+    //         }
+    //         if (result != 0)
+    //         {
+    //             matrix::set(product, i, j, result);
+    //         }
+    //     }
+    // }
+    // return product;
 }
 
-
-template<typename T, typename M> T
-tensorize(const M & input, u_int dim, u_int dir)
+template<typename T, typename M>
+T tensorize(const M & input, u_int dim, u_int dir)
 {
     u_int degree = matrix::size1(input) - 1;
     T eye = matrix::eye<T>(degree + 1);
     vector<T> mats(dim, eye);
-    mats[dir] = matrix::convert<T,M>(input);
+    mats[dir] = matrix::convert<T>(input);
     return tensorize<T>(mats);
 }
-
-template mat tensorize(const std::vector<mat> & inputs);
-template mat tensorize(const std::vector<spmat> & inputs);
-template spmat tensorize(const std::vector<mat> & inputs);
-template spmat tensorize(const std::vector<spmat> & inputs);
 
 template mat tensorize(const std::vector<mat> & inputs, const imat & dirs);
 template mat tensorize(const std::vector<spmat> & inputs, const imat & dirs);
 template spmat tensorize(const std::vector<mat> & inputs, const imat & dirs);
 template spmat tensorize(const std::vector<spmat> & inputs, const imat & dirs);
 
+template mat tensorize(const std::vector<mat> & inputs);
+template mat tensorize(const std::vector<spmat> & inputs);
+template spmat tensorize(const std::vector<mat> & inputs);
+template spmat tensorize(const std::vector<spmat> & inputs);
+
 template mat tensorize(const mat & input, u_int dim, u_int dir);
 template mat tensorize(const spmat & input, u_int dim, u_int dir);
 template spmat tensorize(const mat & input, u_int dim, u_int dir);
 template spmat tensorize(const spmat & input, u_int dim, u_int dir);
+
+// }}}
 
 }

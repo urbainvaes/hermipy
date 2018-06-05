@@ -18,11 +18,8 @@ T tensorize(const M & input, u_int dim, u_int dir);
 template <typename T, typename M>
 T tensorize(const std::vector<M> & inputs);
 
-template <typename T>
-T tensorize(const std::vector<mat> & inputs, const imat & dirs);
-
-template <typename T>
-T tensorize(const std::vector<spmat> & inputs, const imat & dirs);
+template <typename T, typename S>
+T tensorize(const std::vector<S> & inputs, const imat & dirs);
 
 }
 
