@@ -190,17 +190,9 @@ spmat tensorize(const spmat & A, const spmat & B,
     {
         for (cit2_t iA2 = iA1.begin(); iA2 != iA1.end(); ++iA2)
         {
-            #ifdef DEBUG
-            cout << "--> Iteration outer loop!" << endl;
-            #endif
-
             ivec m_row_A = multi_indices_A[iA2.index1()];
             ivec m_col_A = multi_indices_A[iA2.index2()];
             double elem_A = *iA2;
-
-            #ifdef DEBUG
-            cout << "--> Multi-indices: " << m_row_A << " and " << m_col_A << endl;
-            #endif
 
             ivec multi_index_row_base(dim, 0),
                  multi_index_col_base(dim, 0);
@@ -211,9 +203,6 @@ spmat tensorize(const spmat & A, const spmat & B,
                 multi_index_col_base[dA_to_ind[i]] = m_col_A[i];
             }
 
-            #ifdef DEBUG
-            cout << "-----> Starting inner for loop" << endl;
-            #endif
             for (cit1_t iB1 = B.begin1(); iB1 != B.end1(); ++iB1)
             {
                 for (cit2_t iB2 = iB1.begin(); iB2 != iB1.end(); ++iB2)
@@ -237,9 +226,6 @@ spmat tensorize(const spmat & A, const spmat & B,
                     if (ind_row >= matrix::size1(product) || ind_col >= matrix::size2(product))
                         continue;
 
-                    #ifdef DEBUG
-                    cout << "-----> Setting matrix entry " << ind_row << "," << ind_col << endl;
-                    #endif
                     matrix::set(product, ind_row, ind_col, elem_A * elem_B);
                 }
             }
@@ -273,15 +259,11 @@ T tensorize(const vector<S> & inputs, const imat & dirs)
         sp_inputs[i] = matrix::convert<spmat>(inputs[i]);
 
     #ifdef DEBUG
-    cout << "--> Running checks for dimensions." << endl;
     check_dims(dirs, dim);
-    cout << "--> Passed check." << endl;
 
-    cout << "--> Running checks for degrees." << endl;
     u_int degree = bissect_degree(dims[0], matrix::size1(inputs[0]));
     for (u_int i = 1; i < inputs.size(); i++)
         check_degree(matrix::size1(inputs[i]), dims[i], degree);
-    cout << "--> Passed check." << endl;
     #endif
 
     spmat result = sp_inputs[0];

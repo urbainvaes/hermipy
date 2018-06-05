@@ -4,7 +4,7 @@ project(Hermite)
 set (PROJECT_VERSION_MAJOR 0)
 set (PROJECT_VERSION_MINOR 0)
 set (CMAKE_VERBOSE_MAKEFILE OFF)
-set (CMAKE_BUILD_TYPE debug)
+set (CMAKE_BUILD_TYPE release)
 set (CMAKE_CXX_FLAGS_DEBUG "-DDEBUG")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -Wall -Wextra -Wpedantic") # Necessary to repeat
 set (CMAKE_CXX_LINKER_FLAGS  "${CMAKE_CXX_LINKER_FLAGS} -Wl,--no-undefined")

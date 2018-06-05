@@ -40,7 +40,6 @@ template<class type> std::vector<type> operator*(const std::vector<type>& vec, c
     return result;
 }
 
-
 hermite::mat operator*(const hermite::mat &, const hermite::mat &);
 hermite::vec operator*(const hermite::mat &, const hermite::vec &);
 double operator*(const hermite::vec &, const hermite::vec &);
