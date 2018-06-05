@@ -31,7 +31,6 @@ class Varf:
         return Varf(tens_mat, tens_pos)
 
     def __init__(self, matrix, position, degree=None):
-
         self.matrix = matrix
         self.is_sparse = isinstance(matrix, ss.csr_matrix)
         self.position = position
