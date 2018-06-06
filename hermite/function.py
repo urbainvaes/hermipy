@@ -65,8 +65,17 @@ class Function():
     def __repr__(self):
         return str(self)
 
-    def as_string(self, format='array'):
+    def as_string(self, format='array', dirs=None):
         function = str(self)
+
+        if dirs is not None:
+            assert dirs == sorted(dirs)
+            for i in range(len(dirs)):
+                if dirs[i] is not i:
+                    assert not re.search(r'\bv\[{}\]'.format(i))
+                    function = re.sub(r'\bv\[{}\]'.format(dirs[i]),
+                                      'v[{}]'.format(i), function)
+
         if format == 'array':
             return function
         if format == 'xyz':
