@@ -18,6 +18,20 @@ class Position:
             cov.extend(np.diag(a.cov))
         return Position(dim=dim, mean=mean, cov=np.diag(cov))
 
+    @staticmethod
+    def inner(p1, p2):
+        assert p1.is_diag and p2.is_diag
+        diff1 = [d for d in p1.dirs if d not in p2.dirs]
+        diff2 = [d for d in p2.dirs if d not in p1.dirs]
+        dirs_result = sorted(diff1 + diff2)
+        dim, mean, cov = len(dirs_result), [], []
+        for d in dirs_result:
+            pos = p1 if d in p1.dirs else p2
+            index = pos.dirs.index(d)
+            mean.append(pos.mean[index])
+            cov.append(pos.cov[index][index])
+        return Position(dim=dim, mean=mean, cov=np.diag(cov), dirs=dirs_result)
+
     def __init__(self, dim=None, mean=None, cov=None, dirs=None):
 
         if mean is not None:
