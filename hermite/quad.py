@@ -24,11 +24,12 @@ very_small = 1e-10
 
 class Quad:
 
-    def __init__(self, nodes, weights, mean=None, cov=None):
+    def __init__(self, nodes, weights, mean=None, cov=None, dirs=None):
         self.nodes = np.asarray(nodes, float)
         self.weights = np.asarray(weights, float)
         self.dim = len(self.nodes)
-        self.position = pos.Position(dim=self.dim, mean=mean, cov=cov)
+        self.position = pos.Position(dim=self.dim, mean=mean,
+                                     cov=cov, dirs=dirs)
 
         self.hash = hash(frozenset({
             hash(frozenset(self.nodes.flatten())),
@@ -108,16 +109,16 @@ class Quad:
         return tensorize_arg
 
     @classmethod
-    def gauss_hermite(cls, n_points, dim=None, mean=None, cov=None):
+    def gauss_hermite(cls, n_points, dim=None, **kwargs):
         if dim is not None:
             n_points = np.full(dim, n_points)
         elif isinstance(n_points, int):
             n_points = [n_points]
         nodes, weights = lib.hermegauss_nd(n_points)
-        return cls(nodes, weights, mean=mean, cov=cov)
+        return cls(nodes, weights, **kwargs)
 
     @classmethod
-    def newton_cotes(cls, n_points, extrema, mean=None, cov=None):
+    def newton_cotes(cls, n_points, extrema, **kwargs):
         nodes, weights = [], []
         for i in range(len(extrema)):
             nodes.append(np.linspace(-extrema[i], extrema[i], n_points[i]))
@@ -126,7 +127,7 @@ class Quad:
             weights_simpson[0], weights_simpson[-1] = .5, .5
             gaussian_weight = 1/np.sqrt(2*np.pi) * np.exp(-nodes[-1]**2/2.)
             weights.append(weights_simpson * gaussian_weight * mesh_size)
-        return cls(nodes, weights, mean=mean, cov=cov)
+        return cls(nodes, weights, **kwargs)
 
     def mapped_nodes(self):
         coords_nodes = []

@@ -3,13 +3,13 @@
 #include <boost/math/special_functions/binomial.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 
-#include "hermite/matrix.hpp"
+#include "hermite/io.hpp"
 #include "hermite/iterators.hpp"
+#include "hermite/lib.hpp"
+#include "hermite/matrix.hpp"
 #include "hermite/project.hpp"
 #include "hermite/templates.hpp"
 #include "hermite/types.hpp"
-#include "hermite/lib.hpp"
-#include "hermite/io.hpp"
 
 using namespace std;
 using boost::math::binomial_coefficient;
