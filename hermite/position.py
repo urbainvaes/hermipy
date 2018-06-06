@@ -72,11 +72,15 @@ class Position:
             hash(frozenset(self.cov.flatten()))}))
 
     def weight(self):
-        var = [sym.symbols('v' + str(i), real=True) for i in range(self.dim)]
+        var = [sym.symbols('v' + str(d), real=True) for d in self.dirs]
         inv_cov = la.inv(self.cov)
         potential = 0.5 * inv_cov.dot(var - self.mean).dot(var - self.mean)
         normalization = 1/(np.sqrt((2*np.pi)**self.dim * la.det(self.cov)))
         return normalization * sym.exp(-potential)
+
+    def weights(self):
+        assert self.is_diag
+        return [self.project(i).weight() for i in range(self.dim)]
 
     def project(self, directions):
         assert self.is_diag
@@ -88,4 +92,4 @@ class Position:
             assert d < self.dim
             mean[i] = self.mean[d]
             cov[i][i] = self.cov[d][d]
-        return Position(dim=dim, mean=mean, cov=cov)
+        return Position(dim=dim, mean=mean, cov=cov, dirs=directions)
