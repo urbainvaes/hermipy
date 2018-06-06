@@ -48,8 +48,7 @@ class Position:
         self.cov = np.eye(self.dim) if cov is None \
             else np.asarray(cov, float)
 
-        self.dirs = np.arange(dim) if dirs is None \
-            else np.asarray(dirs)
+        self.dirs = list(range(dim)) if dirs is None else dirs
 
         eigval, eigvec = la.eig(self.cov)
         self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
