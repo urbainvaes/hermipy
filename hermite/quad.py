@@ -212,7 +212,7 @@ class Quad:
             mat_operator = varf_part + mat_operator
         return mat_operator
 
-    #  TODO: Ensure order is right (urbain, Tue 01 May 2018)
+    # TODO: Ensure order is right (urbain, Tue 01 May 2018)
     def plot(self, series, factor, ax=None):
         assert self.position.is_diag
         if not isinstance(factor, np.ndarray):
@@ -229,7 +229,7 @@ class Quad:
         elif self.dim == 2:
             return ax.contourf(*r_nodes, solution, 100)
 
-    #  Only works with ints
+    # Only works with ints
     def project(self, directions):
         if type(directions) is int:
             directions = [directions]
