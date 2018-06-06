@@ -18,7 +18,7 @@ class Position:
             cov.extend(np.diag(a.cov))
         return Position(dim=dim, mean=mean, cov=np.diag(cov))
 
-    def __init__(self, dim=None, mean=None, cov=None):
+    def __init__(self, dim=None, mean=None, cov=None, dirs=None):
 
         if mean is not None:
             self.dim = len(mean)
@@ -33,6 +33,9 @@ class Position:
 
         self.cov = np.eye(self.dim) if cov is None \
             else np.asarray(cov, float)
+
+        self.dirs = np.arange(dim) if dirs is None \
+            else np.asarray(dirs)
 
         eigval, eigvec = la.eig(self.cov)
         self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
