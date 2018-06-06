@@ -385,19 +385,16 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
         # Map to appropriate space
         factor_x = sym.exp(- β / 2 * (Vqx + Vp))
-        factor_yz = sym.exp(- 1/2 * (y*y/2 + Vqy + z*z/2 + Vqz))
-        factor = factor_x * factor_yz
+        factor_y = sym.exp(- 1/2 * (y*y/2 + Vqy))
+        factor_z = sym.exp(- 1/2 * (z*z/2 + Vqz))
+        factor = factor_x * factor_y * factor_z
 
         # Mapped operator
         backward = eq.map_operator(forward, f, factor)
 
-        # Discretize factor
-        factor_x = quad.project(0).discretize(factor_x)
-        factor = quad.discretize(factor)
+        return quad, forward, backward, factor, factor_x, factor_y, factor_z
 
-        return quad, forward, backward, factor, factor_x
-
-    def solve(self, backward, quad, factor, degrees):
+    def solve(self, backward, quad, factors, degrees):
 
         # Discretization of the operator
         rc.settings['tensorize'] = True
@@ -408,21 +405,36 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
         solutions = []
 
+        ipdb.set_trace()
+
+        # Discretize factor
+        factor = quad.discretize(factors[0] * factors[1] * factors[2])
+        f_projection = factors[1] / quad.weights()[1]
+
         v0, eig_vec = None, None
         for d in degrees:
             print(d)
+
             npolys = int(binom(d + self.dim, d))
             if d is not degrees[0]:
                 v0 = np.zeros(npolys)
                 for i in range(len(eig_vec)):
                     v0[i] = eig_vec[i]
             sub_mat = (mat[0:npolys, 0:npolys])
+
             if type(mat) is np.ndarray:
                 sub_mat = sub_mat.copy(order='C')
             eig_vals, eig_vecs = las.eigs(sub_mat, k=1, v0=v0, which='LR')
             eig_vec = np.real(eig_vecs.T[0])
             ground_state = eig_vec * np.sign(eig_vec[0])
-            ground_state_eval = quad.eval(quad.series(ground_state))*factor
+            ground_state_series = quad.series(ground_state)
+
+            npolys1 = int(binom(d + 1, d))
+            s_projection = quad.project(1).transform(f_projection, d)
+            proj_series = ground_state_series.inner(s_projection)
+            ipdb.set_trace()
+
+            ground_state_eval = quad.eval(ground_state_series)*factor
             norm = quad.norm(ground_state_eval, n=1, l2=True)
             ground_state_eval = ground_state_eval / norm
             solutions.append(ground_state_eval)
@@ -440,11 +452,11 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         m, s2x, s2y = r(1, 10), r(1, 20), 1/2
         params = {'β': r(10), 'ε': r(.5), 'γ': 0, 'θ': 0, 'm': 0}
         args = [Vp, params, m, s2x, s2y, degree]
-        quad, forward, backward, factor, _ = self.sym_calc(*args)
+        quad, forward, backward, factor, fx, fy, fz = self.sym_calc(*args)
 
         # Numerical solutions
         degrees = list(range(5, degree))
-        solutions, finest = self.solve(backward, quad, factor, degrees)
+        solutions, finest = self.solve(backward, quad, [fx, fy, fz], degrees)
         finest_eval = solutions[-1]
 
         # Plot of the finest solution

@@ -24,12 +24,14 @@ very_small = 1e-10
 
 class Quad:
 
-    def __init__(self, nodes, weights, mean=None, cov=None, dirs=None):
+    def __init__(self, nodes, weights,
+                 mean=None, cov=None, dirs=None, position=None):
         self.nodes = np.asarray(nodes, float)
         self.weights = np.asarray(weights, float)
         self.dim = len(self.nodes)
-        self.position = pos.Position(dim=self.dim, mean=mean,
-                                     cov=cov, dirs=dirs)
+
+        self.position = position if position is not None else \
+            pos.Position(dim=self.dim, mean=mean, cov=cov, dirs=dirs)
 
         self.hash = hash(frozenset({
             hash(frozenset(self.nodes.flatten())),
@@ -41,8 +43,7 @@ class Quad:
         nodes = [*self.nodes, *other.nodes]
         weights = [*self.weights, *other.weights]
         position = self.position * other.position
-        mean, cov = position.mean, position.cov
-        return Quad(nodes, weights, mean, cov)
+        return Quad(nodes, weights, position=position)
 
     def __eq__(self, other):
         assert type(other) is Quad
@@ -242,7 +243,7 @@ class Quad:
             nodes.append(self.nodes[d])
             weights.append(self.weights[d])
         pos = self.position.project(directions)
-        return Quad(nodes, weights, pos.mean, pos.cov)
+        return Quad(nodes, weights, position=pos)
 
     def series(self, coeffs, degree=None, norm=False):
         return hs.Series(coeffs, self.position, degree=degree, norm=norm)

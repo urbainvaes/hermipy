@@ -13,3 +13,5 @@ $ python -m unittest discover -v -s tests
 - Duplicate split_operator
 
 - Inconsistency with direction in project() and self.dirs
+
+- Add function to lower degree 
