@@ -4,14 +4,15 @@
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
 #include "hermite/discretize.hpp"
+#include "hermite/inner.hpp"
 #include "hermite/iterators.hpp"
-#include "hermite/tensorize.hpp"
 #include "hermite/project.hpp"
+#include "hermite/python/converters.hpp"
+#include "hermite/sparse.hpp"
+#include "hermite/tensorize.hpp"
 #include "hermite/transform.hpp"
 #include "hermite/types.hpp"
 #include "hermite/varf.hpp"
-#include "hermite/sparse.hpp"
-#include "hermite/python/converters.hpp"
 
 using namespace std;
 
@@ -63,6 +64,9 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     // Integration and Hermite transform
     def("integrate", integrate);
     def("transform", transform);
+
+    // Inner product between Hermite series
+    def("inner", inner);
 
     // Triple products and variational formulations
     def("triple_products", triple_products_1d);
