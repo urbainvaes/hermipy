@@ -1,19 +1,12 @@
 import hermite.quad as hm
 import hermite.settings as rc
-import hermite.series as hs
+import hermite.series as series
 import hermite.position as position
 
 import unittest
 import numpy as np
-import numpy.polynomial.hermite_e as herm
 import numpy.linalg as la
-import sympy as sym
-import math
 import os
-import tempfile
-
-import scipy.sparse as sp
-import scipy.sparse.linalg as las
 
 import ipdb
 
@@ -35,13 +28,16 @@ class TestInner(unittest.TestCase):
         self.assertAlmostEqual(la.norm(result.mean - [1, 4, 5]), 0)
         self.assertAlmostEqual(la.norm(result.cov - np.diag([1, 4, 5])), 0)
 
-#     def test_simple(self):
-#         n_points, degree = 200, 10
-#         function = 'exp(x)'
-#         quad_1d = hm.Quad.gauss_hermite(n_points, dim=1)
-#         quad_2d = hm.Quad.gauss_hermite(n_points, dim=2)
-#         series_1 = quad_1d.transform(function, degree)
-#         series_2 = quad_2d.transform(function, degree)
-#         projection = core.inner()
-#         diff = (la.norm(varf_1d - projection, 2))
-#         self.assertAlmostEqual(diff, 0)
+    def test_simple(self):
+        n_points, degree = 200, 10
+        fx, fy = 'exp(x)', '1'
+        quad_xy = hm.Quad.gauss_hermite(n_points, dim=2, dirs=[0, 1])
+        quad_y = hm.Quad.gauss_hermite(n_points, dim=1, dirs=[1])
+        series_xy = quad_xy.transform(fx, degree)
+        series_y = quad_y.transform(fy, degree)
+        inner = series.Series.inner(series_xy, series_y)
+        self.assertTrue(series_xy.position.dirs == [0, 1])
+        self.assertTrue(series_y.position.dirs == [1])
+        self.assertTrue(inner.position.dirs == [0])
+        projection = series_xy.project(0)
+        self.assertTrue(inner == projection)
