@@ -78,6 +78,7 @@ BOOST_PYTHON_MODULE(hermite_cpp)
 
     // Projection and tensorization of vectors
     def("project", static_cast<vec (*) (const vec & input, u_int dim, u_int dir)> (& project));
+    def("project", static_cast<vec (*) (const vec & input, u_int dim, const ivec & dirs)> (& project));
     def("project", static_cast<mat   (*) (const mat   & input, u_int dim, u_int dir)> (& project<mat>));
     def("project", static_cast<spmat (*) (const spmat & input, u_int dim, u_int dir)> (& project<spmat>));
     def("project", static_cast<mat   (*) (const mat   & input, u_int dim, const ivec & dirs)> (& project<mat>));
