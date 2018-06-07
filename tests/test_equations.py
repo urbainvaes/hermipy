@@ -13,16 +13,16 @@ import hermite.settings as rc
 
 from scipy.special import binom
 
-settings = {
+
+class TestConvergenceFokkerPlanck1d(unittest.TestCase):
+
+    settings = {
         'cache': False,
         'cachedir': '/tmp/test_hermite',
         'tensorize': False,
+        'sparse': False,
         'trails': False,
         }
-rc.settings.update(settings)
-
-
-class TestConvergenceFokkerPlanck1d(unittest.TestCase):
 
     def setUp(self):
 
@@ -36,6 +36,9 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
         # Common parameters of numerical approximation
         self.degree = 100
         self.n_points_num = 2*self.degree + 1
+
+        # Reset default settings
+        rc.settings.update(self.settings)
 
     def sym_calc(self, Vp, m, s2):
 
@@ -72,7 +75,9 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
 
         solutions = []
         for d in degrees:
-            sub_mat = (mat[0:d+1, 0:d+1]).copy(order='C')
+            sub_mat = (mat[0:d+1, 0:d+1])
+            if type(sub_mat) is np.ndarray:
+                sub_mat = sub_mat.copy(order='C')
             eig_vals, eig_vecs = las.eigs(sub_mat, k=1, which='LR')
             ground_state = np.real(eig_vecs.T[0])
             ground_state = ground_state * np.sign(ground_state[0])
@@ -170,6 +175,14 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
 
         self.assertTrue(errors[-1] < 1e-10)
         self.assertTrue(error < 10)
+
+    def test_gaussian_sparse(self):
+        rc.settings['sparse'] = True
+        self.test_gaussian()
+
+    def test_bistable_sparse(self):
+        rc.settings['sparse'] = True
+        self.test_bistable()
 
 
 class TestConvergenceFokkerPlanck2d(unittest.TestCase):
