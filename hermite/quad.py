@@ -204,7 +204,8 @@ class Quad:
             mat = mat/np.sqrt(eigval[d])
         return hv.Varf(mat, self.position, degree=degree)
 
-    def discretize_op(self, op, func, degree, order, sparse=False):
+    def discretize_op(self, op, func, degree, order, sparse=None):
+        sparse = rc.settings['sparse'] if sparse is None else sparse
         mat_operator = 0.
         mult = list(core.multi_indices(self.dim, order))
         splitop = lib.split_operator(op, func, order)
