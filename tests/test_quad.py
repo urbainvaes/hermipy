@@ -18,8 +18,6 @@ import ipdb
 
 settings = {'cache': False, 'cachedir': '/tmp/test_hermite'}
 rc.settings.update(settings)
-if not os.path.exists(settings['cachedir']):
-    os.makedirs(settings['cachedir'])
 
 
 class TestIntegrate(unittest.TestCase):

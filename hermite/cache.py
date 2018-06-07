@@ -6,7 +6,7 @@ from functools import wraps
 import scipy.sparse as sparse
 from hermite.settings import settings
 
-import ipdb
+import os
 
 
 def gen_hash(extend=None):
@@ -101,6 +101,9 @@ def cache(hash_extend=None, error_extend=None, quiet=False):
             load = sparse.load_npz if is_sparse else numpy_extended_load
 
             cachedir = settings['cachedir']
+            if not os.path.exists(cachedir):
+                os.makedirs(cachedir)
+
             savefile = cachedir + '/' + prefix + '-' + str(hash_args) + ext
             try:
                 result_cache = load(savefile)

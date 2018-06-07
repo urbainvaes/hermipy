@@ -20,8 +20,6 @@ settings = {
         'trails': False,
         }
 rc.settings.update(settings)
-if not os.path.exists(settings['cachedir']):
-    os.makedirs(settings['cachedir'])
 
 
 class TestConvergenceFokkerPlanck1d(unittest.TestCase):
