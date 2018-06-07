@@ -216,4 +216,4 @@ def inner(s1, s2, d1, d2):
     d1_cpp, d2_cpp = hm.int_vec(), hm.int_vec()
     d1_cpp.extend(d1)
     d2_cpp.extend(d2)
-    return hm.inner(s1, s2, d1_cpp, d2_cpp)
+    return np.array(hm.inner(s1, s2, d1_cpp, d2_cpp))
