@@ -59,6 +59,8 @@ class Function():
                     if self.v_array[- 1 - i] in expr.free_symbols:
                         self.dim = len(self.v_array) - i
                         break
+                else:
+                    self.dim = 0
             self.dirs = list(range(self.dim))
 
         assert len(expr.free_symbols) <= self.dim
