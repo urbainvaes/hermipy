@@ -75,7 +75,8 @@ class Function():
         return sym.ccode(self.sym_func)
 
     def __repr__(self):
-        return str(self)
+        variables = [self.v_array[d] for d in self.dirs]
+        return str(variables) + " --> " + str(self)
 
     def as_string(self, format='array', toC=False):
         function = str(self)
