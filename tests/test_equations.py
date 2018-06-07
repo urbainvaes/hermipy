@@ -187,6 +187,15 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
 
 class TestConvergenceFokkerPlanck2d(unittest.TestCase):
 
+    settings = {
+        'cache': False,
+        'cachedir': '/tmp/test_hermite',
+        'tensorize': False,
+        'sparse': False,
+        'trails': False,
+        'debug': False,
+        }
+
     def setUp(self):
 
         # Equation parameters
@@ -195,6 +204,9 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
 
         # Default degree
         self.degree = 50
+
+        # Set default settings
+        rc.settings.update(self.settings)
 
     def sym_calc(self, Vp, parameters, m, s2x, s2y,
                  degree=None):
@@ -254,8 +266,9 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
                 v0 = np.zeros(npolys)
                 for i in range(len(eig_vec)):
                     v0[i] = eig_vec[i]
-            sub_mat = (mat[0:npolys, 0:npolys]).copy(order='C')
-            # pdb.set_trace()
+            sub_mat = (mat[0:npolys, 0:npolys])
+            if type(sub_mat) is np.ndarray:
+                sub_mat = sub_mat.copy(order='C')
             eig_vals, eig_vecs = las.eigs(sub_mat, k=1, v0=v0, which='LR')
             eig_vec = np.real(eig_vecs.T[0])
             ground_state = eig_vec * np.sign(eig_vec[0])
@@ -357,6 +370,32 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
 
         self.assertTrue(errors[-1] < 1e-3)
         self.assertTrue(error < 3)
+
+    def test_gaussian_sparse(self):
+        rc.settings['sparse'] = True
+        self.test_gaussian()
+
+    def test_gaussian_tensorize(self):
+        rc.settings['tensorize'] = True
+        self.test_gaussian()
+
+    def test_gaussian_sparse_tensorize(self):
+        rc.settings['sparse'] = True
+        rc.settings['tensorize'] = True
+        self.test_gaussian()
+
+    def test_bistable_sparse(self):
+        rc.settings['sparse'] = True
+        self.test_bistable()
+
+    def test_bistable_tensorize(self):
+        rc.settings['tensorize'] = True
+        self.test_bistable()
+
+    def test_bistable_sparse_tensorize(self):
+        rc.settings['sparse'] = True
+        rc.settings['tensorize'] = True
+        self.test_bistable()
 
 
 class TestConvergenceFokkerPlanck3d(unittest.TestCase):
