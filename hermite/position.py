@@ -80,7 +80,7 @@ class Position:
 
     def weights(self):
         assert self.is_diag
-        return [self.project(i).weight() for i in range(self.dim)]
+        return [self.project([i]).weight() for i in range(self.dim)]
 
     def project(self, directions):
         assert self.is_diag
