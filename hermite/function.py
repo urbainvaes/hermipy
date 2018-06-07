@@ -22,7 +22,7 @@ class Function():
         conv[str(v_sub[i])] = v_array[i]
         conv[str(v_array[i])] = v_array[i]
 
-    def __init__(self, expr, dim=None):
+    def __init__(self, expr, dim=None, dirs=None):
 
         if isinstance(expr, int) or isinstance(expr, float):
             expr = str(expr)
@@ -47,14 +47,24 @@ class Function():
 
         self.sym_func = expr
 
-        if dim is not None:
-            assert len(expr.free_symbols) <= dim
-            self.dim = dim
+        if dirs is not None:
+            self.dirs, self.dim = dirs, len(dirs)
+            assert self.dirs == sorted(self.dirs)
+            assert dim is None or dim == self.dim
         else:
-            for i in range(len(self.v_array)):
-                if self.v_array[- 1 - i] in expr.free_symbols:
-                    self.dim = len(self.v_array) - i
-                    break
+            if dim is not None:
+                self.dim = dim
+            else:
+                for i in range(len(self.v_array)):
+                    if self.v_array[- 1 - i] in expr.free_symbols:
+                        self.dim = len(self.v_array) - i
+                        break
+            self.dirs = list(range(self.dim))
+
+        assert len(expr.free_symbols) <= self.dim
+        symbols = [self.v_array[d] for d in self.dirs]
+        for s in expr.free_symbols:
+            assert s in symbols
 
     def __eq__(self, other):
         return self.sym_func == other.sym_func
@@ -65,15 +75,15 @@ class Function():
     def __repr__(self):
         return str(self)
 
-    def as_string(self, format='array', dirs=None):
+    def as_string(self, format='array', toC=False):
         function = str(self)
 
-        if dirs is not None:
-            assert dirs == sorted(dirs)
-            for i in range(len(dirs)):
-                if dirs[i] is not i:
+        # Convert dirs[i] -> i, to ease discretization
+        if toC:
+            for i in range(self.dim):
+                if self.dirs[i] is not i:
                     assert not re.search(r'\bv\[{}\]'.format(i))
-                    function = re.sub(r'\bv\[{}\]'.format(dirs[i]),
+                    function = re.sub(r'\bv\[{}\]'.format(self.dirs[i]),
                                       'v[{}]'.format(i), function)
 
         if format == 'array':
