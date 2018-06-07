@@ -193,13 +193,13 @@ def tensorize(inp, dim=None, direction=None, sparse=False):
 @cache()
 @log_stats
 def project(inp, dim, directions):
+    if type(directions) is int:
+        directions = [directions]
     inp = to_cpp(inp)
     directions = to_numeric(directions)
-    if type(directions) is list:
-        directions_cpp = hm.int_vec()
-        directions_cpp.extend(directions)
-        directions = directions_cpp
-    return to_numpy(hm.project(inp, dim, directions))
+    directions_cpp = hm.int_vec()
+    directions_cpp.extend(directions)
+    return to_numpy(hm.project(inp, dim, directions_cpp))
 
 
 @cache()

@@ -73,10 +73,12 @@ class Varf:
         else:
             raise TypeError("Invalid type: " + str(type(other)))
 
-    def project(self, direction):
-        direction = core.to_numeric(direction)
-        p_matrix = core.project(self.matrix, self.dim, direction)
-        p_pos = self.position.project([direction])
+    def project(self, directions):
+        if type(directions) is int:
+            directions = [directions]
+        directions = core.to_numeric(directions)
+        p_matrix = core.project(self.matrix, self.dim, directions)
+        p_pos = self.position.project(directions)
         return Varf(p_matrix, p_pos)
 
     def subdegree(self, degree):

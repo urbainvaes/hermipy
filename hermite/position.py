@@ -83,6 +83,8 @@ class Position:
         return [self.project([i]).weight() for i in range(self.dim)]
 
     def project(self, directions):
+        if type(directions) is int:
+            directions = [directions]
         assert self.is_diag
         dim = len(directions)
         mean = np.zeros(dim)
