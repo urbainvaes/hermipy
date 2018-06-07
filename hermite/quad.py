@@ -140,6 +140,7 @@ class Quad:
     def discretize(self, f):
         if not isinstance(f, symfunc.Function):
             f = symfunc.Function(f)
+        f = f.as_string(format='array', toC=True)
         function = core.discretize(str(f), self.nodes,
                                    self.position.mean, self.position.factor)
         return function
@@ -217,6 +218,7 @@ class Quad:
     # TODO: Ensure order is right (urbain, Tue 01 May 2018)
     def plot(self, series, factor, ax=None):
         assert self.position.is_diag
+        assert self.position == series.position
         if not isinstance(factor, np.ndarray):
             factor = self.discretize(factor)
         n_nodes = []

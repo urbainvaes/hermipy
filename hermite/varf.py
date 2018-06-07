@@ -78,3 +78,9 @@ class Varf:
         p_matrix = core.project(self.matrix, self.dim, direction)
         p_pos = self.position.project([direction])
         return Varf(p_matrix, p_pos)
+
+    def subdegree(self, degree):
+        assert degree <= self.degree
+        n_polys = int(binom(degree + self.position.dim, degree))
+        matrix = self.matrix[0:n_polys][0:n_polys]
+        return Varf(matrix, self.position, degree=degree)

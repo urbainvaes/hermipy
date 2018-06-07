@@ -74,10 +74,16 @@ class Series:
         d1, d2 = self.position.dirs, s2.position.dirs
         result = core.inner(self.coeffs, s2.coeffs, d1, d2)
         inner_pos = pos.Position.inner(self.position, s2.position)
-        return Series(result, inner_pos, degree=self)
+        return Series(result, inner_pos, degree=self.degree)
 
     def project(self, direction):
         direction = core.to_numeric(direction)
         p_coeffs = core.project(self.coeffs, self.position.dim, direction)
         p_pos = self.position.project([direction])
         return Series(p_coeffs, p_pos)
+
+    def subdegree(self, degree):
+        assert degree <= self.degree
+        n_polys = int(binom(degree + self.position.dim, degree))
+        coeffs = self.coeffs[0:n_polys]
+        return Series(coeffs, self.position, degree=degree)
