@@ -453,13 +453,27 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
                                  degrees[-1], 2,
                                  sparse=True).matrix
 
-        solutions = []
-
         ipdb.set_trace()
+        solutions = []
 
         # Discretize factor
         factor = quad.discretize(factors[0] * factors[1] * factors[2])
-        f_projection = factors[1] / quad.weights()[1]
+
+        dirs_removed = [1]
+        factor_removed, weight_removed = 1, 1
+        for d in dirs_removed:
+            factor_removed *= factors[d]
+            weight_removed *= quad.position.weights()[d]
+        f_projection = factor_removed / weight_removed
+        s_projection = quad.project(dirs_removed).transform(f_projection,
+                                                            degrees[-1])
+        dirs_visu = [i for i in range(3) if i not in dirs_removed]
+        factor_visu = 1
+        for d in dirs_visu:
+            factor_visu *= factors[d]
+
+        # Quadrature for vizualization
+        quad_visu = quad.project(dirs_visu)
 
         v0, eig_vec = None, None
         for d in degrees:
@@ -472,40 +486,39 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
                     v0[i] = eig_vec[i]
             sub_mat = (mat[0:npolys, 0:npolys])
 
-            if type(mat) is np.ndarray:
+            if type(sub_mat) is np.ndarray:
                 sub_mat = sub_mat.copy(order='C')
             eig_vals, eig_vecs = las.eigs(sub_mat, k=1, v0=v0, which='LR')
             eig_vec = np.real(eig_vecs.T[0])
             ground_state = eig_vec * np.sign(eig_vec[0])
             ground_state_series = quad.series(ground_state)
 
-            npolys1 = int(binom(d + 1, d))
-            s_projection = quad.project(1).transform(f_projection, d)
-            proj_series = ground_state_series.inner(s_projection)
-            ipdb.set_trace()
-
             ground_state_eval = quad.eval(ground_state_series)*factor
             norm = quad.norm(ground_state_eval, n=1, l2=True)
             ground_state_eval = ground_state_eval / norm
             solutions.append(ground_state_eval)
 
-            # fig, ax = plt.subplots(1, 1)
-            # quad.plot(quad.series(ground_state), factor, ax=ax)
-            # plt.show()
+            sub_projection = s_projection.subdegree(d)
+            inner_series = ground_state_series.inner(sub_projection)
+
+            fig, ax = plt.subplots(1, 1)
+            # ipdb.set_trace()
+            quad_visu.plot(inner_series, factor_visu, ax=ax)
+            plt.show()
 
         return solutions, quad.series(ground_state)
 
     def test_bistable(self):
 
         r = sym.Rational
-        Vp, degree = self.x**4/4 - self.x**2/2, 30
-        m, s2x, s2y = r(1, 10), r(1, 20), 1/2
-        params = {'β': r(10), 'ε': r(.5), 'γ': 0, 'θ': 0, 'm': 0}
-        args = [Vp, params, m, s2x, s2y, degree]
+        Vp, degree = self.x**4/4 - self.x**2/2, 50
+        s2x, s2y, s2z = r(1, 2), 1, 1
+        params = {'β': 5, 'ε': 0.5, 'γ': 0, 'θ': 0, 'm': 0}
+        args = [Vp, params, s2x, s2y, s2z, degree]
         quad, forward, backward, factor, fx, fy, fz = self.sym_calc(*args)
 
         # Numerical solutions
-        degrees = list(range(5, degree))
+        degrees = list(range(20, degree, 5))
         solutions, finest = self.solve(backward, quad, [fx, fy, fz], degrees)
         finest_eval = solutions[-1]
 

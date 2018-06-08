@@ -85,7 +85,7 @@ class Function():
         if toC:
             for i in range(self.dim):
                 if self.dirs[i] is not i:
-                    assert not re.search(r'\bv\[{}\]'.format(i))
+                    assert not re.search(r'\bv\[{}\]'.format(i), function)
                     function = re.sub(r'\bv\[{}\]'.format(self.dirs[i]),
                                       'v[{}]'.format(i), function)
 
