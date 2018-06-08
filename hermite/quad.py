@@ -141,7 +141,7 @@ class Quad:
         if not isinstance(f, symfunc.Function):
             f = symfunc.Function(f)
         f = f.as_string(format='array', toC=True)
-        function = core.discretize(str(f), self.nodes,
+        function = core.discretize(f, self.nodes,
                                    self.position.mean, self.position.factor)
         return function
 
@@ -221,12 +221,14 @@ class Quad:
         assert self.position.is_diag
         assert self.position == series.position
         if not isinstance(factor, np.ndarray):
+            # ipdb.set_trace()
+            factor = symfunc.Function(factor, dirs=self.position.dirs)
             factor = self.discretize(factor)
         n_nodes = []
         r_nodes = []
         for i in range(self.dim):
             n_nodes.append(len(self.nodes[i]))
-            r_nodes.append(self.project(i).discretize('x'))
+            r_nodes.append(self.project(i).discretize('x'))  # Problematic line?
         solution = self.eval(series)*factor
         solution = solution.reshape(*n_nodes).T
         if self.dim == 1:

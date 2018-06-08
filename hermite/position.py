@@ -69,7 +69,8 @@ class Position:
         return hash(frozenset({
             self.dim,
             hash(frozenset(self.mean.flatten())),
-            hash(frozenset(self.cov.flatten()))}))
+            hash(frozenset(self.cov.flatten())),
+            hash(frozenset(self.dirs))}))
 
     def weight(self):
         var = [sym.symbols('v' + str(d), real=True) for d in self.dirs]

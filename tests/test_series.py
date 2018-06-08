@@ -6,7 +6,6 @@ import hermite.position as position
 import unittest
 import numpy as np
 import numpy.linalg as la
-import os
 
 import ipdb
 
