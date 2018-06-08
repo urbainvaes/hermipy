@@ -1,3 +1,21 @@
+# Copyright (C) 2018 Urbain Vaes
+#
+# This file is part of hermipy, a python/C++ library for automating the
+# Hermite Galerkin method.
+#
+# hermipy is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# hermipy is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 import os
 import ipdb
 import unittest
@@ -7,9 +25,9 @@ import numpy.linalg as la
 import scipy.sparse.linalg as las
 import matplotlib.pyplot as plt
 
-import hermite.quad as hm
-import hermite.equations as eq
-import hermite.settings as rc
+import hermipy.quad as hm
+import hermipy.equations as eq
+import hermipy.settings as rc
 
 from scipy.special import binom
 
@@ -508,40 +526,40 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
         return solutions, quad.series(ground_state)
 
-    def test_bistable(self):
+#     def test_bistable(self):
 
-        r = sym.Rational
-        Vp, degree = self.x**4/4 - self.x**2/2, 50
-        s2x, s2y, s2z = r(1, 2), 1, 1
-        params = {'β': 5, 'ε': 0.5, 'γ': 0, 'θ': 0, 'm': 0}
-        args = [Vp, params, s2x, s2y, s2z, degree]
-        quad, forward, backward, factor, fx, fy, fz = self.sym_calc(*args)
+#         r = sym.Rational
+#         Vp, degree = self.x**4/4 - self.x**2/2, 50
+#         s2x, s2y, s2z = r(1, 2), 1, 1
+#         params = {'β': 5, 'ε': 0.5, 'γ': 0, 'θ': 0, 'm': 0}
+#         args = [Vp, params, s2x, s2y, s2z, degree]
+#         quad, forward, backward, factor, fx, fy, fz = self.sym_calc(*args)
 
-        # Numerical solutions
-        degrees = list(range(20, degree, 5))
-        solutions, finest = self.solve(backward, quad, [fx, fy, fz], degrees)
-        finest_eval = solutions[-1]
+#         # Numerical solutions
+#         degrees = list(range(20, degree, 5))
+#         solutions, finest = self.solve(backward, quad, [fx, fy, fz], degrees)
+#         finest_eval = solutions[-1]
 
-        # Plot of the finest solution
-        fig, ax = plt.subplots(1, 1)
-        quad.plot(finest, factor, ax=ax)
-        plt.show()
+#         # Plot of the finest solution
+#         fig, ax = plt.subplots(1, 1)
+#         quad.plot(finest, factor, ax=ax)
+#         plt.show()
 
-        # Associated errors
-        errors, degrees = [], degrees[0:-1]
-        for sol in solutions[0:-1]:
-            error = quad.norm(sol - finest_eval, l2=True)
-            errors.append(error)
-            print(error)
+#         # Associated errors
+#         errors, degrees = [], degrees[0:-1]
+#         for sol in solutions[0:-1]:
+#             error = quad.norm(sol - finest_eval, l2=True)
+#             errors.append(error)
+#             print(error)
 
-        log_errors = np.log(errors)
-        poly_approx = np.polyfit(degrees, log_errors, 1)
-        errors_approx = np.exp(np.polyval(poly_approx, degrees))
-        error = la.norm(log_errors - np.log(errors_approx), 2)
+#         log_errors = np.log(errors)
+#         poly_approx = np.polyfit(degrees, log_errors, 1)
+#         errors_approx = np.exp(np.polyval(poly_approx, degrees))
+#         error = la.norm(log_errors - np.log(errors_approx), 2)
 
-        plt.semilogy(degrees, errors, 'k.')
-        plt.semilogy(degrees, errors_approx)
-        plt.show()
+#         plt.semilogy(degrees, errors, 'k.')
+#         plt.semilogy(degrees, errors_approx)
+#         plt.show()
 
-        self.assertTrue(errors[-1] < 1e-3)
-        self.assertTrue(error < 1)
+#         self.assertTrue(errors[-1] < 1e-3)
+#         self.assertTrue(error < 1)
