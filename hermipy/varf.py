@@ -95,7 +95,7 @@ class Varf:
         if type(directions) is int:
             directions = [directions]
         directions = core.to_numeric(directions)
-        p_matrix = core.project(self.matrix, self.dim, directions)
+        p_matrix = core.project(self.matrix, self.position.dim, directions)
         p_pos = self.position.project(directions)
         return Varf(p_matrix, p_pos)
 

@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt
 import hermipy.quad as hm
 import hermipy.equations as eq
 import hermipy.settings as rc
+import hermipy.stats as stats
 
 from scipy.special import binom
 
@@ -506,7 +507,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
             if type(sub_mat) is np.ndarray:
                 sub_mat = sub_mat.copy(order='C')
-            eig_vals, eig_vecs = las.eigs(sub_mat, k=1, v0=v0, which='LR')
+            eig_vals, eig_vecs = stats.log_stats(las.eigs)(sub_mat, k=1, v0=v0, which='LR')
             eig_vec = np.real(eig_vecs.T[0])
             ground_state = eig_vec * np.sign(eig_vec[0])
             ground_state_series = quad.series(ground_state)
