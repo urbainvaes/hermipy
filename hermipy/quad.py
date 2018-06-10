@@ -46,10 +46,10 @@ class Quad:
                  mean=None, cov=None, dirs=None, position=None):
         self.nodes = np.asarray(nodes, float)
         self.weights = np.asarray(weights, float)
-        self.dim = len(self.nodes)
 
+        dim = len(self.nodes)
         self.position = position if position is not None else \
-            pos.Position(dim=self.dim, mean=mean, cov=cov, dirs=dirs)
+            pos.Position(dim=dim, mean=mean, cov=cov, dirs=dirs)
 
         self.hash = hash(frozenset({
             hash(frozenset(self.nodes.flatten())),
@@ -96,7 +96,8 @@ class Quad:
 
                 results = []
                 if not isinstance(function, symfunc.Function):
-                    function = symfunc.Function(function, dim=quad.dim)
+                    function = symfunc.Function(function,
+                                                dim=quad.position.dim)
 
                 for add in function.split():
                     if len(add) == 2:
@@ -106,7 +107,7 @@ class Quad:
                         continue
 
                     func_dirs = []
-                    for d in range(quad.dim):
+                    for d in range(quad.position.dim):
                         new_args = list(args).copy()
                         new_args[0] = quad.project(d)
                         new_args[arg_num] = add[d]
@@ -150,7 +151,7 @@ class Quad:
 
     def mapped_nodes(self):
         coords_nodes = []
-        for i in range(self.dim):
+        for i in range(self.position.dim):
             coord = 'v[{}]'.format(i)
             coords_nodes.append(self.discretize(coord))
         return np.asarray(np.vstack(coords_nodes)).T
@@ -218,40 +219,42 @@ class Quad:
         eigval, _ = la.eig(self.position.cov)
         for d in directions:
             # ipdb.set_trace()
-            mat = core.varfd(self.dim, degree, d, mat, sparse=sparse)
+            mat = core.varfd(self.position.dim, degree, d, mat, sparse=sparse)
             mat = mat/np.sqrt(eigval[d])
         return hv.Varf(mat, self.position, degree=degree)
 
     def discretize_op(self, op, func, degree, order, sparse=None):
         sparse = rc.settings['sparse'] if sparse is None else sparse
         mat_operator = 0.
-        mult = list(core.multi_indices(self.dim, order))
+        mult = list(core.multi_indices(self.position.dim, order))
         splitop = lib.split_operator(op, func, order)
         v = ['x', 'y', 'z']
         for m, coeff in zip(mult, splitop):
-            d_vector = sum([[v[i]]*m[i] for i in range(self.dim)], [])
+            d_vector = sum([[v[i]]*m[i] for i in range(self.position.dim)], [])
             varf_part = self.varfd(coeff, degree, d_vector, sparse=sparse)
             mat_operator = varf_part + mat_operator
         return mat_operator
 
     # TODO: Ensure order is right (urbain, Tue 01 May 2018)
-    def plot(self, series, factor, ax=None):
+    def plot(self, series, factor=None, ax=None):
         assert self.position.is_diag
         assert self.position == series.position
+        if factor is None:
+            factor = self.position.weight()
         if not isinstance(factor, np.ndarray):
             # ipdb.set_trace()
             factor = symfunc.Function(factor, dirs=self.position.dirs)
             factor = self.discretize(factor)
         n_nodes = []
         r_nodes = []
-        for i in range(self.dim):
+        for i in range(self.position.dim):
             n_nodes.append(len(self.nodes[i]))
             r_nodes.append(self.project(i).discretize('x'))  # Problematic line?
         solution = self.eval(series)*factor
         solution = solution.reshape(*n_nodes).T
-        if self.dim == 1:
+        if self.position.dim == 1:
             return ax.plot(*r_nodes, solution)
-        elif self.dim == 2:
+        elif self.position.dim == 2:
             return ax.contourf(*r_nodes, solution, 100)
 
     # Only works with ints
@@ -262,7 +265,7 @@ class Quad:
         nodes, weights = [], []
         for i in range(dim):
             d = directions[i]
-            assert d < self.dim
+            assert d < self.position.dim
             nodes.append(self.nodes[d])
             weights.append(self.weights[d])
         pos = self.position.project(directions)
