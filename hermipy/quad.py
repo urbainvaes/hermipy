@@ -91,7 +91,8 @@ class Quad:
 
                 quad, function = args[0], args[arg_num]
                 if not quad.position.is_diag or \
-                        isinstance(function, np.ndarray):
+                        isinstance(function, np.ndarray) or \
+                        quad.position.dim is 1:
                     return func(*args, **kwargs)
 
                 results = []
