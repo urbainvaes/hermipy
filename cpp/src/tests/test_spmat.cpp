@@ -58,7 +58,7 @@ int main()
     hermite::spmat sp_tensorized = tensorize<hermite::spmat, hermite::spmat>(sp_inputs);
     hermite::mat tensorized = tensorize<hermite::mat, hermite::mat>(inputs);
     hermite::mat difference = hermite::full(sp_tensorized) - tensorized;
-    imat m = list_multi_indices(2, degree);
+    imat m = Multi_index_iterator::list(2, degree);
     for (u_int i = 0; i < tensorized.size(); i++)
     {
         for (u_int j = 0; j < tensorized.size(); j++)
