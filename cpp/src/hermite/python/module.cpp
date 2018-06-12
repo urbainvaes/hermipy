@@ -130,8 +130,8 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     def("full", full);
 
     // Misc functions
-    def("list_cube_indices", list_cube_indices);
-    def("list_multi_indices", list_multi_indices);
+    def("list_cube_indices", Hyper_cube_iterator::list);
+    def("list_multi_indices", Multi_index_iterator::list);
 }
 
 }

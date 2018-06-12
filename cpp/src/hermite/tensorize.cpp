@@ -200,8 +200,8 @@ spmat tensorize(const spmat & A, const spmat & B,
     u_int n_polys = Multi_index_iterator::size(degree, dim);
     spmat product = matrix::construct<spmat>(n_polys, n_polys);
 
-    imat multi_indices_A = list_multi_indices(sA, degree);
-    imat multi_indices_B = list_multi_indices(sB, degree);
+    imat multi_indices_A = Multi_index_iterator::list(sA, degree);
+    imat multi_indices_B = Multi_index_iterator::list(sB, degree);
 
     #ifdef DEBUG
     cout << "--> Starting for loop" << endl;

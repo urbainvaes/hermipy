@@ -77,6 +77,8 @@ class Multi_index_iterator : public Vector_iterator
     // Get linear index from multi-index
     static u_int index(const ivec & m_vec);
     static u_int size(u_int degree, u_int dim);
+    static imat list(u_int dim, u_int upper_bound);
+
     void increment();
     Multi_index_iterator(u_int dim, u_int upper_bound):
         Vector_iterator(dim), upper_bound(upper_bound) {}
@@ -89,13 +91,12 @@ class Hyper_cube_iterator : public Vector_iterator
 
     public:
 
+    static imat list(const ivec & upper_bounds);
+
     void increment();
     Hyper_cube_iterator(const ivec & upper_bounds):
         Vector_iterator(upper_bounds.size()), upper_bounds(upper_bounds) {}
 };
-
-imat list_multi_indices(u_int dim, u_int upper_bound);
-imat list_cube_indices(const ivec & upper_bounds);
 
 }
 

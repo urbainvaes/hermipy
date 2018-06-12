@@ -85,13 +85,17 @@ void Hyper_cube_iterator::increment()
     }
 }
 
-u_int Multi_index_iterator::size(u_int degree, u_int dim)
+imat Hyper_cube_iterator::list(const ivec & upper_bounds)
 {
-    using boost::math::binomial_coefficient;
-    return (u_int) binomial_coefficient<double> (degree + dim, dim);
+    imat result;
+    for(Hyper_cube_iterator m(upper_bounds); !m.isFull(); m.increment())
+    {
+        result.push_back(m.get());
+    }
+    return result;
 }
 
-imat list_multi_indices(u_int dim, u_int upper_bound)
+imat Multi_index_iterator::list(u_int dim, u_int upper_bound)
 {
     imat result;
     for(Multi_index_iterator m(dim, upper_bound); !m.isFull(); m.increment())
@@ -101,14 +105,10 @@ imat list_multi_indices(u_int dim, u_int upper_bound)
     return result;
 }
 
-imat list_cube_indices(const ivec & upper_bounds)
+u_int Multi_index_iterator::size(u_int degree, u_int dim)
 {
-    imat result;
-    for(Hyper_cube_iterator m(upper_bounds); !m.isFull(); m.increment())
-    {
-        result.push_back(m.get());
-    }
-    return result;
+    using boost::math::binomial_coefficient;
+    return (u_int) binomial_coefficient<double> (degree + dim, dim);
 }
 
 }
