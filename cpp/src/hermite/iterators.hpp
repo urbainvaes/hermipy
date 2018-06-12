@@ -29,7 +29,6 @@ namespace hermite
 
 class Vector_iterator
 {
-
     protected:
 
         u_int const dim;
@@ -65,6 +64,21 @@ class Vector_iterator
         virtual void increment() = 0;
         Vector_iterator(int dim): dim(dim), multi_index(ivec(dim, 0)), full(false) {}
 
+};
+
+class Hyperbolic_cross_iterator : public Vector_iterator
+{
+    // Upper bound included (like polynomial degree)
+    const u_int upper_bound;
+    const imat list;
+    u_int index;
+
+    public:
+
+    static imat list(u_int dim, u_int upper_bound);
+    void increment();
+    Hyperbolic_cross_iterator(u_int dim, u_int upper_bound):
+        Vector_iterator(dim), upper_bound(upper_bound) {}
 };
 
 class Multi_index_iterator : public Vector_iterator
