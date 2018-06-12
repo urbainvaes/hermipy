@@ -26,6 +26,42 @@
 namespace hermite
 {
 
+Hyperbolic_cross_iterator::Hyperbolic_cross_iterator(u_int dim, u_int upper_bound)
+    : Vector_iterator(dim), upper_bound(upper_bound) 
+{
+
+}
+
+void Hyperbolic_cross_iterator::increment()
+{
+    u_int i, prod;
+    for (i = 0; i < dim; i++)
+        prod *= multi_index[i] == 0 ? 1 : multi_index[i];
+
+    for (i = 0; i < dim - 1; i++)
+    {
+        if (multi_index[i + 1]  != 0)
+        {
+            multi_index[i + 1] -= 1;
+            break;
+        }
+    }
+
+    if (i == dim - 1 && multi_index[0] == upper_bound)
+    {
+        full = true;
+        return;
+    }
+
+    multi_index[i] = 1 + multi_index[0];
+
+    if (i > 0)
+    {
+        multi_index[0] = 0;
+    }
+}
+
+
 u_int Multi_index_iterator::index(const ivec & m_vec)
 {
     using boost::math::binomial_coefficient;
