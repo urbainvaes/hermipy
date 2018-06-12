@@ -8,6 +8,10 @@ $ python -m unittest discover -v tests
 
 # Todo
 
+- Hyperbolic cross
+
+- Add support for Hermite Fourier
+
 - Tie position, directions, and function variables
 
 - Inconsistency with direction in project() and self.dirs
