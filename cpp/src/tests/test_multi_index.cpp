@@ -29,20 +29,34 @@ using namespace std;
 
 int main()
 {
-    u_int dim = 4, degree = 100, i = 0;
+    u_int dim = 3, degree = 100, i = 0;
     Multi_index_iterator m(dim, degree);
-
 
     for (m.reset(), i = 0; !m.isFull(); i++, m.increment())
     {
-        u_int index = Multi_index_iterator::index(m.get());
+        u_int index = m.index(m.get());
 
         if (i != index)
         {
             return 1;
         }
 
-        // cout << "i " << i << ", index(m_i): " << index << endl;
+        // cout << "i " << i << ", index(m_i): " << index << ", m: " << m.get() << endl;
     }
+
+    Hyperbolic_cross_iterator mh(dim, degree);
+
+    for (mh.reset(), i = 0; !mh.isFull(); i++, mh.increment())
+    {
+        u_int index = mh.index(mh.get());
+
+        if (i != index)
+        {
+            return 1;
+        }
+
+        cout << "i " << i << ", index(m_i): " << index << ", mh: " << mh.get() << endl;
+    }
+
     cout << "Test passed" << endl;
 }
