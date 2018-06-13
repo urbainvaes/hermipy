@@ -85,10 +85,13 @@ vec tensorize(const mat & inputs, const imat & dirs)
 {
     u_int dim = 0;
     ivec dims(dirs.size());
+    std::vector<Multi_index_iterator> it_mul;
     for (u_int i = 0; i < dirs.size(); i++)
     {
         dims[i] = dirs[i].size();
         dim += dims[i];
+
+        it_mul.push_back(Multi_index_iterator(dims[i], 0));
     }
 
     u_int degree = bissect_degree(dims[0], inputs[0].size());
@@ -108,7 +111,7 @@ vec tensorize(const mat & inputs, const imat & dirs)
         for (u_int j = 0; j < dirs.size(); j++)
         {
             ivec sub = extract(m.get(), dirs[j]);
-            u_int ind = Multi_index_iterator::index(sub);
+            u_int ind = it_mul[j].index(sub);
             results[i] *= inputs[j][ind];
         }
     }
@@ -203,6 +206,8 @@ spmat tensorize(const spmat & A, const spmat & B,
     imat multi_indices_A = Multi_index_iterator::list(sA, degree);
     imat multi_indices_B = Multi_index_iterator::list(sB, degree);
 
+    Multi_index_iterator it_mul_result(dim, degree);
+
     #ifdef DEBUG
     cout << "--> Starting for loop" << endl;
     #endif
@@ -240,8 +245,8 @@ spmat tensorize(const spmat & A, const spmat & B,
                         multi_index_col[dB_to_ind[i]] = m_col_B[i];
                     }
 
-                    u_int ind_row = Multi_index_iterator::index(multi_index_row);
-                    u_int ind_col = Multi_index_iterator::index(multi_index_col);
+                    u_int ind_row = it_mul_result.index(multi_index_row);
+                    u_int ind_col = it_mul_result.index(multi_index_col);
 
                     if (ind_row >= matrix::size1(product) || ind_col >= matrix::size2(product))
                         continue;
