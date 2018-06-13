@@ -204,7 +204,7 @@ mat varfd(u_int dim, u_int degree, u_int direction, const mat & var)
 
         ivec diff_m2 = m2.get();
         diff_m2[direction] -= 1;
-        u_int id = Multi_index_iterator::index(diff_m2);
+        u_int id = m2.index(diff_m2);
 
         for (i = 0, m1.reset(); i < var.size(); i++, m1.increment())
         {
@@ -253,7 +253,7 @@ spmat varfd(u_int dim, u_int degree, u_int direction, const spmat & var)
 
             ivec int_m2 = m_col;
             int_m2[direction] += 1;
-            u_int id = Multi_index_iterator::index(int_m2);
+            u_int id = m.index(int_m2);
             results(row, id) = value*sqrt(int_m2[direction]);
         }
     }
