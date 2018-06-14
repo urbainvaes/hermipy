@@ -8,6 +8,8 @@ $ python -m unittest discover -v tests
 
 # Todo
 
+- Graph of index set with weights
+
 - Hyperbolic cross won't work with bissect degree
 
 - Add support for Hermite Fourier

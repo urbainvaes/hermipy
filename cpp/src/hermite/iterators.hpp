@@ -22,6 +22,8 @@
 #define HERMITE_ITERATORS_H
 
 #include <string>
+#include "hermite/io.hpp"
+#include "hermite/lib.hpp"
 #include "hermite/types.hpp"
 #include <unordered_map>
 
@@ -35,6 +37,10 @@ class Vector_iterator
         u_int const dim;
         ivec multi_index;
         bool full;
+
+        virtual ~Vector_iterator() = default;
+        Vector_iterator(int dim = 0):
+            dim(dim), multi_index(ivec(dim, 0)), full(false) {}
 
     public:
 
@@ -62,47 +68,10 @@ class Vector_iterator
             }
         }
 
-        virtual u_int index(const ivec &) = 0;
         virtual void increment() = 0;
-
-        virtual ~Vector_iterator() = default;
-        Vector_iterator(int dim = 0): dim(dim), multi_index(ivec(dim, 0)), full(false) {}
-
 };
 
-class Hyperbolic_cross_iterator : public Vector_iterator
-{
-    // Upper bound included (like polynomial degree)
-    const u_int upper_bound;
-    std::unordered_map<u_int,u_int> hash_table;
-    imat list;
-    u_int index_list;
-
-    public:
-
-    void increment();
-    u_int index(const ivec & m_vec);
-    Hyperbolic_cross_iterator(u_int dim, u_int upper_bound);
-};
-
-class Multi_index_iterator : public Vector_iterator
-{
-    // Upper bound included (like polynomial degree)
-    const u_int upper_bound;
-
-    public:
-
-    // Get linear index from multi-index
-    u_int index(const ivec & m_vec);
-
-    static u_int size(u_int degree, u_int dim);
-    static imat list(u_int dim, u_int upper_bound);
-
-    void increment();
-    Multi_index_iterator(u_int dim, u_int upper_bound):
-        Vector_iterator(dim), upper_bound(upper_bound) {}
-};
-
+// Iterator on grids
 class Hyper_cube_iterator : public Vector_iterator
 {
     // Upper bounds excluded
@@ -118,6 +87,74 @@ class Hyper_cube_iterator : public Vector_iterator
     void increment();
     Hyper_cube_iterator(const ivec & upper_bounds):
         Vector_iterator(upper_bounds.size()), upper_bounds(upper_bounds) {}
+};
+
+// Iterators on multi-indices
+class Multi_index_iterator : public Vector_iterator
+{
+    protected:
+
+        std::unordered_map<std::string,u_int> hash_table;
+        u_int index_list;
+        imat list;
+
+        Multi_index_iterator(u_int dim): Vector_iterator(dim), index_list(0) {}
+
+    public:
+
+        virtual ~Multi_index_iterator() = default;
+
+        imat getList()
+        {
+            return list;
+        }
+
+        u_int size()
+        {
+            return list.size();
+        }
+
+        u_int index(const ivec & m_vec)
+        {
+            std::string hash_mvec = hash_print(m_vec);
+            return hash_table.at(hash_mvec);
+        }
+
+        void increment()
+        {
+            if (index_list == list.size() - 1)
+            {
+                full = true;
+                return;
+            }
+
+            multi_index = list[++index_list];
+        }
+};
+
+class Triangle_iterator : public Multi_index_iterator
+{
+    const u_int upper_bound;
+
+    public:
+    Triangle_iterator(u_int dim, u_int upper_bound);
+
+    static bool s_increment(ivec & multi_index, u_int dim, u_int upper_bound);
+    static u_int s_index(const ivec & m_vec);
+    static u_int s_size(u_int degree, u_int dim);
+    static imat s_list(u_int dim, u_int upper_bound);
+
+};
+
+class Cross_iterator : public Multi_index_iterator
+{
+    const u_int upper_bound;
+
+    public:
+    Cross_iterator(u_int dim, u_int upper_bound);
+
+    static bool s_increment(ivec & multi_index, u_int dim, u_int upper_bound);
+    static imat s_list(u_int dim, u_int upper_bound);
 };
 
 }
