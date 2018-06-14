@@ -162,20 +162,20 @@ def triple_products(degree):
 
 @cache()
 @log_stats
-def varf(degree, fgrid, nodes, weights, sparse=False):
+def varf(degree, fgrid, nodes, weights, sparse=False, index_set="triangle"):
     if settings['debug']:
         print("Entering varf with dim: " + str(len(nodes)))
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
-    args = [degree, fgrid, nodes, weights]
+    args = [degree, fgrid, nodes, weights, index_set]
     function = hm.varf_sp if sparse else hm.varf
     return log_stats(to_numpy)(log_stats(function)(*args))
 
 
 @cache()
 @log_stats
-def varfd(dim, degree, direction, var, sparse=True):
+def varfd(dim, degree, direction, var, sparse=True, index_set="triangle"):
     var = to_cpp(var)
-    result = log_stats(hm.varfd)(dim, degree, direction, var)
+    result = log_stats(hm.varfd)(dim, degree, direction, var, index_set)
     return log_stats(to_numpy)(result)
 
 

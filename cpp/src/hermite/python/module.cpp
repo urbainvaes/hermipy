@@ -90,11 +90,11 @@ BOOST_PYTHON_MODULE(hermite_cpp)
 
     // Triple products and variational formulations
     def("triple_products", triple_products_1d);
+
     def("varf", varf<mat>);
     def("varf_sp", varf<spmat>);
-    def("varfd", static_cast<mat (*) (u_int dim, u_int degree, u_int dir, const mat & var)> (& varfd));
-    def("varfd", static_cast<spmat (*) (u_int dim, u_int degree, u_int dir, const spmat & var)> (& varfd));
-
+    def("varfd", varfd<mat>);
+    def("varfd", varfd<spmat>);
 
     // Projection and tensorization of vectors
     def("project", static_cast<vec (*) (const vec & input, u_int dim, u_int dir)> (& project));

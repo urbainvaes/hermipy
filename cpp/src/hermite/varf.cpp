@@ -99,7 +99,8 @@ template<typename T> T varf(
         u_int degree,
         vec const & input,
         mat const & nodes,
-        mat const & weights)
+        mat const & weights,
+        std::string index_set)
 {
 
     u_int dim = nodes.size();
@@ -184,10 +185,16 @@ template<typename T> T varf(
     return result;
 }
 
-template mat varf( u_int degree, vec const & input, mat const & nodes, mat const & weights);
-template spmat varf( u_int degree, vec const & input, mat const & nodes, mat const & weights);
+template mat varf( u_int degree, vec const & input, mat const & nodes, mat const & weights, std::string index_set);
+template spmat varf( u_int degree, vec const & input, mat const & nodes, mat const & weights, std::string index_set);
 
-mat varfd(u_int dim, u_int degree, u_int direction, const mat & var)
+template <>
+mat varfd(
+        u_int dim,
+        u_int degree,
+        u_int direction,
+        const mat & var,
+        std::string index_set)
 {
     Multi_index_iterator m1(dim, degree);
     Multi_index_iterator m2(dim, degree);
@@ -216,7 +223,13 @@ mat varfd(u_int dim, u_int degree, u_int direction, const mat & var)
     return results;
 }
 
-spmat varfd(u_int dim, u_int degree, u_int direction, const spmat & var)
+template <>
+spmat varfd(
+        u_int dim,
+        u_int degree,
+        u_int direction,
+        const spmat & var,
+        std::string index_set)
 {
     #ifdef DEBUG
     cout << "Entering varfd with sparse matrix" << endl;

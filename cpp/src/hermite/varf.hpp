@@ -21,6 +21,7 @@
 #ifndef HERMITE_VARF_H
 #define HERMITE_VARF_H
 
+#include <string>
 #include "hermite/types.hpp"
 #include "boost/multi_array.hpp"
 
@@ -33,20 +34,16 @@ T varf(
         u_int degree,
         vec const & input,
         mat const & nodes,
-        mat const & weights);
+        mat const & weights,
+        std::string index_set = "triangle");
 
-mat varfd(
+template<typename T>
+T varfd(
         u_int dim,
         u_int degree,
         u_int direction,
-        const mat & var);
-
-spmat varfd(
-        u_int dim,
-        u_int degree,
-        u_int direction,
-        const spmat & var);
-
+        const T & var,
+        std::string index_set = "triangle");
 }
 
 #endif
