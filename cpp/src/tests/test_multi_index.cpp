@@ -29,22 +29,9 @@ using namespace std;
 
 int main()
 {
-    u_int dim = 3, degree = 100, i = 0;
-    Multi_index_iterator m(dim, degree);
+    u_int dim = 2, degree = 10, i = 0;
 
-    for (m.reset(), i = 0; !m.isFull(); i++, m.increment())
-    {
-        u_int index = m.index(m.get());
-
-        if (i != index)
-        {
-            return 1;
-        }
-
-        // cout << "i " << i << ", index(m_i): " << index << ", m: " << m.get() << endl;
-    }
-
-    Hyperbolic_cross_iterator mh(dim, degree);
+    Cross_iterator mh(dim, degree);
 
     for (mh.reset(), i = 0; !mh.isFull(); i++, mh.increment())
     {
@@ -56,6 +43,21 @@ int main()
         }
 
         cout << "i " << i << ", index(m_i): " << index << ", mh: " << mh.get() << endl;
+    }
+
+
+    Triangle_iterator m(dim, degree);
+
+    for (m.reset(), i = 0; !m.isFull(); i++, m.increment())
+    {
+        u_int index = m.index(m.get());
+
+        if (i != index)
+        {
+            return 1;
+        }
+
+        cout << "i " << i << ", index(m_i): " << index << ", m: " << m.get() << endl;
     }
 
     cout << "Test passed" << endl;
