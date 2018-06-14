@@ -28,6 +28,30 @@
 namespace hermite
 {
 // Multi-index iterators
+// Parent class {{{
+u_int Multi_index_iterator::index(const ivec & m_vec)
+{
+    std::string hash_mvec = hash_print(m_vec);
+    if (hash_table.find(hash_mvec) == hash_table.end())
+    {
+        std::cout << "Element not found in hash table!" << std::endl;
+        std::cout << "--> " << m_vec << std::endl;
+        std::cout << "--> " << list << std::endl;
+    }
+    return hash_table.at(hash_mvec);
+}
+
+void Multi_index_iterator::increment()
+{
+    if (index_list == list.size() - 1)
+    {
+        full = true;
+        return;
+    }
+
+    multi_index = list[++index_list];
+}
+// }}}
 // Hyperbolic cross iterator {{{
 #define MAX(i, j) (i > j ? i : j)
 bool Cross_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_bound)
