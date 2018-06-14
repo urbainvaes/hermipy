@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include <ctime>
+#include <string>
 
 #include "hermite/hermite.hpp"
 #include "hermite/iterators.hpp"
@@ -118,12 +119,23 @@ template<typename T> T varf(
     cout << "--> Determining whether to use sparse matrices." << endl;
     #endif
 
-    // Polynomial of highest degree
-    Multi_index_iterator m(dim, 2*degree); m.reset();
+    // Polynomial of highest degree = 2*degree
+    std::unique_ptr<Vector_iterator> m;
+    if (index_set == "cross")
+    {
+        m = std::unique_ptr<Hyperbolic_cross_iterator>(
+                new Hyperbolic_cross_iterator(dim, 2*degree));
+    }
+    else
+    {
+        m = std::unique_ptr<Multi_index_iterator>(
+                new Multi_index_iterator(dim, 2*degree));
+    }
+    m->reset();
 
     #ifdef DEBUG
-    u_int max_degree = 0;
-    for (u_int i = 0; i < Hf.size(); i++, m.increment())
+    u_int i, max_degree = 0;
+    for (m->reset(), i = 0; i < Hf.size(); i++, m->increment())
     {
         if (abs(Hf[i]) < 1e-12)
         {
@@ -150,7 +162,7 @@ template<typename T> T varf(
     // To store results
     m.reset();
     T result = matrix::construct<T>(n_polys, n_polys);
-    for (u_int i = 0; i < Hf.size(); i++, m.increment())
+    for (u_int i = 0; i < Hf.size(); i++, m->increment())
     {
         if (abs(Hf[i]) < 1e-12)
         {
@@ -164,7 +176,7 @@ template<typename T> T varf(
         cube factors(dim);
         for (u_int d = 0; d < dim; ++d)
         {
-            factors[d] = products[m[d]];
+            factors[d] = products[(*m)[d]];
         }
 
         #ifdef DEBUG
@@ -196,26 +208,36 @@ mat varfd(
         const mat & var,
         std::string index_set)
 {
-    Multi_index_iterator m1(dim, degree);
-    Multi_index_iterator m2(dim, degree);
+    std::unique_ptr<Vector_iterator> m2;
+    if (index_set == "cross")
+    {
+        m2 = std::unique_ptr<Hyperbolic_cross_iterator>(
+                new Hyperbolic_cross_iterator(dim, degree));
+    }
+    else
+    {
+        m2 = std::unique_ptr<Multi_index_iterator>(
+                new Multi_index_iterator(dim, degree));
+    }
+    m2->reset();
 
     u_int i,j;
 
     mat results = mat(var.size(), vec(var.size(), 0));
-    for (j = 0, m2.reset(); j < var.size(); j++, m2.increment())
+    for (j = 0, m2.reset(); j < var.size(); j++, m2->increment())
     {
-        if (m2[direction] == 0)
+        if ((*m2)[direction] == 0)
         {
            continue;
         }
 
-        ivec diff_m2 = m2.get();
+        ivec diff_m2 = m2->get();
         diff_m2[direction] -= 1;
-        u_int id = m2.index(diff_m2);
+        u_int id = m2->index(diff_m2);
 
-        for (i = 0, m1.reset(); i < var.size(); i++, m1.increment())
+        for (i = 0; i < var.size(); i++)
         {
-            results[i][j] = var[i][id]*sqrt(m2[direction]);
+            results[i][j] = var[i][id]*sqrt((*m2)[direction]);
             // Entry i,j correspond to < A h_j, h_i >
         }
     }
@@ -235,13 +257,23 @@ spmat varfd(
     cout << "Entering varfd with sparse matrix" << endl;
     #endif
 
-    Multi_index_iterator m(dim, degree);
+    std::unique_ptr<Vector_iterator> m;
+    if (index_set == "cross")
+    {
+        m = std::unique_ptr<Hyperbolic_cross_iterator>(
+                new Hyperbolic_cross_iterator(dim, degree));
+    }
+    else
+    {
+        m = std::unique_ptr<Multi_index_iterator>(
+                new Multi_index_iterator(dim, degree));
+    }
 
     u_int i;
     imat multi_indices;
-    for (i = 0, m.reset(); i < var.size1(); i++, m.increment())
+    for (i = 0, m.reset(); i < var.size1(); i++, m->increment())
     {
-        multi_indices.push_back(m.get());
+        multi_indices.push_back(m->get());
     }
 
     spmat results = spmat(var.size1(), var.size2());
@@ -266,7 +298,7 @@ spmat varfd(
 
             ivec int_m2 = m_col;
             int_m2[direction] += 1;
-            u_int id = m.index(int_m2);
+            u_int id = m->index(int_m2);
             results(row, id) = value*sqrt(int_m2[direction]);
         }
     }
