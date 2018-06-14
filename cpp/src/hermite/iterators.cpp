@@ -18,9 +18,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-// FIXME: Last multi-index twice? (urbain, 13 Jun 2018)
-
-
 #include <unordered_map>
 #include "hermite/io.hpp"
 #include "hermite/types.hpp"
