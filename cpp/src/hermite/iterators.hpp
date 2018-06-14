@@ -59,7 +59,7 @@ class Vector_iterator
             return full;
         }
 
-        void reset()
+        virtual void reset()
         {
             full = false;
             for (unsigned int i = 0; i < dim; i++)
@@ -112,6 +112,12 @@ class Multi_index_iterator : public Vector_iterator
         u_int size()
         {
             return list.size();
+        }
+
+        void reset()
+        {
+            Vector_iterator::reset();
+            index_list = 0;
         }
 
         u_int index(const ivec & m_vec)

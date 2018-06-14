@@ -211,8 +211,6 @@ spmat tensorize(const spmat & A, const spmat & B,
     cout << multi_indices_A << endl << multi_indices_B << endl;;
     #endif
 
-    Triangle_iterator it_mul_result(dim, 100);
-
     #ifdef DEBUG
     cout << "--> Starting for loop" << endl;
     #endif

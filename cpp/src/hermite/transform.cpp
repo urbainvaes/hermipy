@@ -84,6 +84,18 @@ vec transform(
         }
     }
 
+    std::unique_ptr<Multi_index_iterator> m;
+    if (index_set == "cross")
+    {
+        m = std::unique_ptr<Cross_iterator>(
+                new Cross_iterator(dim, degree));
+    }
+    else
+    {
+        m = std::unique_ptr<Triangle_iterator>(
+                new Triangle_iterator(dim, degree));
+    }
+
     Hyper_cube_iterator p(n_points);
     for (i = 0; i < n_points_tot; i++, p.increment())
     {
@@ -96,19 +108,7 @@ vec transform(
             }
         }
 
-        std::unique_ptr<Multi_index_iterator> m;
-        if (index_set == "cross")
-        {
-            m = std::unique_ptr<Cross_iterator>(
-                    new Cross_iterator(dim, degree));
-        }
-        else
-        {
-            m = std::unique_ptr<Triangle_iterator>(
-                    new Triangle_iterator(dim, degree));
-        }
-
-        for (j = 0; j < n_polys; j++, m->increment())
+        for (j = 0, m->reset(); j < n_polys; j++, m->increment())
         {
             double val_at_point = 1;
             for (k = 0; k < dim; k++)
