@@ -94,13 +94,11 @@ class Multi_index_iterator : public Vector_iterator
 {
     protected:
 
-        const u_int upper_bound;
-        std::unordered_map<u_int,u_int> hash_table;
+        std::unordered_map<std::string,u_int> hash_table;
         u_int index_list;
         imat list;
 
-        Multi_index_iterator(u_int dim, u_int upper_bound):
-            Vector_iterator(dim), upper_bound(upper_bound), index_list(0) {}
+        Multi_index_iterator(u_int dim): Vector_iterator(dim), index_list(0) {}
 
     public:
 
@@ -124,7 +122,7 @@ class Multi_index_iterator : public Vector_iterator
 
         u_int index(const ivec & m_vec)
         {
-            u_int hash_mvec = hash_multi_ind(m_vec, upper_bound);
+            std::string hash_mvec = hash_print(m_vec);
             return hash_table.at(hash_mvec);
         }
 
@@ -142,6 +140,8 @@ class Multi_index_iterator : public Vector_iterator
 
 class Triangle_iterator : public Multi_index_iterator
 {
+    const u_int upper_bound;
+
     public:
     Triangle_iterator(u_int dim, u_int upper_bound);
 
@@ -154,6 +154,8 @@ class Triangle_iterator : public Multi_index_iterator
 
 class Cross_iterator : public Multi_index_iterator
 {
+    const u_int upper_bound;
+
     public:
     Cross_iterator(u_int dim, u_int upper_bound);
 
