@@ -148,9 +148,10 @@ def integrate(fgrid, nodes, weights):
 
 @cache()
 @log_stats
-def transform(degree, fgrid, nodes, weights, forward):
+def transform(degree, fgrid, nodes, weights, forward, index_set="triangle"):
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
-    return np.array(hm.transform(degree, fgrid, nodes, weights, forward))
+    return np.array(hm.transform(degree, fgrid, nodes,
+                                 weights, forward, index_set))
 
 
 @cache()

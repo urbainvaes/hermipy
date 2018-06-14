@@ -21,6 +21,7 @@
 #ifndef HERMITE_TRANSFORM_H
 #define HERMITE_TRANSFORM_H
 
+#include <string>
 #include "hermite/types.hpp"
 
 namespace hermite {
@@ -30,7 +31,8 @@ vec transform(
         vec const & f_grid,
         mat const & nodes,
         mat const & weights,
-        bool forward);
+        bool forward,
+        std::string index_set = "triangle");
 
 double integrate(
         vec const & f_grid,

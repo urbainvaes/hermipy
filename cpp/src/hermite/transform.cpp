@@ -26,6 +26,7 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <string>
 
 #include <boost/function.hpp>
 #include <boost/core/ref.hpp>
@@ -45,7 +46,8 @@ vec transform(
         vec const & input,
         mat const & nodes,
         mat const & weights,
-        bool forward)
+        bool forward,
+        std::string index_set)
 {
     u_int dim = nodes.size();
     using boost::math::binomial_coefficient;
@@ -94,15 +96,26 @@ vec transform(
             }
         }
 
-        Multi_index_iterator m(dim, degree);
-        for (j = 0; j < n_polys; j++, m.increment())
+        std::unique_ptr<Vector_iterator> m;
+        if (index_set == "cross")
+        {
+            m = std::unique_ptr<Hyperbolic_cross_iterator>(
+                    new Hyperbolic_cross_iterator(dim, degree));
+        }
+        else
+        {
+            m = std::unique_ptr<Multi_index_iterator>(
+                    new Multi_index_iterator(dim, degree));
+        }
+
+        for (j = 0; j < n_polys; j++, m->increment())
         {
             double val_at_point = 1;
             for (k = 0; k < dim; k++)
             {
-                if (m[k] != 0)
+                if ((*m)[k] != 0)
                 {
-                    val_at_point *= herm_vals_1d[k][p[k]][m[k]];
+                    val_at_point *= herm_vals_1d[k][p[k]][(*m)[k]];
                 }
             }
             if(forward)
