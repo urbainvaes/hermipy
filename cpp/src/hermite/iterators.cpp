@@ -90,15 +90,15 @@ bool Cross_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_boun
 }
 
 Cross_iterator::Cross_iterator(u_int dim, u_int upper_bound)
-    : Multi_index_iterator(dim, upper_bound)
+    : Multi_index_iterator(dim), upper_bound(upper_bound)
 {
     ivec m(dim, 0);
     u_int ind = 0;
     do
     {
         list.push_back(m);
-        u_int hash = hash_multi_ind(m, upper_bound);
-        hash_table.insert(std::pair<u_int, u_int>(hash, ind++));
+        std::string hash = hash_print(m);
+        hash_table.insert(std::pair<std::string, u_int>(hash, ind++));
     }
     while (!Cross_iterator::s_increment(m, dim, upper_bound));
 }
@@ -140,15 +140,15 @@ bool Triangle_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_b
 }
 
 Triangle_iterator::Triangle_iterator(u_int dim, u_int upper_bound)
-    : Multi_index_iterator(dim, upper_bound)
+    : Multi_index_iterator(dim), upper_bound(upper_bound)
 {
     ivec m(dim, 0);
     u_int ind = 0;
     do
     {
         list.push_back(m);
-        u_int hash = hash_multi_ind(m, upper_bound);
-        hash_table.insert(std::pair<u_int, u_int>(hash, ind++));
+        std::string hash = hash_print(m);
+        hash_table.insert(std::pair<std::string, u_int>(hash, ind++));
     }
     while (!Triangle_iterator::s_increment(m, dim, upper_bound));
 }
