@@ -8,7 +8,7 @@ $ python -m unittest discover -v tests
 
 # Todo
 
-- Hyperbolic cross
+- Hyperbolic cross won't work with bissect degree
 
 - Add support for Hermite Fourier
 
