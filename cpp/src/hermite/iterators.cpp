@@ -27,22 +27,10 @@
 
 namespace hermite
 {
-
-u_int hash_multi_ind(ivec v, int degree)
-{
-    u_int base = degree + 1;
-    u_int result = 0;
-    u_int unit = 1;
-    for(u_int i = 0; i < v.size(); i++)
-    {
-        result += v[i]*unit;
-        unit *= base;
-    }
-    return result;
-}
-
+// Multi-index iterators
+// Hyperbolic cross iterator {{{
 #define MAX(i, j) (i > j ? i : j)
-bool Hyperbolic_cross_increment(ivec & multi_index, u_int dim, u_int upper_bound)
+bool Cross_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_bound)
 {
     u_int i;
 
@@ -101,32 +89,32 @@ bool Hyperbolic_cross_increment(ivec & multi_index, u_int dim, u_int upper_bound
     return false;
 }
 
-Hyperbolic_cross_iterator::Hyperbolic_cross_iterator(u_int dim, u_int upper_bound)
-    : Vector_iterator(dim), upper_bound(upper_bound), index_list(0)
+Cross_iterator::Cross_iterator(u_int dim, u_int upper_bound)
+    : Multi_index_iterator(dim), upper_bound(upper_bound)
 {
     ivec m(dim, 0);
     u_int ind = 0;
     do
     {
         list.push_back(m);
-        u_int hash = hash_multi_ind(m, upper_bound);
-        hash_table.insert(std::pair<u_int, u_int>(hash, ind++));
+        std::string hash = hash_print(m);
+        hash_table.insert(std::pair<std::string, u_int>(hash, ind++));
     }
-    while (!Hyperbolic_cross_increment(m, dim, upper_bound));
+    while (!Cross_iterator::s_increment(m, dim, upper_bound));
 }
 
-void Hyperbolic_cross_iterator::increment()
+imat Cross_iterator::s_list(u_int dim, u_int upper_bound)
 {
-    if (index_list == list.size())
+    imat result;
+    for(Cross_iterator m(dim, upper_bound); !m.isFull(); m.increment())
     {
-        full = true;
-        return;
+        result.push_back(m.get());
     }
-
-    multi_index = list[++index_list];
+    return result;
 }
-
-void Multi_index_iterator::increment()
+// }}}
+// Triangle iterator {{{
+bool Triangle_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_bound)
 {
     u_int i;
     for (i = 0; i < dim - 1; i++)
@@ -139,10 +127,7 @@ void Multi_index_iterator::increment()
     }
 
     if (i == dim - 1 && multi_index[0] == upper_bound)
-    {
-        full = true;
-        return;
-    }
+        return true;
 
     multi_index[i] = 1 + multi_index[0];
 
@@ -150,6 +135,70 @@ void Multi_index_iterator::increment()
     {
         multi_index[0] = 0;
     }
+
+    return false;
+}
+
+Triangle_iterator::Triangle_iterator(u_int dim, u_int upper_bound)
+    : Multi_index_iterator(dim), upper_bound(upper_bound)
+{
+    ivec m(dim, 0);
+    u_int ind = 0;
+    do
+    {
+        list.push_back(m);
+        std::string hash = hash_print(m);
+        hash_table.insert(std::pair<std::string, u_int>(hash, ind++));
+    }
+    while (!Triangle_iterator::s_increment(m, dim, upper_bound));
+}
+
+u_int Triangle_iterator::s_index(const ivec & m_vec)
+{
+    using boost::math::binomial_coefficient;
+    u_int sum = 0, result = 0;
+    for (u_int i = 0; i < m_vec.size(); i++)
+    {
+        sum += m_vec[i];
+        if (sum > 0)
+        {
+            result += (u_int) binomial_coefficient<double> (i + sum, i + 1);
+        }
+    }
+    return result;
+}
+
+u_int Triangle_iterator::s_size(u_int degree, u_int dim)
+{
+    using boost::math::binomial_coefficient;
+    return (u_int) binomial_coefficient<double> (degree + dim, dim);
+}
+
+imat Triangle_iterator::s_list(u_int dim, u_int upper_bound)
+{
+    imat result;
+    for(Triangle_iterator m(dim, upper_bound); !m.isFull(); m.increment())
+    {
+        result.push_back(m.get());
+    }
+    return result;
+}
+// }}}
+
+// Grid iterators (used for N-dim for loops)
+// Hypercube iterator {{{
+u_int Hyper_cube_iterator::index(const ivec & m_vec)
+{
+    u_int result = 0,
+          factor = 1;
+
+    for (u_int i = 0; i < dim; i++)
+    {
+        u_int position = dim - 1 - i;
+        result += factor * m_vec[position];
+        factor *= upper_bounds[position];
+    }
+    return result;
 }
 
 void Hyper_cube_iterator::increment()
@@ -180,55 +229,5 @@ imat Hyper_cube_iterator::list(const ivec & upper_bounds)
     return result;
 }
 
-imat Multi_index_iterator::list(u_int dim, u_int upper_bound)
-{
-    imat result;
-    for(Multi_index_iterator m(dim, upper_bound); !m.isFull(); m.increment())
-    {
-        result.push_back(m.get());
-    }
-    return result;
-}
-
-u_int Multi_index_iterator::size(u_int degree, u_int dim)
-{
-    using boost::math::binomial_coefficient;
-    return (u_int) binomial_coefficient<double> (degree + dim, dim);
-}
-
-u_int Multi_index_iterator::index(const ivec & m_vec)
-{
-    using boost::math::binomial_coefficient;
-    u_int sum = 0, result = 0;
-    for (u_int i = 0; i < m_vec.size(); i++)
-    {
-        sum += m_vec[i];
-        if (sum > 0)
-        {
-            result += (u_int) binomial_coefficient<double> (i + sum, i + 1);
-        }
-    }
-    return result;
-}
-
-u_int Hyperbolic_cross_iterator::index(const ivec & m_vec)
-{
-    u_int hash_mvec = hash_multi_ind(m_vec, upper_bound);
-    return hash_table.at(hash_mvec);
-}
-
-u_int Hyper_cube_iterator::index(const ivec & m_vec)
-{
-    u_int result = 0,
-          factor = 1;
-
-    for (u_int i = 0; i < dim; i++)
-    {
-        u_int position = dim - 1 - i;
-        result += factor * m_vec[position];
-        factor *= upper_bounds[position];
-    }
-    return result;
-}
-
+// }}}
 }
