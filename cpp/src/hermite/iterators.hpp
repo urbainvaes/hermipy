@@ -63,10 +63,10 @@ class Vector_iterator
         }
 
         virtual u_int index(const ivec &) = 0;
-        // virtual imat list() = 0;
-
         virtual void increment() = 0;
-        Vector_iterator(int dim): dim(dim), multi_index(ivec(dim, 0)), full(false) {}
+
+        virtual ~Vector_iterator() = default;
+        Vector_iterator(int dim = 0): dim(dim), multi_index(ivec(dim, 0)), full(false) {}
 
 };
 
