@@ -30,6 +30,7 @@ namespace hermite
 {
 
 // Precondition: Dirs in increasing order
+template<typename I>
 vec inner(const vec & s1,
           const vec & s2,
           const ivec & dirs1,
@@ -81,13 +82,12 @@ vec inner(const vec & s1,
     u_int degree = bissect_degree(dim1, s1.size());
     assert( degree == bissect_degree(dim2, s2.size()) );
 
-    vec result(Triangle_iterator::s_size(degree, dim_result), 0.);
+    vec result(I(degree, dim_result).size(), 0.);
 
-    Triangle_iterator m_result(dim_result, degree);
-    Triangle_iterator m_inner(dim_inner, degree);
-
-    Triangle_iterator it_m1(dim1, degree);
-    Triangle_iterator it_m2(dim2, degree);
+    I m_result(dim_result, degree);
+    I m_inner(dim_inner, degree);
+    I it_m1(dim1, degree);
+    I it_m2(dim2, degree);
 
     for (i = 0; !m_result.isFull(); m_result.increment(), i++)
     {
@@ -110,16 +110,37 @@ vec inner(const vec & s1,
                 m2[inner_ind2[k]] = m_inner[k];
             }
 
-            u_int ind1 = Triangle_iterator::s_index(m1),
-                  ind2 = Triangle_iterator::s_index(m2);
-
-            if (ind1 >= s1.size() || ind2 >= s2.size())
+            if (!it_m1.has(m1) || !it_m2.has(m2))
                 continue;
+
+            int ind1 = it_m1.index(m1),
+                ind2 = it_m2.index(m2);
 
             result[i] += s1[ind1] * s2[ind2];
         }
     }
     return result;
+}
+
+vec inner(const vec & s1,
+          const vec & s2,
+          const ivec & dirs1,
+          const ivec & dirs2,
+          std::string index_set)
+{
+    if (index_set == "cross")
+    {
+        return inner<Cross_iterator>(s1, s2, dirs1, dirs2);
+    }
+    else if (index_set == "triangle")
+    {
+        return inner<Triangle_iterator>(s1, s2, dirs1, dirs2);
+    }
+    else
+    {
+        std::cout << "Invalid index set!" << std::endl;
+        exit(1);
+    }
 }
 
 }

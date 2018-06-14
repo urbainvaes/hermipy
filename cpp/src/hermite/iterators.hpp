@@ -33,7 +33,6 @@ namespace hermite
 class Vector_iterator
 {
     protected:
-
         u_int const dim;
         ivec multi_index;
         bool full;
@@ -43,7 +42,6 @@ class Vector_iterator
             dim(dim), multi_index(ivec(dim, 0)), full(false) {}
 
     public:
-
         const ivec & get() const
         {
             return multi_index;
@@ -74,26 +72,25 @@ class Vector_iterator
 // Iterator on grids
 class Hyper_cube_iterator : public Vector_iterator
 {
-    // Upper bounds excluded
-    const ivec upper_bounds;
+    private:
+        // Upper bounds excluded
+        const ivec upper_bounds;
 
     public:
+        static imat list(const ivec & upper_bounds);
 
-    static imat list(const ivec & upper_bounds);
+        // Get linear index from multi-index
+        u_int index(const ivec & m_vec);
 
-    // Get linear index from multi-index
-    u_int index(const ivec & m_vec);
-
-    void increment();
-    Hyper_cube_iterator(const ivec & upper_bounds):
-        Vector_iterator(upper_bounds.size()), upper_bounds(upper_bounds) {}
+        void increment();
+        Hyper_cube_iterator(const ivec & upper_bounds):
+            Vector_iterator(upper_bounds.size()), upper_bounds(upper_bounds) {}
 };
 
 // Iterators on multi-indices
 class Multi_index_iterator : public Vector_iterator
 {
     protected:
-
         std::unordered_map<std::string,u_int> hash_table;
         u_int index_list;
         imat list;
@@ -101,7 +98,6 @@ class Multi_index_iterator : public Vector_iterator
         Multi_index_iterator(u_int dim): Vector_iterator(dim), index_list(0) {}
 
     public:
-
         virtual ~Multi_index_iterator() = default;
 
         imat getList()
@@ -112,6 +108,12 @@ class Multi_index_iterator : public Vector_iterator
         u_int size()
         {
             return list.size();
+        }
+
+        bool has(const ivec & m_vec)
+        {
+             std::string hash_mvec = hash_print(m_vec);
+             return ! (hash_table.find(hash_mvec) == hash_table.end());
         }
 
         void reset()
@@ -126,27 +128,30 @@ class Multi_index_iterator : public Vector_iterator
 
 class Triangle_iterator : public Multi_index_iterator
 {
-    const u_int upper_bound;
+    private:
+        const u_int upper_bound;
 
     public:
-    Triangle_iterator(u_int dim, u_int upper_bound);
+        Triangle_iterator(u_int dim, u_int upper_bound);
 
-    static bool s_increment(ivec & multi_index, u_int dim, u_int upper_bound);
-    static u_int s_index(const ivec & m_vec);
-    static u_int s_size(u_int degree, u_int dim);
-    static imat s_list(u_int dim, u_int upper_bound);
+        static bool s_increment(ivec & multi_index, u_int dim, u_int upper_bound);
+        static u_int s_index(const ivec & m_vec);
+        static u_int s_size(u_int degree, u_int dim);
+        static imat s_list(u_int dim, u_int upper_bound);
 
 };
 
 class Cross_iterator : public Multi_index_iterator
 {
-    const u_int upper_bound;
+    private:
+        const u_int upper_bound;
 
     public:
-    Cross_iterator(u_int dim, u_int upper_bound);
+        Cross_iterator(u_int dim, u_int upper_bound);
 
-    static bool s_increment(ivec & multi_index, u_int dim, u_int upper_bound);
-    static imat s_list(u_int dim, u_int upper_bound);
+        static bool s_increment(ivec & multi_index, u_int dim, u_int upper_bound);
+        static imat s_list(u_int dim, u_int upper_bound);
+        static u_int s_size(u_int degree, u_int dim);
 };
 
 }
