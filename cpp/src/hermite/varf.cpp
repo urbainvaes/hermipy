@@ -120,16 +120,16 @@ template<typename T> T varf(
     #endif
 
     // Polynomial of highest degree = 2*degree
-    std::unique_ptr<Vector_iterator> m;
+    std::unique_ptr<Multi_index_iterator> m;
     if (index_set == "cross")
     {
-        m = std::unique_ptr<Hyperbolic_cross_iterator>(
-                new Hyperbolic_cross_iterator(dim, 2*degree));
+        m = std::unique_ptr<Cross_iterator>(
+                new Cross_iterator(dim, 2*degree));
     }
     else
     {
-        m = std::unique_ptr<Multi_index_iterator>(
-                new Multi_index_iterator(dim, 2*degree));
+        m = std::unique_ptr<Triangle_iterator>(
+                new Triangle_iterator(dim, 2*degree));
     }
 
     #ifdef DEBUG
@@ -207,16 +207,16 @@ mat varfd(
         const mat & var,
         std::string index_set)
 {
-    std::unique_ptr<Vector_iterator> m2;
+    std::unique_ptr<Multi_index_iterator> m2;
     if (index_set == "cross")
     {
-        m2 = std::unique_ptr<Hyperbolic_cross_iterator>(
-                new Hyperbolic_cross_iterator(dim, degree));
+        m2 = std::unique_ptr<Cross_iterator>(
+                new Cross_iterator(dim, degree));
     }
     else
     {
-        m2 = std::unique_ptr<Multi_index_iterator>(
-                new Multi_index_iterator(dim, degree));
+        m2 = std::unique_ptr<Triangle_iterator>(
+                new Triangle_iterator(dim, degree));
     }
     m2->reset();
 
@@ -256,16 +256,16 @@ spmat varfd(
     cout << "Entering varfd with sparse matrix" << endl;
     #endif
 
-    std::unique_ptr<Vector_iterator> m;
+    std::unique_ptr<Multi_index_iterator> m;
     if (index_set == "cross")
     {
-        m = std::unique_ptr<Hyperbolic_cross_iterator>(
-                new Hyperbolic_cross_iterator(dim, degree));
+        m = std::unique_ptr<Cross_iterator>(
+                new Cross_iterator(dim, degree));
     }
     else
     {
-        m = std::unique_ptr<Multi_index_iterator>(
-                new Multi_index_iterator(dim, degree));
+        m = std::unique_ptr<Triangle_iterator>(
+                new Triangle_iterator(dim, degree));
     }
 
     u_int i;

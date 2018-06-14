@@ -44,8 +44,8 @@ vec project(const vec & input, u_int dim, const ivec & dirs)
     u_int polys_sub = (u_int) binomial_coefficient<double> (degree + dim_sub, dim_sub);
     vec results(polys_sub, 0.);
 
-    Multi_index_iterator m(dim, degree);
-    Multi_index_iterator m_sub(dim_sub, degree);
+    Triangle_iterator m(dim, degree);
+    Triangle_iterator m_sub(dim_sub, degree);
 
     u_int i;
     for (i = 0, m.reset(); !m.isFull(); i++, m.increment())
@@ -75,8 +75,8 @@ M project(const M & input, u_int dim, const ivec & dirs)
     u_int polys_sub = (u_int) binomial_coefficient<double> (degree + dim_sub, dim_sub);
     M results = matrix::construct<M>(polys_sub, polys_sub);
 
-    Multi_index_iterator m1(dim, degree), m2(dim, degree);
-    Multi_index_iterator m_sub(dim_sub, degree);
+    Triangle_iterator m1(dim, degree), m2(dim, degree);
+    Triangle_iterator m_sub(dim_sub, degree);
 
     u_int i,j;
     for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())

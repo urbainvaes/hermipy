@@ -68,7 +68,7 @@ void check_dims(const imat & dirs, u_int dim)
 
 void check_degree(u_int size, u_int dim, u_int degree)
 {
-    u_int n_polys = Multi_index_iterator::size(degree, dim);
+    u_int n_polys = Triangle_iterator::s_size(degree, dim);
     if (n_polys != size)
     {
         cout << "Size of input does not match dimension!" << endl;
@@ -85,13 +85,13 @@ vec tensorize(const mat & inputs, const imat & dirs)
 {
     u_int dim = 0;
     ivec dims(dirs.size());
-    std::vector<Multi_index_iterator> it_mul;
+    std::vector<Triangle_iterator> it_mul;
     for (u_int i = 0; i < dirs.size(); i++)
     {
         dims[i] = dirs[i].size();
         dim += dims[i];
 
-        it_mul.push_back(Multi_index_iterator(dims[i], 0));
+        it_mul.push_back(Triangle_iterator(dims[i], 0));
     }
 
     u_int degree = bissect_degree(dims[0], inputs[0].size());
@@ -102,9 +102,9 @@ vec tensorize(const mat & inputs, const imat & dirs)
         check_degree(inputs[i].size(), dims[i], degree);
     #endif
 
-    u_int n_polys = Multi_index_iterator::size(degree, dim);
+    u_int n_polys = Triangle_iterator::s_size(degree, dim);
     vec results(n_polys, 0.);
-    Multi_index_iterator m(dim, degree);
+    Triangle_iterator m(dim, degree);
     for (u_int i = 0; !m.isFull(); i++, m.increment())
     {
         results[i] = 1;
@@ -200,13 +200,18 @@ spmat tensorize(const spmat & A, const spmat & B,
     assert(bissect_degree(sB, B.size1()) == degree);
     #endif
 
-    u_int n_polys = Multi_index_iterator::size(degree, dim);
+    u_int n_polys = Triangle_iterator::s_size(degree, dim);
     spmat product = matrix::construct<spmat>(n_polys, n_polys);
 
-    imat multi_indices_A = Multi_index_iterator::list(sA, degree);
-    imat multi_indices_B = Multi_index_iterator::list(sB, degree);
+    imat multi_indices_A = Triangle_iterator::s_list(sA, degree);
+    imat multi_indices_B = Triangle_iterator::s_list(sB, degree);
 
-    Multi_index_iterator it_mul_result(dim, degree);
+    #ifdef DEBUG
+    cout << "--> With the following multi-index sets:" << endl;
+    cout << multi_indices_A << endl << multi_indices_B << endl;;
+    #endif
+
+    Triangle_iterator it_mul_result(dim, 100);
 
     #ifdef DEBUG
     cout << "--> Starting for loop" << endl;
@@ -245,8 +250,8 @@ spmat tensorize(const spmat & A, const spmat & B,
                         multi_index_col[dB_to_ind[i]] = m_col_B[i];
                     }
 
-                    u_int ind_row = it_mul_result.index(multi_index_row);
-                    u_int ind_col = it_mul_result.index(multi_index_col);
+                    u_int ind_row = Triangle_iterator::s_index(multi_index_row);
+                    u_int ind_col = Triangle_iterator::s_index(multi_index_col);
 
                     if (ind_row >= matrix::size1(product) || ind_col >= matrix::size2(product))
                         continue;
@@ -323,7 +328,7 @@ T tensorize(const vector<S> & inputs)
 
     // u_int dim = inputs.size();
     // u_int degree = matrix::size1(inputs[0]) - 1;
-    // u_int n_polys = Multi_index_iterator::size(degree, dim);
+    // u_int n_polys = Triangle_iterator::s_size(degree, dim);
 
     // T product = matrix::construct<T>(n_polys, n_polys);
 

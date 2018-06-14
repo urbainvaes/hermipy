@@ -123,4 +123,27 @@ bool isAligned(const ivec & m, const ivec & dirs)
     return true;
 }
 
+u_int hash_multi_ind(const ivec & v, int degree)
+{
+    u_int base = degree + 1;
+    u_int result = 0;
+    u_int unit = 1;
+    for(u_int i = 0; i < v.size(); i++)
+    {
+        result += v[i]*unit;
+        unit *= base;
+    }
+    return result;
+}
+
+string hash_print(const ivec & v)
+{
+    string hash = "";
+    for (u_int i = 0; i < v.size(); ++i)
+    {
+        hash += std::to_string(v[i]) + "-";
+    }
+    return hash;
+}
+
 }
