@@ -81,13 +81,13 @@ vec inner(const vec & s1,
     u_int degree = bissect_degree(dim1, s1.size());
     assert( degree == bissect_degree(dim2, s2.size()) );
 
-    vec result(Multi_index_iterator::size(degree, dim_result), 0.);
+    vec result(Triangle_iterator::s_size(degree, dim_result), 0.);
 
-    Multi_index_iterator m_result(dim_result, degree);
-    Multi_index_iterator m_inner(dim_inner, degree);
+    Triangle_iterator m_result(dim_result, degree);
+    Triangle_iterator m_inner(dim_inner, degree);
 
-    Multi_index_iterator it_m1(dim1, degree);
-    Multi_index_iterator it_m2(dim2, degree);
+    Triangle_iterator it_m1(dim1, degree);
+    Triangle_iterator it_m2(dim2, degree);
 
     for (i = 0; !m_result.isFull(); m_result.increment(), i++)
     {
@@ -110,8 +110,8 @@ vec inner(const vec & s1,
                 m2[inner_ind2[k]] = m_inner[k];
             }
 
-            u_int ind1 = it_m1.index(m1),
-                  ind2 = it_m2.index(m2);
+            u_int ind1 = Triangle_iterator::s_index(m1),
+                  ind2 = Triangle_iterator::s_index(m2);
 
             if (ind1 >= s1.size() || ind2 >= s2.size())
                 continue;

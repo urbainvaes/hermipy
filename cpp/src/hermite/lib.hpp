@@ -21,6 +21,7 @@
 #ifndef LIB_H
 #define LIB_H
 
+#include <string>
 #include "hermite/types.hpp"
 
 namespace hermite
@@ -29,9 +30,6 @@ namespace hermite
 // Find degree associated with number of polynomials
 u_int bissect_degree(u_int dim, u_int n_polys);
 u_int find_dim(u_int degree, u_int n_polys);
-
-// Hash multi-index
-u_int hash_multi_ind(ivec v, int degree);
 
 // Check if multi-index is aligned to another
 bool isAligned(const ivec & m, u_int dir);
@@ -49,6 +47,9 @@ std::vector<T> extract (const std::vector<T> & input, const ivec & indices)
     }
     return result;
 }
+
+u_int hash_multi_ind(const ivec & v, int degree);
+std::string hash_print(const ivec & v);
 
 }
 
