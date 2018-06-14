@@ -131,7 +131,6 @@ template<typename T> T varf(
         m = std::unique_ptr<Multi_index_iterator>(
                 new Multi_index_iterator(dim, 2*degree));
     }
-    m->reset();
 
     #ifdef DEBUG
     u_int i, max_degree = 0;
@@ -143,7 +142,7 @@ template<typename T> T varf(
         }
 
         u_int sum = 0;
-        for (u_int i : m.get())
+        for (u_int i : m->get())
         {
             sum += i;
         }
@@ -160,7 +159,7 @@ template<typename T> T varf(
     cube products = triple_products_1d(degree);
 
     // To store results
-    m.reset();
+    m->reset();
     T result = matrix::construct<T>(n_polys, n_polys);
     for (u_int i = 0; i < Hf.size(); i++, m->increment())
     {
@@ -170,7 +169,7 @@ template<typename T> T varf(
         }
 
         #ifdef DEBUG
-        cout << "--> i = " << i << ", and m = " << m.get() << ", and Hf[i] = " << Hf[i] << endl;
+        cout << "--> i = " << i << ", and m = " << m->get() << ", and Hf[i] = " << Hf[i] << endl;
         #endif
 
         cube factors(dim);
@@ -224,7 +223,7 @@ mat varfd(
     u_int i,j;
 
     mat results = mat(var.size(), vec(var.size(), 0));
-    for (j = 0, m2.reset(); j < var.size(); j++, m2->increment())
+    for (j = 0, m2->reset(); j < var.size(); j++, m2->increment())
     {
         if ((*m2)[direction] == 0)
         {
@@ -271,7 +270,7 @@ spmat varfd(
 
     u_int i;
     imat multi_indices;
-    for (i = 0, m.reset(); i < var.size1(); i++, m->increment())
+    for (i = 0, m->reset(); i < var.size1(); i++, m->increment())
     {
         multi_indices.push_back(m->get());
     }
