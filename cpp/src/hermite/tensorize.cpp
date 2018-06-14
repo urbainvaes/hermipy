@@ -111,7 +111,7 @@ vec tensorize(const mat & inputs, const imat & dirs)
         for (u_int j = 0; j < dirs.size(); j++)
         {
             ivec sub = extract(m.get(), dirs[j]);
-            u_int ind = it_mul[j].index(sub);
+            u_int ind = it_mul[j].s_index(sub);
             results[i] *= inputs[j][ind];
         }
     }

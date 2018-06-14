@@ -120,22 +120,8 @@ class Multi_index_iterator : public Vector_iterator
             index_list = 0;
         }
 
-        u_int index(const ivec & m_vec)
-        {
-            std::string hash_mvec = hash_print(m_vec);
-            return hash_table.at(hash_mvec);
-        }
-
-        void increment()
-        {
-            if (index_list == list.size() - 1)
-            {
-                full = true;
-                return;
-            }
-
-            multi_index = list[++index_list];
-        }
+        u_int index(const ivec & m_vec);
+        void increment();
 };
 
 class Triangle_iterator : public Multi_index_iterator
