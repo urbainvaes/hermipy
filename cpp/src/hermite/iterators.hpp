@@ -126,6 +126,7 @@ class Multi_index_iterator : public Vector_iterator
         void increment();
 };
 
+// Consistent orderings
 class Triangle_iterator : public Multi_index_iterator
 {
     private:
@@ -135,9 +136,10 @@ class Triangle_iterator : public Multi_index_iterator
         Triangle_iterator(u_int dim, u_int upper_bound);
 
         static bool s_increment(ivec & multi_index, u_int dim, u_int upper_bound);
+        static imat s_list(u_int dim, u_int upper_bound);
         static u_int s_index(const ivec & m_vec);
         static u_int s_size(u_int degree, u_int dim);
-        static imat s_list(u_int dim, u_int upper_bound);
+        static u_int s_bissect_degree(u_int dim, u_int n_polys);
 
 };
 
@@ -152,6 +154,7 @@ class Cross_iterator : public Multi_index_iterator
         static bool s_increment(ivec & multi_index, u_int dim, u_int upper_bound);
         static imat s_list(u_int dim, u_int upper_bound);
         static u_int s_size(u_int degree, u_int dim);
+        static u_int s_bissect_degree(u_int dim, u_int n_polys);
 };
 
 }

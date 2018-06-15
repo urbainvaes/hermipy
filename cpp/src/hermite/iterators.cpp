@@ -22,8 +22,10 @@
 #include "hermite/io.hpp"
 #include "hermite/types.hpp"
 #include "hermite/iterators.hpp"
-
 #include <boost/math/special_functions/binomial.hpp>
+
+#define MAX(i, j) (i > j ? i : j)
+#define DEGREE_BISSECT_MAX 150
 
 namespace hermite
 {
@@ -168,9 +170,50 @@ imat Triangle_iterator::s_list(u_int dim, u_int upper_bound)
     }
     return result;
 }
+
+u_int Triangle_iterator::s_bissect_degree(u_int dim, u_int n_polys)
+{
+    u_int degree_1 = 0, degree_2 = DEGREE_BISSECT_MAX;
+
+    int img_1 = (int) s_size(degree_1, dim) - (int) n_polys;
+    int img_2 = (int) s_size(degree_2, dim) - (int) n_polys;
+
+    if (img_1 > 0 || img_2 < 0)
+    {
+        std::cout << "Can't find degree, Invalid arguments!" << std::endl;
+        exit(0);
+    }
+
+    if (img_1 == 0)
+        return degree_1;
+
+    if (img_2 == 0)
+        return degree_2;
+
+    while (true)
+    {
+        u_int new_degree = (degree_1 + degree_2)/2;
+        int new_img = (int) s_size(new_degree, dim) - (int) n_polys;
+
+        if (new_img < 0)
+        {
+            degree_1 = new_degree;
+            img_1 = new_img;
+        }
+        else if (new_img > 0)
+        {
+            degree_2 = new_degree;
+            img_2 = new_img;
+        }
+        else
+        {
+            return new_degree;
+        }
+    }
+}
+
 // }}}
 // Hyperbolic cross iterator {{{
-#define MAX(i, j) (i > j ? i : j)
 bool Cross_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_bound)
 {
     u_int i;
@@ -252,6 +295,12 @@ imat Cross_iterator::s_list(u_int dim, u_int upper_bound)
         result.push_back(m.get());
     }
     return result;
+}
+
+u_int Cross_iterator::s_bissect_degree(u_int dim, u_int n_polys)
+{
+    Cross_iterator m(dim, DEGREE_BISSECT_MAX);
+    return m.list[n_polys - 1][0];
 }
 
 // }}}
