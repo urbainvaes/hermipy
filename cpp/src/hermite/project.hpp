@@ -26,11 +26,11 @@
 namespace hermite
 {
 
-vec project(const vec & input, u_int dim, u_int dir, std::string index_set);
-vec project(const vec & input, u_int dim, const ivec & dirs, std::string index_set);
+vec project_vec_1d(const vec & input, u_int dim, u_int dir, std::string index_set);
+vec project_vec_nd(const vec & input, u_int dim, const ivec & dirs, std::string index_set);
 
-template <typename M> M project(const M & input, u_int dim, u_int dir, std::string index_set);
-template <typename M> M project(const M & input, u_int dim, const ivec & dirs, std::string index_set);
+template <typename M> M project_mat_1d(const M & input, u_int dim, u_int dir, std::string index_set);
+template <typename M> M project_mat_nd(const M & input, u_int dim, const ivec & dirs, std::string index_set);
 
 }
 

@@ -27,19 +27,19 @@
 namespace hermite {
 
 // Tensorize vector(s)
-vec tensorize(const vec & input, u_int dim, u_int dir, std::string index_set);
-vec tensorize(const mat & inputs, std::string index_set);
-vec tensorize(const mat & inputs, const imat & dirs, std::string index_set);
+vec tensorize_vec_id(const vec & input, u_int dim, u_int dir, std::string index_set);
+vec tensorize_vecs_axes(const mat & inputs, std::string index_set);
+vec tensorize_vecs_dirs(const mat & inputs, const imat & dirs, std::string index_set);
 
 // Tensorize matrix
 template<typename T, typename M>
-T tensorize(const M & input, u_int dim, u_int dir, std::string index_set);
+T tensorize_mat_id(const M & input, u_int dim, u_int dir, std::string index_set);
 
 template <typename T, typename M>
-T tensorize(const std::vector<M> & inputs, std::string index_set);
+T tensorize_mats_axes(const std::vector<M> & inputs, std::string index_set);
 
 template <typename T, typename S>
-T tensorize(const std::vector<S> & inputs, const imat & dirs, std::string index_set);
+T tensorize_mats_dirs(const std::vector<S> & inputs, const imat & dirs, std::string index_set);
 
 }
 
