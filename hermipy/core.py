@@ -180,7 +180,8 @@ def varfd(dim, degree, direction, var, sparse=True, index_set="triangle"):
 
 
 @log_stats
-def tensorize(inp, dim=None, direction=None, sparse=False):
+def tensorize(inp, dim=None, direction=None,
+              sparse=False, index_set="triangle"):
 
     # Scalar case
     is_scalar = isinstance(inp[0], (float, int))
@@ -197,9 +198,9 @@ def tensorize(inp, dim=None, direction=None, sparse=False):
     if dim is not None:
         if direction is None:
             raise ValueError("Direction must be defined!")
-        args = [inp, dim, direction]
+        args = [inp, dim, direction, index_set]
     else:
-        args = [inp]
+        args = [inp, index_set]
     if sparse:
         tensorize_fun = hm.tensorize_sp
         convert_fun = to_csr
@@ -211,14 +212,14 @@ def tensorize(inp, dim=None, direction=None, sparse=False):
 
 @cache()
 @log_stats
-def project(inp, dim, directions):
+def project(inp, dim, directions, index_set="triangle"):
     if type(directions) is int:
         directions = [directions]
     inp = to_cpp(inp)
     directions = to_numeric(directions)
     directions_cpp = hm.int_vec()
     directions_cpp.extend(directions)
-    return to_numpy(hm.project(inp, dim, directions_cpp))
+    return to_numpy(hm.project(inp, dim, directions_cpp, index_set))
 
 
 @cache()
@@ -230,9 +231,9 @@ def multi_indices(dim, degree):
 
 @cache()
 @log_stats
-def inner(s1, s2, d1, d2):
+def inner(s1, s2, d1, d2, index_set="triangle"):
     s1, s2 = to_cpp_array(s1, s2)
     d1_cpp, d2_cpp = hm.int_vec(), hm.int_vec()
     d1_cpp.extend(d1)
     d2_cpp.extend(d2)
-    return np.array(hm.inner(s1, s2, d1_cpp, d2_cpp))
+    return np.array(hm.inner(s1, s2, d1_cpp, d2_cpp, index_set))
