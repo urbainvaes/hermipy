@@ -77,7 +77,6 @@ BOOST_PYTHON_MODULE(hermite_cpp)
         .def("size2", &spmat::size2)
         ;
 
-
     // Discretization
     def("discretize", discretize_from_string);
 
@@ -97,24 +96,31 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     def("varfd", varfd<spmat>);
 
     // Projection and tensorization of vectors
-    def("project", static_cast<vec (*) (const vec & input, u_int dim, u_int dir, std::string index_set)> (& project));
-    def("project", static_cast<vec (*) (const vec & input, u_int dim, const ivec & dirs, std::string index_set)> (& project));
-    def("project", static_cast<mat   (*) (const mat   & input, u_int dim, u_int dir, std::string index_set)> (& project<mat>));
-    def("project", static_cast<spmat (*) (const spmat & input, u_int dim, u_int dir, std::string index_set)> (& project<spmat>));
-    def("project", static_cast<mat   (*) (const mat   & input, u_int dim, const ivec & dirs, std::string index_set)> (& project<mat>));
-    def("project", static_cast<spmat (*) (const spmat & input, u_int dim, const ivec & dirs, std::string index_set)> (& project<spmat>));
+    def("project", & project_vec_1d);
+    def("project", & project_vec_nd);
+    def("project", & project_mat_1d<mat>);
+    def("project", & project_mat_1d<spmat>);
+    def("project", & project_mat_nd<mat>);
+    def("project", & project_mat_nd<spmat>);
 
     // Projection and tensorization of matrices
-    def("tensorize", static_cast<vec (*) (const vec & input, u_int dim, u_int dir, std::string index_set)> (& tensorize));
-    def("tensorize", static_cast<vec (*) (const mat & inputs, std::string index_set)> (& tensorize));
-    def("tensorize", static_cast<mat (*) (const mat & inputs, u_int dim, u_int dir, std::string index_set)> (& tensorize<mat, mat>));
-    def("tensorize", static_cast<mat (*) (const spmat & input, u_int dim, u_int dir, std::string index_set)> (& tensorize<mat, spmat>));
-    def("tensorize", static_cast<mat (*) (const vector<mat> & input, std::string index_set)> (& tensorize<mat, mat>));
-    def("tensorize", static_cast<mat (*) (const vector<spmat> & input, std::string index_set)> (& tensorize<mat, spmat>));
-    def("tensorize_sp", static_cast<spmat (*) (const mat & input, u_int dim, u_int dir, std::string index_set)> (& tensorize<spmat, mat>));
-    def("tensorize_sp", static_cast<spmat (*) (const spmat & input, u_int dim, u_int dir, std::string index_set)> (& tensorize<spmat, spmat>));
-    def("tensorize_sp", static_cast<spmat (*) (const vector<mat> & input, std::string index_set)> (& tensorize<spmat, mat>));
-    def("tensorize_sp", static_cast<spmat (*) (const vector<spmat> & input, std::string index_set)> (& tensorize<spmat, spmat>));
+    def("tensorize", & tensorize_vec_id);
+    def("tensorize", & tensorize_vecs_axes);
+    def("tensorize", & tensorize_vecs_dirs);
+
+    def("tensorize", & tensorize_mat_id<mat,mat>);
+    def("tensorize", & tensorize_mat_id<mat,spmat>);
+    def("tensorize", & tensorize_mats_axes<mat,mat>);
+    def("tensorize", & tensorize_mats_axes<mat,spmat>);
+    def("tensorize", & tensorize_mats_dirs<mat,mat>);
+    def("tensorize", & tensorize_mats_dirs<mat,spmat>);
+
+    def("tensorize_sp", & tensorize_mat_id<spmat,mat>);
+    def("tensorize_sp", & tensorize_mat_id<spmat,spmat>);
+    def("tensorize_sp", & tensorize_mats_axes<spmat,mat>);
+    def("tensorize_sp", & tensorize_mats_axes<spmat,spmat>);
+    def("tensorize_sp", & tensorize_mats_dirs<spmat,mat>);
+    def("tensorize_sp", & tensorize_mats_dirs<spmat,spmat>);
 
     // Converters between data types
     def("to_numpy", static_cast<np::ndarray (*) (const mat & input)> (& to_numpy));

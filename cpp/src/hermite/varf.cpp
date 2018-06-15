@@ -181,7 +181,7 @@ template<typename T> T varf(
         #ifdef DEBUG
         cout << "--> Tensorizing for current mult-index." << endl;
         #endif
-        auto result_iteration = tensorize<T, mat>(factors, index_set);
+        auto result_iteration = tensorize_mats_axes<T, mat>(factors, index_set);
 
         #ifdef DEBUG
         cout << "--> Adding to global matrix."<< endl;
