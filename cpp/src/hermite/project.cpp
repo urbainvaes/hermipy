@@ -36,16 +36,17 @@ using boost::math::binomial_coefficient;
 namespace hermite
 {
 
+template<typename I>
 vec project(const vec & input, u_int dim, const ivec & dirs)
 {
     u_int n_polys = input.size();
     u_int dim_sub = dirs.size();
-    u_int degree = bissect_degree(dim, n_polys);
+    u_int degree = I::s_bissect_degree(dim, n_polys);
     u_int polys_sub = (u_int) binomial_coefficient<double> (degree + dim_sub, dim_sub);
     vec results(polys_sub, 0.);
 
-    Triangle_iterator m(dim, degree);
-    Triangle_iterator m_sub(dim_sub, degree);
+    I m(dim, degree),
+      m_sub(dim_sub, degree);
 
     u_int i;
     for (i = 0, m.reset(); !m.isFull(); i++, m.increment())
@@ -60,23 +61,40 @@ vec project(const vec & input, u_int dim, const ivec & dirs)
     return results;
 }
 
-vec project(const vec & input, u_int dim, u_int dir)
+vec project(const vec & input, u_int dim, const ivec & dirs, std::string index_set)
 {
-    ivec dirs(1, dir);
-    return project(input, dim, dirs);
+    if (index_set == "cross")
+    {
+        return project<Cross_iterator>(input, dim, dirs);
+    }
+    else if (index_set == "triangle")
+    {
+        return project<Triangle_iterator>(input, dim, dirs);
+    }
+    else
+    {
+        std::cout << "Invalid index set!" << std::endl;
+        exit(1);
+    }
 }
 
-template<typename M>
+vec project(const vec & input, u_int dim, u_int dir, std::string index_set)
+{
+    ivec dirs(1, dir);
+    return project(input, dim, dirs, index_set);
+}
+
+template<typename I, typename M>
 M project(const M & input, u_int dim, const ivec & dirs)
 {
     u_int n_polys = matrix::size1(input);
     u_int dim_sub = dirs.size();
-    u_int degree = bissect_degree(dim, n_polys);
+    u_int degree = I::s_bissect_degree(dim, n_polys);
     u_int polys_sub = (u_int) binomial_coefficient<double> (degree + dim_sub, dim_sub);
     M results = matrix::construct<M>(polys_sub, polys_sub);
 
-    Triangle_iterator m1(dim, degree), m2(dim, degree);
-    Triangle_iterator m_sub(dim_sub, degree);
+    I m1(dim, degree), m2(dim, degree),
+      m_sub(dim_sub, degree);
 
     u_int i,j;
     for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
@@ -99,16 +117,34 @@ M project(const M & input, u_int dim, const ivec & dirs)
     return results;
 }
 
-template <typename M>
-M project(const M & input, u_int dim, u_int dir)
+template<typename M>
+M project(const M & input, u_int dim, const ivec & dirs, std::string index_set)
 {
-    ivec dirs(1, dir);
-    return project(input, dim, dirs);
+    if (index_set == "cross")
+    {
+        return project<Cross_iterator,M>(input, dim, dirs);
+    }
+    else if (index_set == "triangle")
+    {
+        return project<Triangle_iterator,M>(input, dim, dirs);
+    }
+    else
+    {
+        std::cout << "Invalid index set!" << std::endl;
+        exit(1);
+    }
 }
 
-template mat project(const mat & input, u_int dim, u_int dir);
-template spmat project(const spmat & input, u_int dim, u_int dir);
-template mat project(const mat & input, u_int dim, const ivec & dirs);
-template spmat project(const spmat & input, u_int dim, const ivec & dirs);
+template <typename M>
+M project(const M & input, u_int dim, u_int dir, std::string index_set)
+{
+    ivec dirs(1, dir);
+    return project(input, dim, dirs, index_set);
+}
+
+template mat project(const mat & input, u_int dim, u_int dir, std::string index_set);
+template spmat project(const spmat & input, u_int dim, u_int dir, std::string index_set);
+template mat project(const mat & input, u_int dim, const ivec & dirs, std::string index_set);
+template spmat project(const spmat & input, u_int dim, const ivec & dirs, std::string index_set);
 
 }

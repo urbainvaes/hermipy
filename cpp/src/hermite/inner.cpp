@@ -79,8 +79,8 @@ vec inner(const vec & s1,
     u_int dim_result = dirs_result.size(),
           dim_inner = dirs_inner.size();
 
-    u_int degree = bissect_degree(dim1, s1.size());
-    assert( degree == bissect_degree(dim2, s2.size()) );
+    u_int degree = I::s_bissect_degree(dim1, s1.size());
+    assert( degree == I::s_bissect_degree(dim2, s2.size()) );
 
     vec result(I(degree, dim_result).size(), 0.);
 
