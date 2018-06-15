@@ -55,8 +55,8 @@ int main()
     hermite::spmat sp_initial = to_spmat(initial);
     vector<hermite::mat> inputs(2, initial);
     vector<hermite::spmat> sp_inputs(2, sp_initial);
-    hermite::spmat sp_tensorized = tensorize<hermite::spmat, hermite::spmat>(sp_inputs);
-    hermite::mat tensorized = tensorize<hermite::mat, hermite::mat>(inputs);
+    hermite::spmat sp_tensorized = tensorize<hermite::spmat, hermite::spmat>(sp_inputs, "triangle");
+    hermite::mat tensorized = tensorize<hermite::mat, hermite::mat>(inputs, "triangle");
     hermite::mat difference = hermite::full(sp_tensorized) - tensorized;
     imat m = Triangle_iterator(2, degree).getList();
     for (u_int i = 0; i < tensorized.size(); i++)

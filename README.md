@@ -25,6 +25,12 @@ $ python -m unittest discover -v tests
 
 - In plot, add bounds of Hermite series
 
+- Order of dim and degree not always consistent
+
+# Ideas
+
+- Keyword argument instead of C++ template?
+
 # License
 
 This program is free software: you can redistribute it and/or modify

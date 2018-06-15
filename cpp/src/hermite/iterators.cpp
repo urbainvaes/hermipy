@@ -303,5 +303,9 @@ u_int Cross_iterator::s_bissect_degree(u_int dim, u_int n_polys)
     return m.list[n_polys - 1][0];
 }
 
+u_int Cross_iterator::s_size(u_int degree, u_int dim)
+{
+    return Cross_iterator(dim, degree).size();
+}
 // }}}
 }
