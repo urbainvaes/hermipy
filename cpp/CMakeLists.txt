@@ -43,6 +43,7 @@ foreach(testfile ${testfiles})
     set_tests_properties (${testname} PROPERTIES PASS_REGULAR_EXPRESSION "Test passed")
 endforeach(testfile ${testfiles})
 
+# Files used to test ideas and library functions
 file(GLOB scratchfiles "src/scratchpad/*.cpp")
 foreach(scratchfile ${scratchfiles})
     get_filename_component(name ${scratchfile} NAME_WE)

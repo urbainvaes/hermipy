@@ -19,6 +19,7 @@
  */
 
 #include "hermite/matrix.hpp"
+#include "hermite/io.hpp"
 
 namespace hermite { namespace matrix {
 
@@ -30,13 +31,28 @@ namespace hermite { namespace matrix {
 
     template <> spmat construct(u_int size1, u_int size2)
     {
-        return spmat(size1, size2);
+        return spmat(size1, size2, 0.);
+    }
+
+    template <> boost_mat construct(u_int size1, u_int size2)
+    {
+        return boost_mat(size1, size2, 0.);
     }
 
     template <> cmat construct(u_int size1, u_int size2)
     {
         auto dims = boost::extents[size1][size2];
         return cmat(dims);
+    }
+
+    template<typename R, typename T> R naive_convert(const T & input)
+    {
+        R result = construct<R> (size1(input), size2(input));
+        for (u_int i = 0; i < size1(input); i++)
+            for (u_int j = 0; j < size2(input); j++)
+                set(result, i, j, get(input, i, j));
+
+        return result;
     }
 
     template<typename T> T convert(const mat & input);
@@ -60,5 +76,25 @@ namespace hermite { namespace matrix {
     template <> spmat convert(const mat & input)
     {
         return to_spmat(input);
+    }
+
+    template <> boost_mat convert (const mat & input)
+    {
+        return naive_convert<boost_mat, mat>(input);
+    }
+
+    template <> mat convert (const boost_mat & input)
+    {
+        return naive_convert<mat, boost_mat>(input);
+    }
+
+    template <> boost_mat convert (const spmat & input)
+    {
+        return naive_convert<boost_mat, spmat>(input);
+    }
+
+    template <> boost_mat convert (const boost_mat & input)
+    {
+        return input;
     }
 }}

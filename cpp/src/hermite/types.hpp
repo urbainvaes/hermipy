@@ -25,7 +25,10 @@
 #include <string>
 
 #include <boost/multi_array.hpp>
+#include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/io.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
+
 
 namespace hermite {
 
@@ -46,6 +49,7 @@ namespace hermite {
 
     // Contiguous multi-dimensional array
     typedef boost::multi_array<double, 2> cmat;
+    typedef boost::numeric::ublas::matrix<double> boost_mat;
 
     // Sparse matrix
     typedef boost::numeric::ublas::compressed_matrix<double, boost::numeric::ublas::row_major> spmat;
