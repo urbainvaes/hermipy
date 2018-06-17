@@ -138,7 +138,7 @@ vec inner(const vec & s1,
     }
     else
     {
-        std::cout << "Invalid index set!" << std::endl;
+        std::cerr << "Invalid index set!" << std::endl;
         exit(1);
     }
 }

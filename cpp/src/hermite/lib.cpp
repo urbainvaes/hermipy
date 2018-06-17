@@ -18,36 +18,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <boost/math/special_functions/binomial.hpp>
 #include "hermite/iterators.hpp"
 #include "hermite/lib.hpp"
 #include "hermite/types.hpp"
 
 using namespace std;
-using boost::math::binomial_coefficient;
 
 namespace hermite
 {
-
-u_int find_dim(u_int degree, u_int n_polys)
-{
-    u_int dim = 0;
-    u_int n_dim = (u_int) binomial_coefficient<double> (degree + dim, dim);
-
-    while (n_dim < n_polys)
-    {
-        dim += 1;
-        n_dim = (u_int) binomial_coefficient<double> (degree + dim, dim);
-    }
-
-    if (n_dim != n_polys)
-    {
-        cout << "Dimension not found, exiting..." << endl;
-        exit(1);
-    }
-
-    return dim;
-}
 
 bool isAligned(const ivec & m, u_int dir)
 {

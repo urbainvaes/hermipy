@@ -39,11 +39,16 @@ foreach(testfile ${testfiles})
     get_filename_component(testname ${testfile} NAME_WE)
     add_executable(${testname}.exe ${testfile})
     target_link_libraries (${testname}.exe hermite_cpp)
-    # set_target_properties(${testname}.exe PROPERTIES
-    #     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY})
     add_test(${testname} ${testname}.exe)
     set_tests_properties (${testname} PROPERTIES PASS_REGULAR_EXPRESSION "Test passed")
 endforeach(testfile ${testfiles})
+
+file(GLOB scratchfiles "src/scratchpad/*.cpp")
+foreach(scratchfile ${scratchfiles})
+    get_filename_component(name ${scratchfile} NAME_WE)
+    add_executable(${name}.exe ${scratchfile})
+    target_link_libraries (${name}.exe hermite_cpp)
+endforeach(scratchfile ${scratchfiles})
 
 # Generate documentation
 find_package(Doxygen)
