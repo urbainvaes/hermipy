@@ -21,14 +21,15 @@
 #ifndef IO_H
 #define IO_H
 
-#include "types.hpp"
+#include "hermite/types.hpp"
+
 #include <string>
 #include <iostream>
 
 namespace hermite {
 
 template<typename T> 
-std::ostream & printVec(std::ostream & os, std::vector<T> a)
+std::ostream & printVec(std::ostream & os, const std::vector<T> & a)
 {
     os << "[" << a[0];
     for (u_int i = 1; i < a.size(); i++)
@@ -48,7 +49,7 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T> & data)
 
 template<typename T>
 std::ostream &  printMat(std::ostream & os,
-        std::vector< std::vector<T> >  a,
+        const std::vector< std::vector<T> > & a,
         std::string begin = " ")
 {
     os << "[" << a[0];
@@ -88,6 +89,9 @@ std::ostream& operator<<(std::ostream& os,
     printCube<T>(os, data);
     return os;
 }
+
+std::ostream& operator<<(std::ostream& os, const spmat & data);
+std::ostream& operator<<(std::ostream& os, const boost_mat & data);
 
 }
 

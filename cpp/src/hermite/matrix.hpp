@@ -36,6 +36,11 @@ namespace matrix
         input(i, j) = val;
     }
 
+    inline void set(boost_mat & input, u_int i, u_int j, double val)
+    {
+        input(i, j) = val;
+    }
+
     inline void set(mat & input, u_int i, u_int j, double val)
     {
         input[i][j] = val;
@@ -61,7 +66,22 @@ namespace matrix
         return input.size2();
     }
 
+    inline u_int size1(const boost_mat & input)
+    {
+        return input.size1();
+    }
+
+    inline u_int size2(const boost_mat & input)
+    {
+        return input.size2();
+    }
+
     inline double get(const spmat & input, u_int i, u_int j)
+    {
+        return input(i, j);
+    }
+
+    inline double get(const boost_mat & input, u_int i, u_int j)
     {
         return input(i, j);
     }
@@ -71,9 +91,10 @@ namespace matrix
         return input[i][j];
     }
 
-
     template<typename T> T convert(const mat & input);
     template<typename T> T convert(const spmat & input);
+    template<typename T> T convert(const boost_mat & input);
+
     template<typename T> T construct(u_int size1, u_int size2);
     template<typename T> T eye(u_int size)
     {
