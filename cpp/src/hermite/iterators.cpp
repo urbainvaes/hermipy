@@ -212,6 +212,28 @@ u_int Triangle_iterator::s_bissect_degree(u_int dim, u_int n_polys)
     }
 }
 
+u_int Triangle_iterator::s_find_dim(u_int degree, u_int n_polys)
+{
+    using boost::math::binomial_coefficient;
+
+    u_int dim = 0;
+    u_int n_dim = (u_int) binomial_coefficient<double> (degree + dim, dim);
+
+    while (n_dim < n_polys)
+    {
+        dim += 1;
+        n_dim = (u_int) binomial_coefficient<double> (degree + dim, dim);
+    }
+
+    if (n_dim != n_polys)
+    {
+        std::cerr << "Dimension not found, exiting..." << std::endl;
+        exit(1);
+    }
+
+    return dim;
+}
+
 // }}}
 // Hyperbolic cross iterator {{{
 bool Cross_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_bound)
