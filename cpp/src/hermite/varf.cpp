@@ -37,14 +37,10 @@
 #include "hermite/io.hpp"
 #endif
 
-#include <boost/math/special_functions/binomial.hpp>
-#include <boost/numeric/ublas/matrix_sparse.hpp>
-
 #define MIN(i,j) (i < j ? i : j)
 #define MAX(i,j) (i < j ? j : i)
 
 using namespace std;
-using boost::math::binomial_coefficient;
 
 namespace hermite {
 
@@ -96,16 +92,15 @@ cube triple_products_1d(int degree)
     return products;
 }
 
-template<typename T> T varf(
+template<typename Iterator,typename T>
+T varf(
         u_int degree,
         vec const & input,
         mat const & nodes,
-        mat const & weights,
-        std::string index_set)
+        mat const & weights)
 {
-
     u_int dim = nodes.size();
-    u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
+    u_int n_polys = Iterator::s_size(degree, dim);
 
     #ifdef DEBUG
     cout << "Entering varf in dimension " << dim << "." << endl;
@@ -120,21 +115,11 @@ template<typename T> T varf(
     #endif
 
     // Polynomial of highest degree = 2*degree
-    std::unique_ptr<Multi_index_iterator> m;
-    if (index_set == "cross")
-    {
-        m = std::unique_ptr<Cross_iterator>(
-                new Cross_iterator(dim, 2*degree));
-    }
-    else
-    {
-        m = std::unique_ptr<Triangle_iterator>(
-                new Triangle_iterator(dim, 2*degree));
-    }
+    Iterator m(dim, 2*degree);
 
     #ifdef DEBUG
     u_int i, max_degree = 0;
-    for (m->reset(), i = 0; i < Hf.size(); i++, m->increment())
+    for (m.reset(), i = 0; i < Hf.size(); i++, m.increment())
     {
         if (abs(Hf[i]) < 1e-12)
         {
@@ -142,7 +127,7 @@ template<typename T> T varf(
         }
 
         u_int sum = 0;
-        for (u_int i : m->get())
+        for (u_int i : m.get())
         {
             sum += i;
         }
@@ -159,9 +144,9 @@ template<typename T> T varf(
     cube products = triple_products_1d(degree);
 
     // To store results
-    m->reset();
+    m.reset();
     T result = matrix::construct<T>(n_polys, n_polys);
-    for (u_int i = 0; i < Hf.size(); i++, m->increment())
+    for (u_int i = 0; i < Hf.size(); i++, m.increment())
     {
         if (abs(Hf[i]) < 1e-12)
         {
@@ -169,19 +154,19 @@ template<typename T> T varf(
         }
 
         #ifdef DEBUG
-        cout << "--> i = " << i << ", and m = " << m->get() << ", and Hf[i] = " << Hf[i] << endl;
+        cout << "--> i = " << i << ", and m = " << m.get() << ", and Hf[i] = " << Hf[i] << endl;
         #endif
 
         cube factors(dim);
         for (u_int d = 0; d < dim; ++d)
         {
-            factors[d] = products[(*m)[d]];
+            factors[d] = products[m[d]];
         }
 
         #ifdef DEBUG
         cout << "--> Tensorizing for current mult-index." << endl;
         #endif
-        auto result_iteration = tensorize_mats_axes<T, mat>(factors, index_set);
+        auto result_iteration = _tensorize_mats_axes<Iterator,T,mat>(factors);
 
         #ifdef DEBUG
         cout << "--> Adding to global matrix."<< endl;
@@ -196,8 +181,88 @@ template<typename T> T varf(
     return result;
 }
 
-template mat varf( u_int degree, vec const & input, mat const & nodes, mat const & weights, std::string index_set);
-template spmat varf( u_int degree, vec const & input, mat const & nodes, mat const & weights, std::string index_set);
+template<typename T>
+T varf(
+        u_int degree,
+        vec const & input,
+        mat const & nodes,
+        mat const & weights,
+        std::string index_set)
+{
+    if (index_set == "cross")
+    {
+        return varf<Cross_iterator,T>(degree, input, nodes, weights);
+    }
+    else if (index_set == "triangle")
+    {
+        return varf<Triangle_iterator,T>(degree, input, nodes, weights);
+    }
+    else
+    {
+        std::cerr << "Invalid index set!" << std::endl;
+        exit(1);
+    }
+}
+
+template <typename T>
+T varfd(
+        u_int dim,
+        u_int degree,
+        u_int direction,
+        const T & var,
+        std::string index_set)
+{
+    #ifdef DEBUG
+    cout << "Entering varfd with sparse matrix" << endl;
+    #endif
+
+    std::unique_ptr<Multi_index_iterator> m;
+    if (index_set == "cross")
+    {
+        m = std::unique_ptr<Cross_iterator>(
+                new Cross_iterator(dim, degree));
+    }
+    else
+    {
+        m = std::unique_ptr<Triangle_iterator>(
+                new Triangle_iterator(dim, degree));
+    }
+
+    u_int i;
+    imat multi_indices;
+    for (i = 0, m->reset(); i < var.size1(); i++, m->increment())
+    {
+        multi_indices.push_back(m->get());
+    }
+
+    T results = T(var.size1(), var.size2(), 0.);
+    for (auto i1 = var.begin1(); i1 != var.end1(); ++i1)
+    {
+        for (auto i2 = i1.begin(); i2 != i1.end(); ++i2)
+        {
+            u_int row = i2.index1();
+            u_int col = i2.index2();
+            ivec m_col = multi_indices[col];
+            double value = *i2;
+
+            u_int sum = 0;
+            for(i = 0; i < m_col.size(); i++)
+            {
+                sum += m_col[i];
+            }
+            if (sum == degree)
+            {
+               continue;
+            }
+
+            ivec int_m2 = m_col;
+            int_m2[direction] += 1;
+            u_int id = m->index(int_m2);
+            results(row, id) = value*sqrt(int_m2[direction]);
+        }
+    }
+    return results;
+}
 
 template <>
 mat varfd(
@@ -244,64 +309,11 @@ mat varfd(
     return results;
 }
 
-template <>
-spmat varfd(
-        u_int dim,
-        u_int degree,
-        u_int direction,
-        const spmat & var,
-        std::string index_set)
-{
-    #ifdef DEBUG
-    cout << "Entering varfd with sparse matrix" << endl;
-    #endif
+template mat varf(u_int degree, vec const & input, mat const & nodes, mat const & weights, std::string index_set);
+template spmat varf(u_int degree, vec const & input, mat const & nodes, mat const & weights, std::string index_set);
+template boost_mat varf(u_int degree, vec const & input, mat const & nodes, mat const & weights, std::string index_set);
 
-    std::unique_ptr<Multi_index_iterator> m;
-    if (index_set == "cross")
-    {
-        m = std::unique_ptr<Cross_iterator>(
-                new Cross_iterator(dim, degree));
-    }
-    else
-    {
-        m = std::unique_ptr<Triangle_iterator>(
-                new Triangle_iterator(dim, degree));
-    }
-
-    u_int i;
-    imat multi_indices;
-    for (i = 0, m->reset(); i < var.size1(); i++, m->increment())
-    {
-        multi_indices.push_back(m->get());
-    }
-
-    spmat results = spmat(var.size1(), var.size2());
-    for (cit1_t i1 = var.begin1(); i1 != var.end1(); ++i1)
-    {
-        for (cit2_t i2 = i1.begin(); i2 != i1.end(); ++i2)
-        {
-            u_int row = i2.index1();
-            u_int col = i2.index2();
-            ivec m_col = multi_indices[col];
-            double value = *i2;
-
-            u_int sum = 0;
-            for(i = 0; i < m_col.size(); i++)
-            {
-                sum += m_col[i];
-            }
-            if (sum == degree)
-            {
-               continue;
-            }
-
-            ivec int_m2 = m_col;
-            int_m2[direction] += 1;
-            u_int id = m->index(int_m2);
-            results(row, id) = value*sqrt(int_m2[direction]);
-        }
-    }
-    return results;
-}
+template spmat varfd( u_int dim, u_int degree, u_int direction, const spmat & var, std::string index_set);
+template boost_mat varfd( u_int dim, u_int degree, u_int direction, const boost_mat & var, std::string index_set);
 
 }

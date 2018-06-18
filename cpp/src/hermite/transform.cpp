@@ -30,7 +30,6 @@
 
 #include <boost/function.hpp>
 #include <boost/core/ref.hpp>
-#include <boost/math/special_functions/binomial.hpp>
 
 #include "hermite/types.hpp"
 #include "hermite/hermite.hpp"
@@ -41,17 +40,16 @@ using namespace std;
 
 namespace hermite {
 
+template<typename Iterator>
 vec transform(
         u_int degree,
         vec const & input,
         mat const & nodes,
         mat const & weights,
-        bool forward,
-        std::string index_set)
+        bool forward)
 {
     u_int dim = nodes.size();
-    using boost::math::binomial_coefficient;
-    u_int n_polys = (u_int) binomial_coefficient<double> (degree + dim, dim);
+    u_int n_polys = Iterator::s_size (degree, dim);
 
     u_int i,j,k;
 
@@ -84,18 +82,7 @@ vec transform(
         }
     }
 
-    std::unique_ptr<Multi_index_iterator> m;
-    if (index_set == "cross")
-    {
-        m = std::unique_ptr<Cross_iterator>(
-                new Cross_iterator(dim, degree));
-    }
-    else
-    {
-        m = std::unique_ptr<Triangle_iterator>(
-                new Triangle_iterator(dim, degree));
-    }
-
+    Iterator m(dim, degree);
     Hyper_cube_iterator p(n_points);
     for (i = 0; i < n_points_tot; i++, p.increment())
     {
@@ -108,14 +95,14 @@ vec transform(
             }
         }
 
-        for (j = 0, m->reset(); j < n_polys; j++, m->increment())
+        for (j = 0, m.reset(); j < n_polys; j++, m.increment())
         {
             double val_at_point = 1;
             for (k = 0; k < dim; k++)
             {
-                if ((*m)[k] != 0)
+                if (m[k] != 0)
                 {
-                    val_at_point *= herm_vals_1d[k][p[k]][(*m)[k]];
+                    val_at_point *= herm_vals_1d[k][p[k]][m[k]];
                 }
             }
             if(forward)
@@ -132,12 +119,35 @@ vec transform(
     return output;
 }
 
+vec transform(
+        u_int degree,
+        vec const & input,
+        mat const & nodes,
+        mat const & weights,
+        bool forward,
+        std::string index_set)
+{
+    if (index_set == "cross")
+    {
+        return transform<Cross_iterator>(degree, input, nodes, weights, forward);
+    }
+    else if (index_set == "triangle")
+    {
+        return transform<Triangle_iterator>(degree, input, nodes, weights, forward);
+    }
+    else
+    {
+        std::cerr << "Invalid index set!" << std::endl;
+        exit(1);
+    }
+}
+
 double integrate(
         vec const & f_grid,
         mat const & nodes,
         mat const & weights)
 {
-    vec integral = transform(0, f_grid, nodes, weights, true);
+    vec integral = transform(0, f_grid, nodes, weights, true, "triangle");
     return integral[0];
 }
 
