@@ -34,6 +34,8 @@ namespace hermite
     boost::python::numpy::ndarray to_numpy(const cmat & input);
     cmat to_bmat(const boost::python::numpy::ndarray & input);
     mat to_mat(const boost::python::numpy::ndarray & input);
+    boost_mat to_boost_mat(const boost::python::numpy::ndarray & input);
+    boost::python::numpy::ndarray boost_to_numpy(const boost_mat & input);
 }
 
 #endif

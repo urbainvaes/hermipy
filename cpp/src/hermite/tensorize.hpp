@@ -32,11 +32,14 @@ vec tensorize_vecs_axes(const mat & inputs, std::string index_set);
 vec tensorize_vecs_dirs(const mat & inputs, const imat & dirs, std::string index_set);
 
 // Tensorize matrix
-template<typename T, typename M>
-T tensorize_mat_id(const M & input, u_int dim, u_int dir, std::string index_set);
+template<typename T, typename S>
+T tensorize_mat_id(const S & input, u_int dim, u_int dir, std::string index_set);
 
-template <typename T, typename M>
-T tensorize_mats_axes(const std::vector<M> & inputs, std::string index_set);
+template <typename Iterator, typename T, typename S>
+T _tensorize_mats_axes(const std::vector<S> & inputs);
+
+template <typename T, typename S>
+T tensorize_mats_axes(const std::vector<S> & inputs, std::string index_set);
 
 template <typename T, typename S>
 T tensorize_mats_dirs(const std::vector<S> & inputs, const imat & dirs, std::string index_set);
