@@ -112,7 +112,9 @@ class Series:
         assert degree <= self.degree
         n_polys = int(binom(degree + self.position.dim, degree))
         coeffs = self.coeffs[0:n_polys]
-        return Series(coeffs, self.position, degree=degree)
+        return Series(coeffs, self.position, degree=degree,
+                      index_set=self.index_set)
+
 
     # def to_cross(self, index_set):
     #     list_cross = 
