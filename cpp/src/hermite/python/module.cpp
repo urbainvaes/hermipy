@@ -71,6 +71,10 @@ BOOST_PYTHON_MODULE(hermite_cpp)
         ;
 
     class_<cmat>("contiguous_mat");
+    class_<boost_mat>("boost_mat")
+        .def("size1", &spmat::size1)
+        .def("size2", &spmat::size2)
+        ;
 
     class_<spmat>("sparse_matrix")
         .def("size1", &spmat::size1)
@@ -90,9 +94,9 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     // Triple products and variational formulations
     def("triple_products", triple_products_1d);
 
-    def("varf", varf<mat>);
+    def("varf", varf<boost_mat>);
     def("varf_sp", varf<spmat>);
-    def("varfd", varfd<mat>);
+    def("varfd", varfd<boost_mat>);
     def("varfd", varfd<spmat>);
 
     // Projection and tensorization of vectors
@@ -126,8 +130,11 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     def("to_numpy", static_cast<np::ndarray (*) (const mat & input)> (& to_numpy));
     def("to_numpy", static_cast<np::ndarray (*) (const cmat & input)> (& to_numpy));
     def("to_numpy", static_cast<np::ndarray (*) (const cmat & input)> (& to_numpy));
+
+    def("to_numpy", boost_to_numpy);
     def("to_mat", static_cast<mat (*) (const np::ndarray & input)> (& to_mat));
     def("to_bmat", to_bmat);
+    def("to_boost_mat", to_boost_mat);
 
     // For sparse matrices
     def("row_col_val", row_col_val);
@@ -135,9 +142,13 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     def("to_spmat", static_cast<spmat (*) (const vec & data, const ivec & indices, const ivec & indptr, u_int size1, u_int size2)> (& to_spmat));
     def("full", full);
 
-    // Misc functions
+    // Iterator functions
     def("list_cube_indices", Hyper_cube_iterator::list);
-    def("list_multi_indices", Triangle_iterator::s_list);
+    def("triangle_list_indices", Triangle_iterator::s_list);
+    def("triangle_bissect_degree", Triangle_iterator::s_bissect_degree);
+    def("triangle_index", Triangle_iterator::s_index);
+    def("cross_list_indices", Cross_iterator::s_list);
+    def("cross_bissect_degree", Cross_iterator::s_bissect_degree);
 }
 
 }

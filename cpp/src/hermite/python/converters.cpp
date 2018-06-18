@@ -93,6 +93,51 @@ cmat to_bmat(const np::ndarray & input)
     return result;
 }
 
+boost_mat to_boost_mat(const np::ndarray & input)
+{
+    if (input.get_nd() != 2)
+    {
+        cout << "Dimension must be 2" << endl;
+        throw WRONG_DIMENSION;
+    }
+
+    Py_intptr_t const* shape = input.get_shape();
+    Py_intptr_t const* strides = input.get_strides();
+    double * data = reinterpret_cast<double*>(input.get_data());
+
+    u_int n_rows = (u_int) shape[0];
+    u_int n_cols = (u_int) shape[1];
+
+    u_int stride_cols = (u_int) strides[1] / sizeof(double);
+
+    if (stride_cols != 1)
+    {
+        cout << "Rows of the matrix must be stored contiguously" << endl;
+        throw ROWS_NOT_CONTIGUOUS;
+    }
+
+    boost_mat result (n_rows, n_cols);
+    for (u_int i = 0; i < n_rows; ++i)
+        for (u_int j = 0; j < n_cols; j++)
+            result(i, j) = data[i*n_rows + j];
+
+    return result;
+}
+
+np::ndarray boost_to_numpy(const boost_mat & input)
+{
+    u_int n_rows = input.size1();
+    u_int n_cols = input.size2();
+    p::tuple shape = p::make_tuple(n_rows, n_cols);
+    p::tuple strides = p::make_tuple(n_cols * sizeof(double), sizeof(double));
+    np::dtype dtype = np::dtype::get_builtin<double>();
+    np::ndarray converted = np::from_data(input.data().begin(), dtype, shape, strides, p::object());
+    #ifdef DEBUG
+    std::cout << "Converted matrix:" << std::endl;
+    std::cout << p::extract<char const *>(p::str(converted)) << std::endl;
+    #endif
+    return converted.copy();
+}
 
 mat to_mat(const np::ndarray & input)
 {

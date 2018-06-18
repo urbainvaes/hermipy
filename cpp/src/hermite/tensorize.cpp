@@ -132,7 +132,7 @@ vec tensorize_vecs_dirs(const mat & inputs, const imat & dirs, std::string index
     }
     else
     {
-        std::cout << "Invalid index set!" << std::endl;
+        std::cerr << "Invalid index set!" << std::endl;
         exit(1);
     }
 }
@@ -286,27 +286,8 @@ spmat tensorize(const spmat & A, const spmat & B,
     return product;
 }
 
-spmat tensorize(const spmat & A, const spmat & B,
-                const ivec & dA, const ivec & dB,
-                std::string index_set)
-{
-    if (index_set == "cross")
-    {
-        return tensorize<Cross_iterator>(A, B, dA, dB);
-    }
-    else if (index_set == "triangle")
-    {
-        return tensorize<Triangle_iterator>(A, B, dA, dB);
-    }
-    else
-    {
-        std::cout << "Invalid index set!" << std::endl;
-        exit(1);
-    }
-}
-
 template <typename Iterator, typename T, typename S>
-T tensorize(const vector<S> & inputs, const imat & dirs)
+T _tensorize_mats_dirs(const vector<S> & inputs, const imat & dirs)
 {
     #ifdef DEBUG
     cout << "Entering tensorize with dirs = " << endl << dirs << endl;
@@ -352,10 +333,19 @@ T tensorize(const vector<S> & inputs, const imat & dirs)
         cout << "--> Tensorizing matrices" << endl;
         #endif
         result = tensorize<Iterator>(result, sp_inputs[i+1], d_old, dirs[i+1]);
-
     }
 
     return matrix::convert<T>(result);
+}
+
+template <typename Iterator, typename T, typename S>
+T _tensorize_mats_axes(const vector<S> & inputs)
+{
+    u_int dim = inputs.size();
+    imat dirs(dim, ivec(1, 0));
+    for (u_int i = 0; i < dim; i++)
+        dirs[i][0] = i;
+    return _tensorize_mats_dirs<Iterator,T,S>(inputs, dirs);
 }
 
 template <typename T, typename S>
@@ -363,15 +353,15 @@ T tensorize_mats_dirs(const vector<S> & inputs, const imat & dirs, std::string i
 {
     if (index_set == "cross")
     {
-        return tensorize<Cross_iterator,T,S>(inputs, dirs);
+        return _tensorize_mats_dirs<Cross_iterator,T,S>(inputs, dirs);
     }
     else if (index_set == "triangle")
     {
-        return tensorize<Triangle_iterator,T,S>(inputs, dirs);
+        return _tensorize_mats_dirs<Triangle_iterator,T,S>(inputs, dirs);
     }
     else
     {
-        std::cout << "Invalid index set!" << std::endl;
+        std::cerr << "Invalid index set!" << std::endl;
         exit(1);
     }
 }
@@ -379,41 +369,23 @@ T tensorize_mats_dirs(const vector<S> & inputs, const imat & dirs, std::string i
 template <typename T, typename S>
 T tensorize_mats_axes(const vector<S> & inputs, std::string index_set)
 {
-    u_int dim = inputs.size();
-    imat dirs(dim, ivec(1, 0));
-    for (u_int i = 0; i < dim; i++)
-        dirs[i][0] = i;
-    return tensorize_mats_dirs<T,S>(inputs, dirs, index_set);
-
-    // u_int dim = inputs.size();
-    // u_int degree = matrix::size1(inputs[0]) - 1;
-    // u_int n_polys = Triangle_iterator::s_size(degree, dim);
-
-    // T product = matrix::construct<T>(n_polys, n_polys);
-
-    // Multi_index_iterator m1(dim, degree);
-    // Multi_index_iterator m2(dim, degree);
-    // u_int i,j,k;
-    // for (i = 0, m1.reset(); !m1.isFull(); i++, m1.increment())
-    // {
-    //     for (j = 0, m2.reset(); !m2.isFull(); j++, m2.increment())
-    //     {
-    //         double result = 1.;
-    //         for (k = 0; k < dim; k++)
-    //         {
-    //             result *= matrix::get(inputs[k], m1[k], m2[k]);
-    //         }
-    //         if (result != 0)
-    //         {
-    //             matrix::set(product, i, j, result);
-    //         }
-    //     }
-    // }
-    // return product;
+    if (index_set == "cross")
+    {
+        return _tensorize_mats_axes<Cross_iterator,T,S>(inputs);
+    }
+    else if (index_set == "triangle")
+    {
+        return _tensorize_mats_axes<Triangle_iterator,T,S>(inputs);
+    }
+    else
+    {
+        std::cerr << "Invalid index set!" << std::endl;
+        exit(1);
+    }
 }
 
-template<typename T, typename M>
-T tensorize_mat_id(const M & input, u_int dim, u_int dir, std::string index_set)
+template<typename T, typename S>
+T tensorize_mat_id(const S & input, u_int dim, u_int dir, std::string index_set)
 {
     u_int degree = matrix::size1(input) - 1;
     T eye = matrix::eye<T>(degree + 1);
@@ -421,6 +393,13 @@ T tensorize_mat_id(const M & input, u_int dim, u_int dir, std::string index_set)
     mats[dir] = matrix::convert<T>(input);
     return tensorize_mats_axes<T>(mats, index_set);
 }
+
+template mat _tensorize_mats_axes<Cross_iterator>(const std::vector<mat> & input);
+template mat _tensorize_mats_axes<Triangle_iterator>(const std::vector<mat> & input);
+template spmat _tensorize_mats_axes<Cross_iterator>(const std::vector<mat> & input);
+template spmat _tensorize_mats_axes<Triangle_iterator>(const std::vector<mat> & input);
+template boost_mat _tensorize_mats_axes<Cross_iterator>(const std::vector<mat> & input);
+template boost_mat _tensorize_mats_axes<Triangle_iterator>(const std::vector<mat> & input);
 
 template mat tensorize_mats_dirs(const std::vector<mat> & inputs, const imat & dir, std::string index_sets);
 template mat tensorize_mats_dirs(const std::vector<spmat> & inputs, const imat & dir, std::string index_sets);
