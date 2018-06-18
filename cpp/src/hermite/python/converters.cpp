@@ -34,6 +34,7 @@ namespace hermite {
 namespace p = boost::python;
 namespace np = boost::python::numpy;
 
+template <>
 np::ndarray to_numpy(const mat & input)
 {
     u_int n_rows = input.size();
@@ -52,6 +53,7 @@ np::ndarray to_numpy(const mat & input)
     return converted.copy();
 }
 
+template <>
 np::ndarray to_numpy(const cmat & input)
 {
     u_int n_rows = input.shape()[0];
@@ -64,6 +66,17 @@ np::ndarray to_numpy(const cmat & input)
     return converted.copy();
 }
 
+template <>
+np::ndarray to_numpy(const boost_mat & input)
+{
+    u_int n_rows = input.size1();
+    u_int n_cols = input.size2();
+    p::tuple shape = p::make_tuple(n_rows, n_cols);
+    p::tuple strides = p::make_tuple(n_cols * sizeof(double), sizeof(double));
+    np::dtype dtype = np::dtype::get_builtin<double>();
+    np::ndarray converted = np::from_data(input.data().begin(), dtype, shape, strides, p::object());
+    return converted.copy();
+}
 
 cmat to_bmat(const np::ndarray & input)
 {
@@ -122,21 +135,6 @@ boost_mat to_boost_mat(const np::ndarray & input)
             result(i, j) = data[i*n_rows + j];
 
     return result;
-}
-
-np::ndarray boost_to_numpy(const boost_mat & input)
-{
-    u_int n_rows = input.size1();
-    u_int n_cols = input.size2();
-    p::tuple shape = p::make_tuple(n_rows, n_cols);
-    p::tuple strides = p::make_tuple(n_cols * sizeof(double), sizeof(double));
-    np::dtype dtype = np::dtype::get_builtin<double>();
-    np::ndarray converted = np::from_data(input.data().begin(), dtype, shape, strides, p::object());
-    #ifdef DEBUG
-    std::cout << "Converted matrix:" << std::endl;
-    std::cout << p::extract<char const *>(p::str(converted)) << std::endl;
-    #endif
-    return converted.copy();
 }
 
 mat to_mat(const np::ndarray & input)

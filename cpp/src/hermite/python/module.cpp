@@ -127,11 +127,10 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     def("tensorize_sp", & tensorize_mats_dirs<spmat,spmat>);
 
     // Converters between data types
-    def("to_numpy", static_cast<np::ndarray (*) (const mat & input)> (& to_numpy));
-    def("to_numpy", static_cast<np::ndarray (*) (const cmat & input)> (& to_numpy));
-    def("to_numpy", static_cast<np::ndarray (*) (const cmat & input)> (& to_numpy));
+    def("to_numpy", & to_numpy<mat>);
+    def("to_numpy", & to_numpy<cmat>);
+    def("to_numpy", & to_numpy<boost_mat>);
 
-    def("to_numpy", boost_to_numpy);
     def("to_mat", static_cast<mat (*) (const np::ndarray & input)> (& to_mat));
     def("to_bmat", to_bmat);
     def("to_boost_mat", to_boost_mat);

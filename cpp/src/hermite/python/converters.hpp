@@ -30,8 +30,9 @@
 
 namespace hermite
 {
-    boost::python::numpy::ndarray to_numpy(const mat & input);
-    boost::python::numpy::ndarray to_numpy(const cmat & input);
+    template<typename T>
+    boost::python::numpy::ndarray to_numpy(const T & input);
+
     cmat to_bmat(const boost::python::numpy::ndarray & input);
     mat to_mat(const boost::python::numpy::ndarray & input);
     boost_mat to_boost_mat(const boost::python::numpy::ndarray & input);
