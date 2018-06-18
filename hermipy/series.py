@@ -66,8 +66,11 @@ class Series:
 
         elif type(other) is Series:
             assert self.position == other.position
-            assert self.index_set == other.index_set
-            new_coeffs = self.coeffs + other.coeffs
+
+            if self.index_set == other.index_set:
+                new_coeffs = self.coeffs + other.coeffs
+
+            #  TODO: Add support for addition of different degrees / index sets
 
         else:
             raise TypeError("Invalid type!)")
@@ -86,6 +89,17 @@ class Series:
 
         else:
             raise TypeError("Invalid type: " + str(type(other)))
+
+    def __sub__(self, other):
+        return self + other * (-1)
+
+    def __repr__(self):
+        m_list = self.multi_indices()
+        assert len(m_list) == len(self.coeffs)
+        result = ""
+        for m, c in zip(m_list, self.coeffs):
+            result += str(m) + ": " + str(c) + "\n"
+        return result
 
     def inner(self, other):
         assert type(self) is Series and type(other) is Series
@@ -113,6 +127,10 @@ class Series:
         return Series(coeffs, self.position, degree=degree,
                       index_set=self.index_set)
 
+    def multi_indices(self):
+        return core.multi_indices(self.position.dim, self.degree,
+                                  self.index_set)
+
     def to_cross(self, degree):
         assert self.index_set == "triangle"
         assert degree + self.position.dim - 1 <= self.degree
@@ -136,5 +154,5 @@ class Series:
             multi_index = list_cross[ind]
             ind_triangle = core.triangle_index(multi_index)
             new_coeffs[ind_triangle] = 0
-        return Series(new_coeffs, self.position, degree=degree,
+        return Series(new_coeffs, self.position, degree=self.degree,
                       index_set="triangle")
