@@ -19,13 +19,11 @@
 #  TODO: Add directions in Position (urbain, 06 Jun 2018)
 
 import hermipy.core as core
-# import hermipy.lib as lib
 import hermipy.position as pos
 
 from scipy.special import binom
 import numpy as np
 import numpy.linalg as la
-import ipdb
 
 
 very_small = 1e-10
@@ -115,15 +113,28 @@ class Series:
         return Series(coeffs, self.position, degree=degree,
                       index_set=self.index_set)
 
-    def to_cross(self):
+    def to_cross(self, degree):
         assert self.index_set == "triangle"
-        new_degree = self.degree + 1 - self.position.dim
-        list_cross = core.multi_indices(self.position.dim, new_degree,
+        assert degree + self.position.dim - 1 <= self.degree
+        list_cross = core.multi_indices(self.position.dim, degree,
                                         index_set="cross")
         new_coeffs = np.zeros(len(list_cross))
         for ind in range(len(list_cross)):
             multi_index = list_cross[ind]
             ind_triangle = core.triangle_index(multi_index)
             new_coeffs[ind] = self.coeffs[ind_triangle]
-        return Series(new_coeffs, self.position, degree=new_degree,
+        return Series(new_coeffs, self.position, degree=degree,
                       index_set="cross")
+
+    def zero_cross(self, degree):
+        assert self.index_set == "triangle"
+        assert degree + self.position.dim - 1 <= self.degree
+        list_cross = core.multi_indices(self.position.dim, degree,
+                                        index_set="cross")
+        new_coeffs = self.coeffs.copy()
+        for ind in range(len(list_cross)):
+            multi_index = list_cross[ind]
+            ind_triangle = core.triangle_index(multi_index)
+            new_coeffs[ind_triangle] = 0
+        return Series(new_coeffs, self.position, degree=degree,
+                      index_set="triangle")

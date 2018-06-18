@@ -29,7 +29,7 @@ settings = {'cache': False, 'cachedir': '/tmp/test_hermite'}
 rc.settings.update(settings)
 
 
-class TestInner(unittest.TestCase):
+class TestSeries(unittest.TestCase):
 
     def test_inner_positions(self):
         m1, m2 = [1, 2], [3, 4, 5]
@@ -77,19 +77,19 @@ class TestInner(unittest.TestCase):
         quad = hm.Quad.gauss_hermite(n_points, dim=2, dirs=[0, 1])
         series_cross = quad.transform(fxy, degree - 1, index_set="cross")
         series_triangle = quad.transform(fxy, degree, index_set="triangle")
-        triangle_to_cross = series_triangle.to_cross()
+        triangle_to_cross = series_triangle.to_cross(degree - 1)
         self.assertTrue(series_cross == triangle_to_cross)
 
-#     def test_approximation_2d(self):
-#         import ipdb; ipdb.set_trace()
-#         n_points, degree = 200, 50
-#         fxy = 'exp(x) * cos(y) * y**4'
-#         quad = hm.Quad.gauss_hermite(n_points, dim=2, dirs=[0, 1])
-#         series_cross = quad.transform(fxy, degree, index_set="cross")
-#         series_triangle = quad.transform(fxy, degree, index_set="triangle")
-#         exact = quad.discretize(fxy)
-#         eval_cross = quad.eval(series_cross)
-#         eval_triangle = quad.eval(series_triangle)
-#         error_cross = quad.norm(exact - eval_cross)
-#         error_triangle = quad.norm(exact - eval_triangle)
-#         print(error_cross, error_triangle)
+    def test_approximation_2d(self):
+        # import ipdb; ipdb.set_trace()
+        n_points, degree = 200, 50
+        fxy = 'x**6 * y**4'
+        quad = hm.Quad.gauss_hermite(n_points, dim=2, dirs=[0, 1])
+        series_cross = quad.transform(fxy, degree, index_set="cross")
+        series_triangle = quad.transform(fxy, degree + 1, index_set="triangle")
+        exact = quad.discretize(fxy)
+        eval_cross = quad.eval(series_cross)
+        eval_triangle = quad.eval(series_triangle)
+        error_cross = quad.norm(exact - eval_cross)
+        error_triangle = quad.norm(exact - eval_triangle)
+        print(error_cross, error_triangle)

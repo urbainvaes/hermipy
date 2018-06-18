@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import pdb
-
 import scipy.sparse as ss
 import numpy as np
 import hermite_cpp as hm
@@ -251,6 +249,15 @@ def bissect_degree(dim, n_polys, index_set="triangle"):
         return hm.cross_bissect_degree(dim, n_polys)
     else:
         raise ValueError("Unknown index set")
+
+
+@log_stats
+def triangle_index(mult_ind):
+    if isinstance(mult_ind, np.ndarray):
+        mult_ind = list(mult_ind.astype('uint32'))
+    ind_vec = hm.int_vec()
+    ind_vec.extend(mult_ind)
+    return hm.triangle_index(ind_vec)
 
 
 @cache()
