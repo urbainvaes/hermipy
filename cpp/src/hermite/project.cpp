@@ -19,10 +19,6 @@
  */
 
 #include <iostream>
-
-#include <boost/math/special_functions/binomial.hpp>
-#include <boost/numeric/ublas/matrix_sparse.hpp>
-
 #include "hermite/io.hpp"
 #include "hermite/iterators.hpp"
 #include "hermite/lib.hpp"
@@ -32,20 +28,20 @@
 #include "hermite/types.hpp"
 
 using namespace std;
-using boost::math::binomial_coefficient;
+
 namespace hermite
 {
 
-template<typename I>
+template<typename Iterator>
 vec project(const vec & input, u_int dim, const ivec & dirs)
 {
     u_int n_polys = input.size();
     u_int dim_sub = dirs.size();
-    u_int degree = I::s_bissect_degree(dim, n_polys);
-    u_int polys_sub = (u_int) binomial_coefficient<double> (degree + dim_sub, dim_sub);
+    u_int degree = Iterator::s_bissect_degree(dim, n_polys);
+    u_int polys_sub = Iterator::s_size(degree, dim_sub);
     vec results(polys_sub, 0.);
 
-    I m(dim, degree),
+    Iterator m(dim, degree),
       m_sub(dim_sub, degree);
 
     u_int i;
@@ -73,7 +69,7 @@ vec project_vec_nd(const vec & input, u_int dim, const ivec & dirs, std::string 
     }
     else
     {
-        std::cout << "Invalid index set!" << std::endl;
+        std::cerr << "Invalid index set!" << std::endl;
         exit(1);
     }
 }
@@ -84,16 +80,16 @@ vec project_vec_1d(const vec & input, u_int dim, u_int dir, std::string index_se
     return project_vec_nd(input, dim, dirs, index_set);
 }
 
-template<typename I, typename M>
+template<typename Iterator, typename M>
 M project(const M & input, u_int dim, const ivec & dirs)
 {
     u_int n_polys = matrix::size1(input);
     u_int dim_sub = dirs.size();
-    u_int degree = I::s_bissect_degree(dim, n_polys);
-    u_int polys_sub = (u_int) binomial_coefficient<double> (degree + dim_sub, dim_sub);
+    u_int degree = Iterator::s_bissect_degree(dim, n_polys);
+    u_int polys_sub = Iterator::s_size(degree, dim_sub);
     M results = matrix::construct<M>(polys_sub, polys_sub);
 
-    I m1(dim, degree), m2(dim, degree),
+    Iterator m1(dim, degree), m2(dim, degree),
       m_sub(dim_sub, degree);
 
     u_int i,j;
@@ -130,7 +126,7 @@ M project_mat_nd(const M & input, u_int dim, const ivec & dirs, std::string inde
     }
     else
     {
-        std::cout << "Invalid index set!" << std::endl;
+        std::cerr << "Invalid index set!" << std::endl;
         exit(1);
     }
 }

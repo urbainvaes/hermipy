@@ -240,6 +240,7 @@ bool Cross_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_boun
 {
     u_int i;
 
+    // FIXME: Bug when degree == 1
     for (i = 0; i < dim; i++)
     {
         if (multi_index[i] == 1)
@@ -322,6 +323,7 @@ imat Cross_iterator::s_list(u_int dim, u_int upper_bound)
 u_int Cross_iterator::s_bissect_degree(u_int dim, u_int n_polys)
 {
     Cross_iterator m(dim, DEGREE_BISSECT_MAX);
+    assert (n_polys <= m.list.size());
     return m.list[n_polys - 1][0];
 }
 
