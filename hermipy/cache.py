@@ -66,7 +66,10 @@ def gen_hash(extend=None):
 def gen_error(extend=None):
 
     def default_extend(u, v):
-        raise ValueError("Invalid types")
+        import pdb
+        pdb.set_trace()
+        raise ValueError("Invalid types: "
+                         + str(type(u)) + ", " + str(type(v)))
 
     if extend is None:
         extend = default_extend
@@ -136,8 +139,10 @@ def cache(hash_extend=None, error_extend=None, quiet=False):
             else:
                 result = function(*args, **kwargs)
                 error = error_fun(result, result_cache)
-                if not quiet:
-                    assert error < 1e-10
+                if not quiet and error > 1e-10:
+                    import pdb
+                    pdb.set_trace()
+                    raise ValueError("Result does not correspond to cache")
                 return result
         return wrapper
     return cache_aux
