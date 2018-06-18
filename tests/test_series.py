@@ -71,19 +71,25 @@ class TestInner(unittest.TestCase):
         diff = la.norm(series_cross.coeffs - series_triangle.coeffs)
         self.assertAlmostEqual(diff, 0.)
 
-
-class TestApproximation(unittest.TestCase):
-
-    def test_approximation_2d(self):
-        import ipdb; ipdb.set_trace()
+    def test_to_cross(self):
         n_points, degree = 200, 50
         fxy = 'exp(x) * cos(y) * y**4'
         quad = hm.Quad.gauss_hermite(n_points, dim=2, dirs=[0, 1])
-        series_cross = quad.transform(fxy, degree, index_set="cross")
+        series_cross = quad.transform(fxy, degree - 1, index_set="cross")
         series_triangle = quad.transform(fxy, degree, index_set="triangle")
-        exact = quad.discretize(fxy)
-        eval_cross = quad.eval(series_cross)
-        eval_triangle = quad.eval(series_triangle)
-        error_cross = quad.norm(exact - eval_cross)
-        error_triangle = quad.norm(exact - eval_triangle)
-        print(error_cross, error_triangle)
+        triangle_to_cross = series_triangle.to_cross()
+        self.assertTrue(series_cross == triangle_to_cross)
+
+#     def test_approximation_2d(self):
+#         import ipdb; ipdb.set_trace()
+#         n_points, degree = 200, 50
+#         fxy = 'exp(x) * cos(y) * y**4'
+#         quad = hm.Quad.gauss_hermite(n_points, dim=2, dirs=[0, 1])
+#         series_cross = quad.transform(fxy, degree, index_set="cross")
+#         series_triangle = quad.transform(fxy, degree, index_set="triangle")
+#         exact = quad.discretize(fxy)
+#         eval_cross = quad.eval(series_cross)
+#         eval_triangle = quad.eval(series_triangle)
+#         error_cross = quad.norm(exact - eval_cross)
+#         error_triangle = quad.norm(exact - eval_triangle)
+#         print(error_cross, error_triangle)
