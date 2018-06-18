@@ -19,7 +19,10 @@
  */
 
 #include <assert.h>
+
+#ifdef DEBUG
 #include <iostream>
+#endif
 
 #include "hermite/inner.hpp"
 #include "hermite/types.hpp"
@@ -30,12 +33,16 @@ namespace hermite
 {
 
 // Precondition: Dirs in increasing order
-template<typename I>
+template<typename Iterator>
 vec inner(const vec & s1,
           const vec & s2,
           const ivec & dirs1,
           const ivec & dirs2)
 {
+    #ifdef DEBUG
+    std::cout << "Entering in inner()." << std::endl;
+    #endif
+
     u_int dim1 = dirs1.size(),
           dim2 = dirs2.size();
 
@@ -50,6 +57,10 @@ vec inner(const vec & s1,
 
     std::vector<bool> in_dirs1;
     ivec free_ind;
+
+    #ifdef DEBUG
+    std::cout << "--> Starting while loop" << std::endl;
+    #endif
 
     while (i < dim1 || j < dim2)
     {
@@ -79,18 +90,35 @@ vec inner(const vec & s1,
     u_int dim_result = dirs_result.size(),
           dim_inner = dirs_inner.size();
 
-    u_int degree = I::s_bissect_degree(dim1, s1.size());
-    assert( degree == I::s_bissect_degree(dim2, s2.size()) );
+    #ifdef DEBUG
+    std::cout << "Calculating degree with dim = " << dim1 << "," << dim2
+        << " and n_polys = " << s1.size() << "," << s2.size() <<  std::endl;
+    #endif
 
-    vec result(I(degree, dim_result).size(), 0.);
+    u_int degree = Iterator::s_bissect_degree(dim1, s1.size());
+    assert( degree == Iterator::s_bissect_degree(dim2, s2.size()) );
 
-    I m_result(dim_result, degree);
-    I m_inner(dim_inner, degree);
-    I it_m1(dim1, degree);
-    I it_m2(dim2, degree);
+    #ifdef DEBUG
+    std::cout << "Initializing iterators" <<  std::endl;
+    #endif
+
+    vec result(Iterator::s_size(degree, dim_result), 0.);
+
+    Iterator m_result(dim_result, degree);
+    Iterator m_inner(dim_inner, degree);
+    Iterator it_m1(dim1, degree);
+    Iterator it_m2(dim2, degree);
+
+    #ifdef DEBUG
+    std::cout << "--> Starting outer for loop" << std::endl;
+    #endif
 
     for (i = 0; !m_result.isFull(); m_result.increment(), i++)
     {
+        #ifdef DEBUG
+        std::cout << "----> Value of m_result: " << m_result.get() << std::endl;
+        #endif
+
         ivec m1(dim1),
              m2(dim2);
 
@@ -102,8 +130,15 @@ vec inner(const vec & s1,
                 m2[free_ind[k]] = m_result[k];
         }
 
+        #ifdef DEBUG
+        std::cout << "----> Starting inner for loop." << std::endl;
+        #endif
         for (j = 0, m_inner.reset(); !m_inner.isFull(); m_inner.increment(), j++)
         {
+            #ifdef DEBUG
+            std::cout << "------> Value of m_inner: " << m_inner.get() << std::endl;
+            #endif
+
             for (u_int k = 0; k < dim_inner; k++)
             {
                 m1[inner_ind1[k]] = m_inner[k];
@@ -119,6 +154,11 @@ vec inner(const vec & s1,
             result[i] += s1[ind1] * s2[ind2];
         }
     }
+
+    #ifdef DEBUG
+    std::cout << "Exiting inner()." << std::endl;
+    #endif
+
     return result;
 }
 
