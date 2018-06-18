@@ -115,6 +115,15 @@ class Series:
         return Series(coeffs, self.position, degree=degree,
                       index_set=self.index_set)
 
-
-    # def to_cross(self, index_set):
-    #     list_cross = 
+    def to_cross(self):
+        assert self.index_set == "triangle"
+        new_degree = self.degree + 1 - self.position.dim
+        list_cross = core.multi_indices(self.position.dim, new_degree,
+                                        index_set="cross")
+        new_coeffs = np.zeros(len(list_cross))
+        for ind in range(len(list_cross)):
+            multi_index = list_cross[ind]
+            ind_triangle = core.triangle_index(multi_index)
+            new_coeffs[ind] = self.coeffs[ind_triangle]
+        return Series(new_coeffs, self.position, degree=new_degree,
+                      index_set="cross")
