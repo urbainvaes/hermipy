@@ -95,7 +95,9 @@ def to_cpp(*args):
     if len(args) > 1:
         return (to_cpp(arg) for arg in args)
     arg = args[0]
-    if type(arg) is np.ndarray or type(arg) is list:
+    if type(arg) is list:
+        return to_cpp(np.asarray(arg, dtype=float))
+    if type(arg) is np.ndarray:
         return to_cpp_array(arg)
     elif type(arg) is ss.csr_matrix:
         return convert_to_cpp_sparse(arg)
@@ -108,6 +110,8 @@ def to_numpy(arg):
     if type(arg) == hm.double_vec:
         return np.array(arg)
     if type(arg) == hm.double_mat:
+        return hm.to_numpy(arg)
+    elif type(arg) == hm.boost_mat:
         return hm.to_numpy(arg)
     elif type(arg) == hm.double_cube:
         return np.array(arg)
@@ -174,6 +178,10 @@ def varf(degree, fgrid, nodes, weights, sparse=False, index_set="triangle"):
 @cache()
 @log_stats
 def varfd(dim, degree, direction, var, sparse=True, index_set="triangle"):
+    if type(var) is np.ndarray:
+        var = hm.to_boost_mat(var)
+    elif type(var) is ss.csr_matrix:
+        var = convert_to_cpp_sparse(var)
     var = to_cpp(var)
     result = log_stats(hm.varfd)(dim, degree, direction, var, index_set)
     return log_stats(to_numpy)(result)
@@ -224,9 +232,25 @@ def project(inp, dim, directions, index_set="triangle"):
 
 @cache()
 @log_stats
-def multi_indices(dim, degree):
-    result = hm.list_multi_indices(dim, degree)
+def multi_indices(dim, degree, index_set="triangle"):
+    if index_set == "triangle":
+        result = hm.triangle_list_indices(dim, degree)
+    elif index_set == "cross":
+        result = hm.cross_list_indices(dim, degree)
+    else:
+        raise ValueError("Unknown index set")
     return np.asarray(result, dtype=int)
+
+
+@cache()
+@log_stats
+def bissect_degree(dim, n_polys, index_set="triangle"):
+    if index_set == "triangle":
+        return hm.triangle_bissect_degree(dim, n_polys)
+    elif index_set == "cross":
+        return hm.cross_bissect_degree(dim, n_polys)
+    else:
+        raise ValueError("Unknown index set")
 
 
 @cache()

@@ -181,12 +181,13 @@ class Quad:
         elif n is 1:
             return self.integrate(abs(function), l2=l2)
 
-    def transform(self, f_grid, degree, norm=False):
+    def transform(self, f_grid, degree, norm=False, index_set="triangle"):
         if not isinstance(f_grid, np.ndarray):
             f_grid = self.discretize(f_grid)
-        coeffs = core.transform(degree, f_grid, self.nodes,
-                                self.weights, forward=True)
-        return hs.Series(coeffs, self.position, norm=norm, degree=degree)
+        coeffs = core.transform(degree, f_grid, self.nodes, self.weights,
+                                forward=True, index_set=index_set)
+        return hs.Series(coeffs, self.position, norm=norm,
+                         degree=degree, index_set=index_set)
 
     def eval(self, series):
         if type(series) is np.ndarray:
@@ -201,7 +202,8 @@ class Quad:
         for i in range(len(self.nodes)):
             mapped_nodes[i] = self.nodes[i] * factor[i][i] + translation[i]
         return core.transform(degree, coeffs, mapped_nodes,
-                              self.weights, forward=False)
+                              self.weights, forward=False,
+                              index_set=series.index_set)
 
     @tensorize_at(1)
     def varf(self, f_grid, degree, sparse=False, numpy=True):
@@ -214,12 +216,12 @@ class Quad:
         return hv.Varf(var, self.position, degree=degree)
 
     def varfd(self, function, degree, directions, sparse=False):
+        # import ipdb; ipdb.set_trace()
         directions = core.to_numeric(directions)
         var = self.varf(function, degree, sparse=sparse)
         mat = var.matrix
         eigval, _ = la.eig(self.position.cov)
         for d in directions:
-            # ipdb.set_trace()
             mat = core.varfd(self.position.dim, degree, d, mat, sparse=sparse)
             mat = mat/np.sqrt(eigval[d])
         return hv.Varf(mat, self.position, degree=degree)
