@@ -19,7 +19,7 @@
 #  TODO: Add directions in Position (urbain, 06 Jun 2018)
 
 import hermipy.core as core
-import hermipy.lib as lib
+# import hermipy.lib as lib
 import hermipy.position as pos
 
 from scipy.special import binom
@@ -44,14 +44,15 @@ class Series:
         tens_pos = pos.Position.tensorize([a.position for a in args])
         return Series(tens_vec, tens_pos)
 
-    def __init__(self, coeffs, position, degree=None, norm=False):
+    def __init__(self, coeffs, position,
+                 degree=None, norm=False, index_set="triangle"):
         self.coeffs = coeffs/la.norm(coeffs, 2) if norm else coeffs
         self.position = position
+        self.index_set = index_set
 
         if degree is None:
             dim, npolys = self.position.dim, len(self.coeffs)
-            self.degree = lib.natural_bissect(
-                    lambda x: int(binom(x + dim, x)) - npolys)
+            self.degree = core.bissect_degree(dim, npolys, index_set=index_set)
         else:
             self.degree = degree
 
@@ -67,6 +68,7 @@ class Series:
 
         elif type(other) is Series:
             assert self.position == other.position
+            assert self.index_set == other.index_set
             new_coeffs = self.coeffs + other.coeffs
 
         else:
@@ -81,24 +83,28 @@ class Series:
             return Series(new_coeffs, self.position)
 
         elif type(other) is Series:
+            assert self.index_set == other.index_set
             return Series.tensorize([self, other])
 
         else:
             raise TypeError("Invalid type: " + str(type(other)))
 
-    def inner(self, s2):
-        assert type(self) is Series and type(s2) is Series
-        assert self.degree == s2.degree
-        d1, d2 = self.position.dirs, s2.position.dirs
-        result = core.inner(self.coeffs, s2.coeffs, d1, d2)
-        inner_pos = pos.Position.inner(self.position, s2.position)
+    def inner(self, other):
+        assert type(self) is Series and type(other) is Series
+        assert self.index_set == other.index_set
+        assert self.degree == other.degree
+        d1, d2 = self.position.dirs, other.position.dirs
+        result = core.inner(self.coeffs, other.coeffs, d1, d2,
+                            index_set=self.index_set)
+        inner_pos = pos.Position.inner(self.position, other.position)
         return Series(result, inner_pos, degree=self.degree)
 
     def project(self, directions):
         if type(directions) is int:
             directions = [directions]
         directions = core.to_numeric(directions)
-        p_coeffs = core.project(self.coeffs, self.position.dim, directions)
+        p_coeffs = core.project(self.coeffs, self.position.dim, directions,
+                                index_set=self.index_set)
         p_pos = self.position.project(directions)
         return Series(p_coeffs, p_pos)
 
@@ -107,3 +113,6 @@ class Series:
         n_polys = int(binom(degree + self.position.dim, degree))
         coeffs = self.coeffs[0:n_polys]
         return Series(coeffs, self.position, degree=degree)
+
+    # def to_cross(self, index_set):
+    #     list_cross = 
