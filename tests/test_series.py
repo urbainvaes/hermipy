@@ -20,7 +20,6 @@ import hermipy.quad as hm
 import hermipy.settings as rc
 import hermipy.series as series
 import hermipy.position as position
-
 import unittest
 import numpy as np
 import numpy.linalg as la
@@ -81,9 +80,8 @@ class TestSeries(unittest.TestCase):
         self.assertTrue(series_cross == triangle_to_cross)
 
     def test_approximation_2d(self):
-        # import ipdb; ipdb.set_trace()
-        n_points, degree = 200, 50
-        fxy = 'x**6 * y**4'
+        n_points, degree = 200, 100
+        fxy = 'exp(x) * cos(y) * y**4'
         quad = hm.Quad.gauss_hermite(n_points, dim=2, dirs=[0, 1])
         series_cross = quad.transform(fxy, degree, index_set="cross")
         series_triangle = quad.transform(fxy, degree + 1, index_set="triangle")
@@ -92,4 +90,5 @@ class TestSeries(unittest.TestCase):
         eval_triangle = quad.eval(series_triangle)
         error_cross = quad.norm(exact - eval_cross)
         error_triangle = quad.norm(exact - eval_triangle)
-        print(error_cross, error_triangle)
+        self.assertTrue(error_triangle < 1e-10)
+        self.assertTrue(error_cross < 1e-3)
