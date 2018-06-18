@@ -258,28 +258,18 @@ bool Cross_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_boun
         if (multi_index[i + 1] == 0)
             continue;
 
-        bool found_factor = false;
-        u_int factor;
-        for (u_int f : {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31})
+        u_int factor = 0;
+        u_int product = MAX(1, multi_index[0]) * multi_index[i + 1];
+        for (u_int f = MAX(1, multi_index[0]) + 1; f <= product; f++)
         {
-            if (multi_index[i + 1] % f == 0)
+            if (product % f == 0)
             {
-                found_factor = true;
                 factor = f;
                 break;
             }
         }
-        if (!found_factor)
-            factor = multi_index[i+1];
-
-        bool is_prime = factor == multi_index[i+1];
-
-        multi_index[i] = MAX(1, multi_index[0]) * factor;
-        multi_index[i + 1] /= factor;
-
-        if (is_prime)
-            multi_index[i + 1] = 0;
-
+        multi_index[i] = factor;
+        multi_index[i + 1] = factor == product ? 0 : product / factor;
         break;
     }
 
