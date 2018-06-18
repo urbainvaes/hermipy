@@ -48,15 +48,16 @@ class Varf:
         tens_pos = pos.Position.tensorize([a.position for a in args])
         return Varf(tens_mat, tens_pos)
 
-    def __init__(self, matrix, position, degree=None):
+    def __init__(self, matrix, position,
+                 degree=None, index_set="triangle"):
         self.matrix = matrix
         self.is_sparse = isinstance(matrix, ss.csr_matrix)
         self.position = position
+        self.index_set = index_set
 
         if degree is None:
             dim, npolys = self.position.dim, self.matrix.shape[0]
-            self.degree = lib.natural_bissect(
-                    lambda x: int(binom(x + dim, x)) - npolys)
+            self.degree = core.bissect_degree(dim, npolys, index_set=index_set)
         else:
             self.degree = degree
 
@@ -72,6 +73,7 @@ class Varf:
 
         elif type(other) is Varf:
             assert self.position == other.position
+            assert self.index_set == other.index_set
             new_matrix = self.matrix + other.matrix
 
         else:
@@ -86,6 +88,7 @@ class Varf:
             return Varf(new_matrix, self.position)
 
         elif type(other) is Varf:
+            assert self.index_set == other.index_set
             return Varf.tensorize([self, other])
 
         else:
@@ -95,7 +98,8 @@ class Varf:
         if type(directions) is int:
             directions = [directions]
         directions = core.to_numeric(directions)
-        p_matrix = core.project(self.matrix, self.position.dim, directions)
+        p_matrix = core.project(self.matrix, self.position.dim, directions,
+                                index_set=self.index_set)
         p_pos = self.position.project(directions)
         return Varf(p_matrix, p_pos)
 
@@ -103,4 +107,5 @@ class Varf:
         assert degree <= self.degree
         n_polys = int(binom(degree + self.position.dim, degree))
         matrix = self.matrix[0:n_polys][0:n_polys]
-        return Varf(matrix, self.position, degree=degree)
+        return Varf(matrix, self.position, degree=degree,
+                    index_set=self.index_set)
