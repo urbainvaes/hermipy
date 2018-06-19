@@ -285,5 +285,6 @@ class Quad:
         pos = self.position.project(directions)
         return Quad(nodes, weights, position=pos)
 
-    def series(self, coeffs, degree=None, norm=False):
-        return hs.Series(coeffs, self.position, degree=degree, norm=norm)
+    def series(self, coeffs, degree=None, norm=False, index_set="triangle"):
+        return hs.Series(coeffs, self.position, degree=degree,
+                         norm=norm, index_set=index_set)

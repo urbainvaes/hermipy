@@ -191,6 +191,7 @@ def varfd(dim, degree, direction, var, sparse=True, index_set="triangle"):
     return log_stats(to_numpy)(result)
 
 
+@cache()
 @debug
 @log_stats
 def tensorize(inp, dim=None, direction=None,
@@ -249,6 +250,7 @@ def multi_indices(dim, degree, index_set="triangle"):
     return np.asarray(result, dtype=int)
 
 
+@cache()
 @debug
 @log_stats
 def bissect_degree(dim, n_polys, index_set="triangle"):
@@ -261,6 +263,7 @@ def bissect_degree(dim, n_polys, index_set="triangle"):
     return degree
 
 
+@cache()
 @debug
 @log_stats
 def triangle_index(mult_ind):

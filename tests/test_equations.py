@@ -463,21 +463,44 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
         return quad, forward, backward, factor, factor_x, factor_y, factor_z
 
+    def check_consistency_varf(self, sparse=True):
+        r = sym.Rational
+        Vp, degree = self.x**4/4 - self.x**2/2, 10
+        s2x, s2y, s2z = r(1, 2), 1, 1
+        params = {'β': 5, 'ε': 0.5, 'γ': 0, 'θ': 0, 'm': 0}
+        args = [Vp, params, s2x, s2y, s2z, degree]
+        quad, _, backward, _, _, _, _ = self.sym_calc(*args)
+
+        varf_cross = quad.discretize_op(backward, self.f, degree, 2,
+                                        sparse=sparse, index_set="cross")
+        varf_trian = quad.discretize_op(backward, self.f, degree + 2, 2,
+                                        sparse=sparse, index_set="triangle")
+        self.assertTrue(varf_trian.to_cross(degree) == varf_cross)
+
+    def test_consistency_varf_dense(self):
+        rc.settings['tensorize'] = True
+        self.check_consistency_varf(sparse=False)
+
+    def test_consistency_varf_sparse(self):
+        rc.settings['tensorize'] = True
+        self.check_consistency_varf(sparse=True)
+
     def solve(self, backward, quad, factors, degrees):
+
+        index_set = "cross"
 
         # Discretization of the operator
         rc.settings['tensorize'] = True
+        rc.settings['cache'] = True
         rc.settings['trails'] = True
+        rc.settings['debug'] = False
 
-        varf_trian = quad.discretize_op(backward, self.f, degrees[-1] + 2, 2,
+        var = quad.discretize_op(backward, self.f, degrees[-1] + 2, 2,
                                  sparse=True, index_set="triangle")
-        varf_cross = quad.discretize_op(backward, self.f, degrees[-1], 2,
-                                 sparse=True, index_set="cross")
+        var = var.to_cross(degrees[-1]) if index_set == "cross" else var
+        mat = var.matrix
 
-        mat = quad.discretize_op(backward, self.f, degrees[-1], 2,
-                                 sparse=True, index_set="triangle").matrix
-
-        ipdb.set_trace()
+        # ipdb.set_trace()
         solutions = []
 
         # Discretize factor
@@ -489,8 +512,8 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
             factor_removed *= factors[d]
             weight_removed *= quad.position.weights()[d]
         f_projection = factor_removed / weight_removed
-        s_projection = quad.project(dirs_removed).transform(f_projection,
-                                                            degrees[-1])
+        s_projection = quad.project(dirs_removed).\
+            transform(f_projection, degrees[-1], index_set=index_set)
         dirs_visu = [i for i in range(3) if i not in dirs_removed]
         factor_visu = 1
         for d in dirs_visu:
@@ -516,8 +539,8 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
                                                            which='LR')
             eig_vec = np.real(eig_vecs.T[0])
             ground_state = eig_vec * np.sign(eig_vec[0])
-            ground_state_series = quad.series(ground_state)
-
+            ground_state_series = quad.series(ground_state,
+                                              index_set=index_set)
             ground_state_eval = quad.eval(ground_state_series)*factor
             norm = quad.norm(ground_state_eval, n=1, l2=True)
             ground_state_eval = ground_state_eval / norm
@@ -536,7 +559,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
     def test_bistable(self):
 
         r = sym.Rational
-        Vp, degree = self.x**4/4 - self.x**2/2, 20
+        Vp, degree = self.x**4/4 - self.x**2/2, 50
         s2x, s2y, s2z = r(1, 2), 1, 1
         params = {'β': 5, 'ε': 0.5, 'γ': 0, 'θ': 0, 'm': 0}
         args = [Vp, params, s2x, s2y, s2z, degree]

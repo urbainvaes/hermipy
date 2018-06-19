@@ -112,7 +112,8 @@ class Series:
         result = core.inner(self.coeffs, other.coeffs, d1, d2,
                             index_set=self.index_set)
         inner_pos = pos.Position.inner(self.position, other.position)
-        return Series(result, inner_pos, degree=self.degree)
+        return Series(result, inner_pos,
+                      degree=self.degree, index_set=self.index_set)
 
     def project(self, directions):
         if type(directions) is int:
@@ -121,7 +122,7 @@ class Series:
         p_coeffs = core.project(self.coeffs, self.position.dim, directions,
                                 index_set=self.index_set)
         p_pos = self.position.project(directions)
-        return Series(p_coeffs, p_pos)
+        return Series(p_coeffs, p_pos, index_set=self.index_set)
 
     def subdegree(self, degree):
         assert degree <= self.degree
