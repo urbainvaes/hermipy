@@ -20,6 +20,7 @@ import numpy.polynomial.hermite_e as herm
 import numpy as np
 
 import sympy as sym
+import itertools
 import math
 
 import hermipy.core as core
@@ -58,9 +59,11 @@ def cross_in_triangle(dim, degree):
 
 
 def split_operator(op, func, order):
-    variables = func.args
+    variables, dim = func.args, len(func.args)
     result, rem, order = [], op.expand(), 2
-    for m in core.multi_indices(len(variables), order):
+    mult = list(m for m in itertools.product(range(order + 1),
+                repeat=dim) if sum(m) <= order)
+    for m in mult:
         if rem == 0:
             result.append(0)
             continue
@@ -80,4 +83,4 @@ def split_operator(op, func, order):
             term = sym.simplify(term)
         result.append(term)
     assert rem == 0
-    return result
+    return result, mult

@@ -255,7 +255,7 @@ def bissect_degree(dim, n_polys, index_set="triangle"):
     if index_set == "triangle":
         degree = hm.triangle_bissect_degree(dim, n_polys)
     elif index_set == "cross":
-        degree = hm.triangle_bissect_degree(dim, n_polys)
+        degree = hm.cross_bissect_degree(dim, n_polys)
     else:
         raise ValueError("Unknown index set")
     return degree
