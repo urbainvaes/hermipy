@@ -8,6 +8,10 @@ $ python -m unittest discover -v tests
 
 # Todo
 
+- Auto conversion from triangle -> cross when appropriate?
+
+- Do varfd before tensorization
+
 - Graph of index set with weights
 
 - Add support for Hermite Fourier

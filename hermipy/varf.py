@@ -25,6 +25,7 @@ import scipy.sparse as ss
 
 import numpy as np
 import numpy.linalg as la
+import scipy.sparse.linalg as las
 
 import ipdb
 
@@ -67,8 +68,9 @@ class Varf:
 
     def __eq__(self, other):
         assert type(other) is Varf
+        norm_func = las.norm if self.is_sparse and other.is_sparse else la.norm
         return self.position == other.position \
-            and la.norm(self.matrix - other.matrix) < very_small
+            and norm_func(self.matrix - other.matrix) < very_small
 
     def __add__(self, other):
 
@@ -105,7 +107,7 @@ class Varf:
         p_matrix = core.project(self.matrix, self.position.dim, directions,
                                 index_set=self.index_set)
         p_pos = self.position.project(directions)
-        return Varf(p_matrix, p_pos)
+        return Varf(p_matrix, p_pos, index_set=self.index_set)
 
     def subdegree(self, degree):
         assert degree <= self.degree
