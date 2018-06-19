@@ -18,6 +18,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <assert.h>
 #include <unordered_map>
 #include "hermite/io.hpp"
 #include "hermite/types.hpp"
@@ -242,6 +243,7 @@ u_int Triangle_iterator::s_find_dim(u_int degree, u_int n_polys)
 // Hyperbolic cross iterator {{{
 bool Cross_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_bound)
 {
+    assert(upper_bound > 0);
     u_int i;
 
     // FIXME: Bug when degree == 1
@@ -255,6 +257,11 @@ bool Cross_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_boun
             multi_index[i] = 1;
             return false;
         }
+    }
+
+    if (upper_bound == 1)
+    {
+        return true;
     }
 
     for (i = 0; i < dim - 1; i++)
