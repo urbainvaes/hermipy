@@ -61,6 +61,8 @@ class Varf:
         else:
             self.degree = degree
 
+        assert len(self.multi_indices()) == self.matrix.shape[0]
+
     def __eq__(self, other):
         assert type(other) is Varf
         return self.position == other.position \
@@ -112,7 +114,7 @@ class Varf:
 
     def multi_indices(self):
         return core.multi_indices(self.position.dim, self.degree,
-                                  self.index_set)
+                                  index_set=self.index_set)
 
     def to_cross(self, degree):
         assert self.index_set == "triangle"
