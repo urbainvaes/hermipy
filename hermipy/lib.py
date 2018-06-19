@@ -22,7 +22,7 @@ import numpy as np
 import sympy as sym
 import math
 
-from hermipy.core import multi_indices
+import hermipy.core as core
 
 
 def hermegauss_nd(n_points):
@@ -52,10 +52,15 @@ def natural_bissect(func, x1=0, x2=1000):
     return natural_bissect(func, **new_args)
 
 
+def cross_in_triangle(dim, degree):
+        list_cross = core.multi_indices(dim, degree, index_set="cross")
+        return [core.triangle_index(m) for m in list_cross]
+
+
 def split_operator(op, func, order):
     variables = func.args
     result, rem, order = [], op.expand(), 2
-    for m in multi_indices(len(variables), order):
+    for m in core.multi_indices(len(variables), order):
         if rem == 0:
             result.append(0)
             continue

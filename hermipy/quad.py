@@ -206,27 +206,31 @@ class Quad:
                               index_set=series.index_set)
 
     @tensorize_at(1)
-    def varf(self, f_grid, degree, sparse=False, numpy=True):
+    def varf(self, f_grid, degree, sparse=False, numpy=True,
+             index_set="triangle"):
         if rc.settings['debug']:
             print("Entering body of Quad.varf")
         if not isinstance(f_grid, np.ndarray):
             f_grid = self.discretize(f_grid)
-        var = core.varf(degree, f_grid, self.nodes,
-                        self.weights, sparse=sparse)
-        return hv.Varf(var, self.position, degree=degree)
+        var = core.varf(degree, f_grid, self.nodes, self.weights,
+                        sparse=sparse, index_set=index_set)
+        return hv.Varf(var, self.position, degree=degree, index_set=index_set)
 
-    def varfd(self, function, degree, directions, sparse=False):
+    def varfd(self, function, degree, directions, sparse=False,
+              index_set="triangle"):
         # import ipdb; ipdb.set_trace()
         directions = core.to_numeric(directions)
         var = self.varf(function, degree, sparse=sparse)
         mat = var.matrix
         eigval, _ = la.eig(self.position.cov)
         for d in directions:
-            mat = core.varfd(self.position.dim, degree, d, mat, sparse=sparse)
+            mat = core.varfd(self.position.dim, degree, d, mat,
+                             sparse=sparse, index_set=index_set)
             mat = mat/np.sqrt(eigval[d])
-        return hv.Varf(mat, self.position, degree=degree)
+        return hv.Varf(mat, self.position, degree=degree, index_set=index_set)
 
-    def discretize_op(self, op, func, degree, order, sparse=None):
+    def discretize_op(self, op, func, degree, order,
+                      sparse=None, index_set="triangle"):
         sparse = rc.settings['sparse'] if sparse is None else sparse
         mat_operator = 0.
         mult = list(core.multi_indices(self.position.dim, order))
@@ -234,7 +238,9 @@ class Quad:
         v = ['x', 'y', 'z']
         for m, coeff in zip(mult, splitop):
             d_vector = sum([[v[i]]*m[i] for i in range(self.position.dim)], [])
-            varf_part = self.varfd(coeff, degree, d_vector, sparse=sparse)
+            varf_part = self.varfd(coeff, degree, d_vector, sparse=sparse,
+                                   index_set=index_set)
+            # import ipdb; ipdb.set_trace()
             mat_operator = varf_part + mat_operator
         return mat_operator
 

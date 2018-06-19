@@ -213,7 +213,7 @@ T varfd(
         std::string index_set)
 {
     #ifdef DEBUG
-    cout << "Entering varfd with sparse matrix" << endl;
+    cout << "Entering varfd with sparse matrix and degree = " << degree << endl;
     #endif
 
     std::unique_ptr<Multi_index_iterator> m;
@@ -244,19 +244,11 @@ T varfd(
             u_int col = i2.index2();
             ivec m_col = multi_indices[col];
             double value = *i2;
-
-            u_int sum = 0;
-            for(i = 0; i < m_col.size(); i++)
-            {
-                sum += m_col[i];
-            }
-            if (sum == degree)
-            {
-               continue;
-            }
-
             ivec int_m2 = m_col;
             int_m2[direction] += 1;
+            if (!m->has(int_m2))
+                continue;
+
             u_int id = m->index(int_m2);
             results(row, id) = value*sqrt(int_m2[direction]);
         }

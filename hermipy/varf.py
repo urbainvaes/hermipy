@@ -79,7 +79,7 @@ class Varf:
         else:
             raise TypeError("Invalid type!)")
 
-        return Varf(new_matrix, self.position)
+        return Varf(new_matrix, self.position, index_set=self.index_set)
 
     def __mul__(self, other):
 
@@ -109,3 +109,14 @@ class Varf:
         matrix = self.matrix[0:n_polys][0:n_polys]
         return Varf(matrix, self.position, degree=degree,
                     index_set=self.index_set)
+
+    def multi_indices(self):
+        return core.multi_indices(self.position.dim, self.degree,
+                                  self.index_set)
+
+    def to_cross(self, degree):
+        assert self.index_set == "triangle"
+        assert degree + self.position.dim - 1 <= self.degree
+        inds_triangle = lib.cross_in_triangle(self.position.dim, degree)
+        matrix = self.matrix[np.ix_(inds_triangle, inds_triangle)]
+        return Varf(matrix, self.position, degree=degree, index_set="cross")

@@ -16,9 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#  TODO: Add directions in Position (urbain, 06 Jun 2018)
-
 import hermipy.core as core
+import hermipy.lib as lib
 import hermipy.position as pos
 
 from scipy.special import binom
@@ -134,25 +133,5 @@ class Series:
     def to_cross(self, degree):
         assert self.index_set == "triangle"
         assert degree + self.position.dim - 1 <= self.degree
-        list_cross = core.multi_indices(self.position.dim, degree,
-                                        index_set="cross")
-        new_coeffs = np.zeros(len(list_cross))
-        for ind in range(len(list_cross)):
-            multi_index = list_cross[ind]
-            ind_triangle = core.triangle_index(multi_index)
-            new_coeffs[ind] = self.coeffs[ind_triangle]
-        return Series(new_coeffs, self.position, degree=degree,
-                      index_set="cross")
-
-    def zero_cross(self, degree):
-        assert self.index_set == "triangle"
-        assert degree + self.position.dim - 1 <= self.degree
-        list_cross = core.multi_indices(self.position.dim, degree,
-                                        index_set="cross")
-        new_coeffs = self.coeffs.copy()
-        for ind in range(len(list_cross)):
-            multi_index = list_cross[ind]
-            ind_triangle = core.triangle_index(multi_index)
-            new_coeffs[ind_triangle] = 0
-        return Series(new_coeffs, self.position, degree=self.degree,
-                      index_set="triangle")
+        coeffs = self.coeffs[lib.cross_in_triangle(self.position.dim, degree)]
+        return Series(coeffs, self.position, degree=degree, index_set="cross")
