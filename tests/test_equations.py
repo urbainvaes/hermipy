@@ -468,9 +468,14 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         # Discretization of the operator
         rc.settings['tensorize'] = True
         rc.settings['trails'] = True
-        mat = quad.discretize_op(backward, self.f,
-                                 degrees[-1], 2,
-                                 sparse=True).matrix
+
+        varf_trian = quad.discretize_op(backward, self.f, degrees[-1] + 2, 2,
+                                 sparse=True, index_set="triangle")
+        varf_cross = quad.discretize_op(backward, self.f, degrees[-1], 2,
+                                 sparse=True, index_set="cross")
+
+        mat = quad.discretize_op(backward, self.f, degrees[-1], 2,
+                                 sparse=True, index_set="triangle").matrix
 
         ipdb.set_trace()
         solutions = []
@@ -507,7 +512,8 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
             if type(sub_mat) is np.ndarray:
                 sub_mat = sub_mat.copy(order='C')
-            eig_vals, eig_vecs = stats.log_stats(las.eigs)(sub_mat, k=1, v0=v0, which='LR')
+            eig_vals, eig_vecs = stats.log_stats(las.eigs)(sub_mat, k=1, v0=v0,
+                                                           which='LR')
             eig_vec = np.real(eig_vecs.T[0])
             ground_state = eig_vec * np.sign(eig_vec[0])
             ground_state_series = quad.series(ground_state)
@@ -527,40 +533,40 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
         return solutions, quad.series(ground_state)
 
-#     def test_bistable(self):
+    def test_bistable(self):
 
-#         r = sym.Rational
-#         Vp, degree = self.x**4/4 - self.x**2/2, 50
-#         s2x, s2y, s2z = r(1, 2), 1, 1
-#         params = {'β': 5, 'ε': 0.5, 'γ': 0, 'θ': 0, 'm': 0}
-#         args = [Vp, params, s2x, s2y, s2z, degree]
-#         quad, forward, backward, factor, fx, fy, fz = self.sym_calc(*args)
+        r = sym.Rational
+        Vp, degree = self.x**4/4 - self.x**2/2, 20
+        s2x, s2y, s2z = r(1, 2), 1, 1
+        params = {'β': 5, 'ε': 0.5, 'γ': 0, 'θ': 0, 'm': 0}
+        args = [Vp, params, s2x, s2y, s2z, degree]
+        quad, forward, backward, factor, fx, fy, fz = self.sym_calc(*args)
 
-#         # Numerical solutions
-#         degrees = list(range(20, degree, 5))
-#         solutions, finest = self.solve(backward, quad, [fx, fy, fz], degrees)
-#         finest_eval = solutions[-1]
+        # Numerical solutions
+        degrees = list(range(20, degree + 1, 5))
+        solutions, finest = self.solve(backward, quad, [fx, fy, fz], degrees)
+        finest_eval = solutions[-1]
 
-#         # Plot of the finest solution
-#         fig, ax = plt.subplots(1, 1)
-#         quad.plot(finest, factor, ax=ax)
-#         plt.show()
+        # Plot of the finest solution
+        fig, ax = plt.subplots(1, 1)
+        quad.plot(finest, factor, ax=ax)
+        plt.show()
 
-#         # Associated errors
-#         errors, degrees = [], degrees[0:-1]
-#         for sol in solutions[0:-1]:
-#             error = quad.norm(sol - finest_eval, l2=True)
-#             errors.append(error)
-#             print(error)
+        # Associated errors
+        errors, degrees = [], degrees[0:-1]
+        for sol in solutions[0:-1]:
+            error = quad.norm(sol - finest_eval, l2=True)
+            errors.append(error)
+            print(error)
 
-#         log_errors = np.log(errors)
-#         poly_approx = np.polyfit(degrees, log_errors, 1)
-#         errors_approx = np.exp(np.polyval(poly_approx, degrees))
-#         error = la.norm(log_errors - np.log(errors_approx), 2)
+        log_errors = np.log(errors)
+        poly_approx = np.polyfit(degrees, log_errors, 1)
+        errors_approx = np.exp(np.polyval(poly_approx, degrees))
+        error = la.norm(log_errors - np.log(errors_approx), 2)
 
-#         plt.semilogy(degrees, errors, 'k.')
-#         plt.semilogy(degrees, errors_approx)
-#         plt.show()
+        plt.semilogy(degrees, errors, 'k.')
+        plt.semilogy(degrees, errors_approx)
+        plt.show()
 
-#         self.assertTrue(errors[-1] < 1e-3)
-#         self.assertTrue(error < 1)
+        self.assertTrue(errors[-1] < 1e-3)
+        self.assertTrue(error < 1)

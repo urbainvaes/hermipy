@@ -240,15 +240,15 @@ def multi_indices(dim, degree, index_set="triangle"):
     return np.asarray(result, dtype=int)
 
 
-@cache()
 @log_stats
 def bissect_degree(dim, n_polys, index_set="triangle"):
     if index_set == "triangle":
-        return hm.triangle_bissect_degree(dim, n_polys)
+        degree = hm.triangle_bissect_degree(dim, n_polys)
     elif index_set == "cross":
-        return hm.cross_bissect_degree(dim, n_polys)
+        degree = hm.triangle_bissect_degree(dim, n_polys)
     else:
         raise ValueError("Unknown index set")
+    return degree
 
 
 @log_stats

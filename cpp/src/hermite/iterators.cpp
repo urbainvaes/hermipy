@@ -129,6 +129,10 @@ bool Triangle_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_b
 Triangle_iterator::Triangle_iterator(u_int dim, u_int upper_bound)
     : Multi_index_iterator(dim), upper_bound(upper_bound)
 {
+    #ifdef DEBUG
+    std::cout << "Creating triangle iterator with dim = "
+              << dim << ", upper_bound = " << upper_bound << std::endl;
+    #endif
     ivec m(dim, 0);
     u_int ind = 0;
     do
@@ -289,6 +293,11 @@ bool Cross_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_boun
 Cross_iterator::Cross_iterator(u_int dim, u_int upper_bound)
     : Multi_index_iterator(dim), upper_bound(upper_bound)
 {
+    #ifdef DEBUG
+    std::cout << "Creating cross iterator with dim = "
+              << dim << ", upper_bound = " << upper_bound << std::endl;
+    #endif
+
     ivec m(dim, 0);
     u_int ind = 0;
     do
