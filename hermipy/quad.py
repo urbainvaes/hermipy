@@ -32,6 +32,7 @@ import hermipy.series as hs
 import hermipy.varf as hv
 import hermipy.position as pos
 
+import itertools.product
 import numpy as np
 import numpy.linalg as la
 import ipdb
@@ -233,7 +234,8 @@ class Quad:
                       sparse=None, index_set="triangle"):
         sparse = rc.settings['sparse'] if sparse is None else sparse
         mat_operator = 0.
-        mult = list(core.multi_indices(self.position.dim, order))
+        mult = list(m for m in itertools.product(range(order + 1),
+                    repeat=self.position.dim) if sum(m) <= order)
         splitop = lib.split_operator(op, func, order)
         v = ['x', 'y', 'z']
         for m, coeff in zip(mult, splitop):
