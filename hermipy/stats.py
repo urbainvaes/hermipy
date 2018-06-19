@@ -16,13 +16,36 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import hermipy.settings as rc
 from functools import wraps
+import hermipy.settings as rc
+import numpy as np
 import time
 
 stats = {}
 indent = 0
 threshold = 1e-3
+
+
+def debug(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        key = function.__name__ + '-' + function.__module__
+        if rc.settings['debug']:
+            print("▶ Entering function " + key)
+            print("-▲ args")
+            for a in args:
+                s = "numpy ndarray " + str(a.shape) if type(a) is np.ndarray \
+                    else str(a)
+                print("--● A " + s)
+            print("-▲ wkargs")
+            for kw in kwargs:
+                a = kwargs[kw]
+                s = "numpy ndarray " + str(a.shape) if type(a) is np.ndarray \
+                    else str(a)
+                print("--● KW " + str(kw) + ": " + s)
+        result = function(*args, **kwargs)
+        return result
+    return wrapper
 
 
 def log_stats(function):

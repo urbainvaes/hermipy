@@ -21,8 +21,8 @@ import numpy as np
 import hermite_cpp as hm
 
 from hermipy.settings import settings
-from hermipy.stats import log_stats
 from hermipy.cache import cache
+from hermipy.stats import log_stats, debug
 
 # Conversion functions {{{
 
@@ -134,6 +134,7 @@ def to_numeric(var):
 
 
 @cache()
+@debug
 @log_stats
 def discretize(function, nodes, translation, dilation):
     nodes, translation, dilation = to_cpp_array(nodes, translation, dilation)
@@ -141,6 +142,7 @@ def discretize(function, nodes, translation, dilation):
 
 
 @cache()
+@debug
 @log_stats
 def integrate(fgrid, nodes, weights):
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
@@ -149,6 +151,7 @@ def integrate(fgrid, nodes, weights):
 
 
 @cache()
+@debug
 @log_stats
 def transform(degree, fgrid, nodes, weights, forward, index_set="triangle"):
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
@@ -157,12 +160,14 @@ def transform(degree, fgrid, nodes, weights, forward, index_set="triangle"):
 
 
 @cache()
+@debug
 @log_stats
 def triple_products(degree):
     return np.array(hm.triple_products(degree))
 
 
 @cache()
+@debug
 @log_stats
 def varf(degree, fgrid, nodes, weights, sparse=False, index_set="triangle"):
     if settings['debug']:
@@ -174,6 +179,7 @@ def varf(degree, fgrid, nodes, weights, sparse=False, index_set="triangle"):
 
 
 @cache()
+@debug
 @log_stats
 def varfd(dim, degree, direction, var, sparse=True, index_set="triangle"):
     if type(var) is np.ndarray:
@@ -185,6 +191,7 @@ def varfd(dim, degree, direction, var, sparse=True, index_set="triangle"):
     return log_stats(to_numpy)(result)
 
 
+@debug
 @log_stats
 def tensorize(inp, dim=None, direction=None,
               sparse=False, index_set="triangle"):
@@ -217,6 +224,7 @@ def tensorize(inp, dim=None, direction=None,
 
 
 @cache()
+@debug
 @log_stats
 def project(inp, dim, directions, index_set="triangle"):
     if type(directions) is int:
@@ -229,6 +237,7 @@ def project(inp, dim, directions, index_set="triangle"):
 
 
 @cache()
+@debug
 @log_stats
 def multi_indices(dim, degree, index_set="triangle"):
     if index_set == "triangle":
@@ -240,6 +249,7 @@ def multi_indices(dim, degree, index_set="triangle"):
     return np.asarray(result, dtype=int)
 
 
+@debug
 @log_stats
 def bissect_degree(dim, n_polys, index_set="triangle"):
     if index_set == "triangle":
@@ -251,6 +261,7 @@ def bissect_degree(dim, n_polys, index_set="triangle"):
     return degree
 
 
+@debug
 @log_stats
 def triangle_index(mult_ind):
     if isinstance(mult_ind, np.ndarray):
@@ -261,6 +272,7 @@ def triangle_index(mult_ind):
 
 
 @cache()
+@debug
 @log_stats
 def inner(s1, s2, d1, d2, index_set="triangle"):
     s1, s2 = to_cpp_array(s1, s2)
