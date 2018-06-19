@@ -37,16 +37,18 @@ class Varf:
     @staticmethod
     def tensorize(args, sparse=False):
         assert len(args) > 1
+        index_set = args[0].index_set
         mats = []
         for a in args:
             assert type(a) is Varf
+            assert a.index_set == index_set
             if type(a.matrix) is ss.csr_matrix:
                 mats.append(a.matrix.todense().A)
             else:
                 mats.append(a.matrix)
-        tens_mat = core.tensorize(mats, sparse=sparse)
+        tens_mat = core.tensorize(mats, sparse=sparse, index_set=index_set)
         tens_pos = pos.Position.tensorize([a.position for a in args])
-        return Varf(tens_mat, tens_pos)
+        return Varf(tens_mat, tens_pos, index_set=index_set)
 
     def __init__(self, matrix, position,
                  degree=None, index_set="triangle"):
@@ -87,7 +89,7 @@ class Varf:
 
         if isinstance(other, (int, float, np.float64)):
             new_matrix = self.matrix * other
-            return Varf(new_matrix, self.position)
+            return Varf(new_matrix, self.position, index_set=self.index_set)
 
         elif type(other) is Varf:
             assert self.index_set == other.index_set

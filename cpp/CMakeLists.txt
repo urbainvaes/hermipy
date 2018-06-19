@@ -4,11 +4,13 @@ project(Hermite)
 set (PROJECT_VERSION_MAJOR 0)
 set (PROJECT_VERSION_MINOR 2)
 set (CMAKE_VERBOSE_MAKEFILE OFF)
-set (CMAKE_BUILD_TYPE release)
 set (CMAKE_CXX_FLAGS_DEBUG "-DDEBUG")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -Wall -Wextra -Wpedantic") # Necessary to repeat
 set (CMAKE_CXX_LINKER_FLAGS  "${CMAKE_CXX_LINKER_FLAGS} -Wl,--no-undefined")
 set(CMAKE_CXX_STANDARD 14)
+
+# set (CMAKE_BUILD_TYPE release)
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 # Find Python
 find_package(PythonLibs 3 REQUIRED)

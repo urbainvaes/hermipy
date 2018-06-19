@@ -27,6 +27,15 @@ threshold = 1e-3
 
 
 def debug(function):
+
+    def stringify_arg(arg):
+        if isinstance(arg, list):
+            return str([stringify_arg(a) for a in arg])
+        if isinstance(arg, np.ndarray):
+            return "numpy ndarray " + str(arg.shape)
+        else:
+            return str(arg)
+
     @wraps(function)
     def wrapper(*args, **kwargs):
         key = function.__name__ + '-' + function.__module__
@@ -34,15 +43,10 @@ def debug(function):
             print("▶ Entering function " + key)
             print("-▲ args")
             for a in args:
-                s = "numpy ndarray " + str(a.shape) if type(a) is np.ndarray \
-                    else str(a)
-                print("--● A " + s)
-            print("-▲ wkargs")
+                print("--● A " + stringify_arg(a))
+            print("-▲ kwargs")
             for kw in kwargs:
-                a = kwargs[kw]
-                s = "numpy ndarray " + str(a.shape) if type(a) is np.ndarray \
-                    else str(a)
-                print("--● KW " + str(kw) + ": " + s)
+                print("--● KW " + str(kw) + ": " + stringify_arg(kwargs[kw]))
         result = function(*args, **kwargs)
         return result
     return wrapper

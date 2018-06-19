@@ -31,8 +31,8 @@ import hermipy.function as symfunc
 import hermipy.series as hs
 import hermipy.varf as hv
 import hermipy.position as pos
+import hermipy.stats as stats
 
-import itertools.product
 import numpy as np
 import numpy.linalg as la
 import ipdb
@@ -207,8 +207,9 @@ class Quad:
                               index_set=series.index_set)
 
     @tensorize_at(1)
-    def varf(self, f_grid, degree, sparse=False, numpy=True,
-             index_set="triangle"):
+    @stats.debug
+    @stats.log_stats
+    def varf(self, f_grid, degree, sparse=False, index_set="triangle"):
         if rc.settings['debug']:
             print("Entering body of Quad.varf")
         if not isinstance(f_grid, np.ndarray):
@@ -217,11 +218,13 @@ class Quad:
                         sparse=sparse, index_set=index_set)
         return hv.Varf(var, self.position, degree=degree, index_set=index_set)
 
+    @stats.debug
+    @stats.log_stats
     def varfd(self, function, degree, directions, sparse=False,
               index_set="triangle"):
         # import ipdb; ipdb.set_trace()
         directions = core.to_numeric(directions)
-        var = self.varf(function, degree, sparse=sparse)
+        var = self.varf(function, degree, sparse=sparse, index_set=index_set)
         mat = var.matrix
         eigval, _ = la.eig(self.position.cov)
         for d in directions:
@@ -230,13 +233,13 @@ class Quad:
             mat = mat/np.sqrt(eigval[d])
         return hv.Varf(mat, self.position, degree=degree, index_set=index_set)
 
+    @stats.debug
+    @stats.log_stats
     def discretize_op(self, op, func, degree, order,
                       sparse=None, index_set="triangle"):
         sparse = rc.settings['sparse'] if sparse is None else sparse
         mat_operator = 0.
-        mult = list(m for m in itertools.product(range(order + 1),
-                    repeat=self.position.dim) if sum(m) <= order)
-        splitop = lib.split_operator(op, func, order)
+        splitop, mult = lib.split_operator(op, func, order)
         v = ['x', 'y', 'z']
         for m, coeff in zip(mult, splitop):
             d_vector = sum([[v[i]]*m[i] for i in range(self.position.dim)], [])

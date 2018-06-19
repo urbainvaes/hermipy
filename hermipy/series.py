@@ -33,13 +33,15 @@ class Series:
     @staticmethod
     def tensorize(args):
         assert len(args) > 1
+        index_set = args[0].index_set
         vecs = []
         for a in args:
             assert type(a) is Series
+            assert a.index_set == index_set
             vecs.append(a.coeffs)
-        tens_vec = core.tensorize(vecs)
+        tens_vec = core.tensorize(vecs, index_set=index_set)
         tens_pos = pos.Position.tensorize([a.position for a in args])
-        return Series(tens_vec, tens_pos)
+        return Series(tens_vec, tens_pos, index_set=index_set)
 
     def __init__(self, coeffs, position,
                  degree=None, norm=False, index_set="triangle"):
@@ -82,7 +84,7 @@ class Series:
 
         if isinstance(other, (int, float, np.float64)):
             new_coeffs = self.coeffs * other
-            return Series(new_coeffs, self.position)
+            return Series(new_coeffs, self.position, index_set=self.index_set)
 
         elif type(other) is Series:
             assert self.index_set == other.index_set
