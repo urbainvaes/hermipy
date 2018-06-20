@@ -24,6 +24,8 @@ from scipy.special import binom
 import numpy as np
 import numpy.linalg as la
 
+from matplotlib.ticker import MaxNLocator
+
 
 very_small = 1e-10
 
@@ -134,6 +136,25 @@ class Series:
     def multi_indices(self):
         return core.multi_indices(self.position.dim, self.degree,
                                   index_set=self.index_set)
+
+    def plot(self, ax):
+        m = self.multi_indices()
+        if self.position.dim == 1:
+            mx = m[:, 0]
+            ax.bar(mx, self.coeffs)
+        elif self.position.dim == 2:
+            coeffs = self.coeffs / max(abs(self.coeffs))
+            coeffs = (abs(coeffs) > 1e-10) * coeffs
+            mx, my = m[:, 0], m[:, 1]
+            zoom = 1e3/max(mx)
+            positives = zoom * (coeffs > 0) * coeffs
+            negatives = zoom * (coeffs < 0) * coeffs * (-1)
+            ax.scatter(mx, my, s=positives, c='g', marker='o')
+            ax.scatter(mx, my, s=negatives, c='r', marker='o')
+            ax.scatter(mx, my, c=1-abs(coeffs), cmap='gray')
+            # ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+            # ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+        ax.set_title("Coefficients of the Hermite expansion")
 
     def to_cross(self, degree):
         assert self.index_set == "triangle"
