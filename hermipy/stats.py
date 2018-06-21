@@ -26,7 +26,7 @@ indent = 0
 threshold = 1e-3
 
 
-def debug(function):
+def debug(function, force=False):
 
     def stringify_arg(arg):
         if isinstance(arg, list):
@@ -39,7 +39,7 @@ def debug(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
         key = function.__name__ + '-' + function.__module__
-        if rc.settings['debug']:
+        if rc.settings['debug'] or force:
             print("▶ Entering function " + key)
             print("-▲ args")
             for a in args:
@@ -52,7 +52,7 @@ def debug(function):
     return wrapper
 
 
-def log_stats(function):
+def log_stats(function, force=False):
     @wraps(function)
     def wrapper(*args, **kwargs):
         global indent, threshold
@@ -67,7 +67,7 @@ def log_stats(function):
             stats[key] = {'Calls': 0, 'Time': 0}
         stats[key]['Calls'] += 1
         stats[key]['Time'] += time_end - time_start
-        if rc.settings['trails']:
+        if rc.settings['trails'] or force:
             delta_time = time_end - time_start
             if delta_time > threshold:
                 print(str(indent) + " Function " + key
