@@ -176,6 +176,10 @@ vec inner(const vec & s1,
     {
         return inner<Triangle_iterator>(s1, s2, dirs1, dirs2);
     }
+    else if (index_set == "cube")
+    {
+        return inner<Cube_iterator>(s1, s2, dirs1, dirs2);
+    }
     else
     {
         std::cerr << "Invalid index set!" << std::endl;

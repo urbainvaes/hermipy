@@ -130,6 +130,10 @@ vec tensorize_vecs_dirs(const mat & inputs, const imat & dirs, std::string index
     {
         return tensorize<Triangle_iterator>(inputs, dirs);
     }
+    else if (index_set == "cube")
+    {
+        return tensorize<Cube_iterator>(inputs, dirs);
+    }
     else
     {
         std::cerr << "Invalid index set!" << std::endl;
@@ -359,6 +363,10 @@ T tensorize_mats_dirs(const vector<S> & inputs, const imat & dirs, std::string i
     {
         return _tensorize_mats_dirs<Triangle_iterator,T,S>(inputs, dirs);
     }
+    else if (index_set == "cube")
+    {
+        return _tensorize_mats_dirs<Cube_iterator,T,S>(inputs, dirs);
+    }
     else
     {
         std::cerr << "Invalid index set!" << std::endl;
@@ -377,6 +385,10 @@ T tensorize_mats_axes(const vector<S> & inputs, std::string index_set)
     {
         return _tensorize_mats_axes<Triangle_iterator,T,S>(inputs);
     }
+    else if (index_set == "cube")
+    {
+        return _tensorize_mats_axes<Cube_iterator,T,S>(inputs);
+    }
     else
     {
         std::cerr << "Invalid index set!" << std::endl;
@@ -394,10 +406,13 @@ T tensorize_mat_id(const S & input, u_int dim, u_int dir, std::string index_set)
     return tensorize_mats_axes<T>(mats, index_set);
 }
 
+template mat _tensorize_mats_axes<Cube_iterator>(const std::vector<mat> & input);
 template mat _tensorize_mats_axes<Cross_iterator>(const std::vector<mat> & input);
 template mat _tensorize_mats_axes<Triangle_iterator>(const std::vector<mat> & input);
+template spmat _tensorize_mats_axes<Cube_iterator>(const std::vector<mat> & input);
 template spmat _tensorize_mats_axes<Cross_iterator>(const std::vector<mat> & input);
 template spmat _tensorize_mats_axes<Triangle_iterator>(const std::vector<mat> & input);
+template boost_mat _tensorize_mats_axes<Cube_iterator>(const std::vector<mat> & input);
 template boost_mat _tensorize_mats_axes<Cross_iterator>(const std::vector<mat> & input);
 template boost_mat _tensorize_mats_axes<Triangle_iterator>(const std::vector<mat> & input);
 

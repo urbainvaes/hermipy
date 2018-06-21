@@ -135,6 +135,10 @@ vec transform(
     {
         return transform<Triangle_iterator>(degree, input, nodes, weights, forward);
     }
+    else if (index_set == "cube")
+    {
+        return transform<Cube_iterator>(degree, input, nodes, weights, forward);
+    }
     else
     {
         std::cerr << "Invalid index set!" << std::endl;
