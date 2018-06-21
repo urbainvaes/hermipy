@@ -187,7 +187,6 @@ def varfd(dim, degree, direction, var, sparse=True, index_set="triangle"):
         var = hm.to_boost_mat(var)
     elif type(var) is ss.csr_matrix:
         var = convert_to_cpp_sparse(var)
-    # var = to_cpp(var)
     result = log_stats(hm.varfd)(dim, degree, direction, var, index_set)
     return log_stats(to_numpy)(result)
 
@@ -245,6 +244,8 @@ def multi_indices(dim, degree, index_set="triangle"):
         result = hm.triangle_list_indices(dim, degree)
     elif index_set == "cross":
         result = hm.cross_list_indices(dim, degree)
+    elif index_set == "cube":
+        result = hm.cube_list_indices(dim, degree)
     else:
         raise ValueError("Unknown index set")
     return np.asarray(result, dtype=int)
@@ -258,6 +259,8 @@ def bissect_degree(dim, n_polys, index_set="triangle"):
         degree = hm.triangle_bissect_degree(dim, n_polys)
     elif index_set == "cross":
         degree = hm.cross_bissect_degree(dim, n_polys)
+    elif index_set == "cube":
+        degree = hm.cube_bissect_degree(dim, n_polys)
     else:
         raise ValueError("Unknown index set")
     return degree
