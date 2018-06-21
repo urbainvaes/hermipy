@@ -83,7 +83,7 @@ vec transform(
     }
 
     Iterator m(dim, degree);
-    Hyper_cube_iterator p(n_points);
+    Grid_iterator p(n_points);
     for (i = 0; i < n_points_tot; i++, p.increment())
     {
         double weight = 1;

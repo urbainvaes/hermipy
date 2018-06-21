@@ -68,7 +68,7 @@ vec discretize(
     }
     vec result(n_points_tot, 0);
 
-    Hyper_cube_iterator p(n_points);
+    Grid_iterator p(n_points);
     for (i = 0; i < n_points_tot; i++, p.increment())
     {
         for (j = 0; j < dim; j++)
