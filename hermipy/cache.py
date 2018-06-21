@@ -50,10 +50,11 @@ def gen_hash(extend=None):
             return the_hash(str(argument))
         if isinstance(argument, (list, tuple)):
             hashes = [the_hash(e) for e in argument]
-            return the_hash(hash(frozenset(hashes)))
+            return the_hash('list' + '-'.join(hashes))
         if isinstance(argument, dict):
-            hashes = {kw: the_hash(argument[kw]) for kw in argument}
-            return the_hash(hash(frozenset(argument)))
+            hashes_k = ['k'] + [the_hash(kw) for kw in argument]
+            hashes_v = ['v'] + [the_hash(argument[kw]) for kw in argument]
+            return the_hash(hashes_k + hashes_v)
         if isinstance(argument, (int, float)):
             return the_hash(str(hash(argument)))
         if argument is None:
@@ -115,6 +116,8 @@ def cache(hash_extend=None, error_extend=None, quiet=False):
                 hashes.append(hash_fun(kw))
                 hashes.append(hash_fun(kwargs[kw]))
             hash_args = hash_fun(('-'.join(hashes)))
+            if settings['debug']:
+                print("Hash of arguments: " + prefix + '-' + '-'.join(hashes))
 
             is_sparse = 'sparse' in kwargs and kwargs['sparse'] is True
             ext = '.npz' if is_sparse else '.npy'
