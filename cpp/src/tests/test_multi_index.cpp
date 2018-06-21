@@ -29,23 +29,42 @@ using namespace std;
 
 int main()
 {
-    u_int dim = 2, degree = 10, i = 0;
+    u_int dim = 4, degree = 9, i = 0;
     Cross_iterator mh(dim, degree);
     for (mh.reset(), i = 0; !mh.isFull(); i++, mh.increment())
     {
         u_int index = mh.index(mh.get());
+        cout << "i " << i << ", index(mh): " << index << ", mh: " << mh.get() << endl;
         if (i != index)
             return 1;
-        cout << "i " << i << ", index(m_i): " << index << ", mh: " << mh.get() << endl;
     }
 
     Triangle_iterator m(dim, degree);
+    if (m.s_size(degree, dim) != m.size())
+    {
+        return 1;
+    }
+
     for (m.reset(), i = 0; !m.isFull(); i++, m.increment())
     {
-        u_int index = m.index(m.get());
+        u_int index = m.s_index(m.get());
+        cout << "i " << i << ", index(mt): " << index << ", mt: " << m.get() << endl;
         if (i != index)
             return 1;
-        cout << "i " << i << ", index(m_i): " << index << ", m: " << m.get() << endl;
+    }
+
+    Cube_iterator mc(dim, degree);
+    if (mc.s_size(degree, dim) != mc.size())
+    {
+        return 1;
+    }
+
+    for (mc.reset(), i = 0; !mc.isFull(); i++, mc.increment())
+    {
+        u_int index = mc.s_index(mc.get());
+        cout << "i " << i << ", index(mc): " << index << ", mc: " << mc.get() << endl;
+        if (i != index)
+            return 1;
     }
     cout << "Test passed" << endl;
 }
