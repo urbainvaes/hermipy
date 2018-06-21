@@ -67,6 +67,10 @@ vec project_vec_nd(const vec & input, u_int dim, const ivec & dirs, std::string 
     {
         return project<Triangle_iterator>(input, dim, dirs);
     }
+    else if (index_set == "cube")
+    {
+        return project<Cube_iterator>(input, dim, dirs);
+    }
     else
     {
         std::cerr << "Invalid index set!" << std::endl;
@@ -123,6 +127,10 @@ M project_mat_nd(const M & input, u_int dim, const ivec & dirs, std::string inde
     else if (index_set == "triangle")
     {
         return project<Triangle_iterator,M>(input, dim, dirs);
+    }
+    else if (index_set == "cube")
+    {
+        return project<Cube_iterator,M>(input, dim, dirs);
     }
     else
     {

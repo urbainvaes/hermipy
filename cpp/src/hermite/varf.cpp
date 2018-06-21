@@ -197,6 +197,10 @@ T varf(
     {
         return varf<Triangle_iterator,T>(degree, input, nodes, weights);
     }
+    else if (index_set == "cube")
+    {
+        return varf<Cube_iterator,T>(degree, input, nodes, weights);
+    }
     else
     {
         std::cerr << "Invalid index set!" << std::endl;
@@ -222,10 +226,20 @@ T varfd(
         m = std::unique_ptr<Cross_iterator>(
                 new Cross_iterator(dim, degree));
     }
-    else
+    else if (index_set == "cube")
+    {
+        m = std::unique_ptr<Cube_iterator>(
+                new Cube_iterator(dim, degree));
+    }
+    else if (index_set == "triangle")
     {
         m = std::unique_ptr<Triangle_iterator>(
                 new Triangle_iterator(dim, degree));
+    }
+    else
+    {
+        std::cerr << "Invalid index set!" << std::endl;
+        exit(1);
     }
 
     u_int i;
@@ -270,10 +284,20 @@ mat varfd(
         m2 = std::unique_ptr<Cross_iterator>(
                 new Cross_iterator(dim, degree));
     }
-    else
+    else if (index_set == "cube")
+    {
+        m2 = std::unique_ptr<Cube_iterator>(
+                new Cube_iterator(dim, degree));
+    }
+    else if (index_set == "triangle")
     {
         m2 = std::unique_ptr<Triangle_iterator>(
                 new Triangle_iterator(dim, degree));
+    }
+    else
+    {
+        std::cerr << "Invalid index set!" << std::endl;
+        exit(1);
     }
     m2->reset();
 
