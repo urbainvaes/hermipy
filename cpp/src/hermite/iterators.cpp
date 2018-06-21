@@ -32,7 +32,7 @@ namespace hermite
 {
 // Grid iterators (used for N-dim for loops)
 // Hypercube iterator {{{
-u_int Hyper_cube_iterator::index(const ivec & m_vec)
+u_int Grid_iterator::index(const ivec & m_vec)
 {
     u_int result = 0,
           factor = 1;
@@ -46,7 +46,7 @@ u_int Hyper_cube_iterator::index(const ivec & m_vec)
     return result;
 }
 
-void Hyper_cube_iterator::increment()
+void Grid_iterator::increment()
 {
     unsigned int i = dim - 1;
     while(multi_index[i] == upper_bounds[i] - 1 && i > 0)
@@ -64,10 +64,10 @@ void Hyper_cube_iterator::increment()
     }
 }
 
-imat Hyper_cube_iterator::list(const ivec & upper_bounds)
+imat Grid_iterator::list(const ivec & upper_bounds)
 {
     imat result;
-    for(Hyper_cube_iterator m(upper_bounds); !m.isFull(); m.increment())
+    for(Grid_iterator m(upper_bounds); !m.isFull(); m.increment())
     {
         result.push_back(m.get());
     }
@@ -101,10 +101,161 @@ void Multi_index_iterator::increment()
     multi_index = list[++index_list];
 }
 // }}}
-// Triangle iterator {{{
-bool Triangle_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_bound)
+// Cube iterator {{{
+bool Cube_iterator::s_increment(ivec & multi_index, u_int degree)
 {
-    u_int i;
+    u_int max = 0,
+          ind = 0, i;
+
+    u_int dim = multi_index.size();
+
+    for (i = 0; i < dim; i++)
+    {
+        if (multi_index[i] >= max)
+        {
+            max = multi_index[i];
+            ind = i;
+        }
+    }
+
+
+    for (i = 0; i < dim; i++)
+    {
+        // Careful with unsigned ints!!
+        if (multi_index[i] + 1 < max + (i < ind))
+        {
+            multi_index[i] += 1;
+            return false;
+        }
+        else if (i != ind)
+        {
+            multi_index[i] = 0;
+        }
+    }
+
+    if (ind == dim - 1)
+    {
+        if (max >= degree)
+            return true;
+
+        multi_index[ind] = 0;
+        multi_index[0] = max + 1;
+        return false;
+    }
+
+    multi_index[ind] = 0;
+    multi_index[ind + 1] = max;
+    return false;
+}
+
+Cube_iterator::Cube_iterator(u_int dim, u_int degree)
+    : Multi_index_iterator(dim), degree(degree)
+{
+    ivec m(dim, 0);
+    u_int ind = 0;
+    do
+    {
+        list.push_back(m);
+        std::string hash = hash_print(m);
+        hash_table.insert(std::pair<std::string, u_int>(hash, ind++));
+    }
+    while (!Cube_iterator::s_increment(m, degree));
+}
+
+u_int Cube_iterator::s_index(const ivec & m_vec)
+{
+    u_int max = 0,
+          ind = 0,
+          dim = m_vec.size();
+
+    for (u_int i = 0; i < dim; i++)
+    {
+        if (m_vec[i] >= max)
+        {
+            max = m_vec[i];
+            ind = i;
+        }
+    }
+
+    u_int result = pow(max, dim) - 1;
+    for (u_int i = 0; i < ind; i++)
+        result += pow(max, dim - i - 1) * pow(max + 1, i);
+
+    result += 1;
+    u_int factor = 1;
+    for (u_int i = 0; i < dim; i++)
+    {
+        if (i == ind)
+            continue;
+
+        result += factor * m_vec[i];
+        factor *= i < ind ? max + 1 : max;
+    }
+
+    return result;
+}
+
+u_int Cube_iterator::s_size(u_int degree, u_int dim)
+{
+    return (u_int) pow(degree + 1, dim);
+}
+
+imat Cube_iterator::s_list(u_int dim, u_int degree)
+{
+    imat result;
+    for(Cube_iterator m(dim, degree); !m.isFull(); m.increment())
+    {
+        result.push_back(m.get());
+    }
+    return result;
+}
+
+u_int Cube_iterator::s_bissect_degree(u_int dim, u_int n_polys)
+{
+    u_int degree_1 = 0, degree_2 = DEGREE_BISSECT_MAX;
+
+    int img_1 = (int) s_size(degree_1, dim) - (int) n_polys;
+    int img_2 = (int) s_size(degree_2, dim) - (int) n_polys;
+
+    if (img_1 > 0 || img_2 < 0)
+    {
+        std::cout << "Can't find degree, Invalid arguments!" << std::endl;
+        exit(0);
+    }
+
+    if (img_1 == 0)
+        return degree_1;
+
+    if (img_2 == 0)
+        return degree_2;
+
+    while (true)
+    {
+        u_int new_degree = (degree_1 + degree_2)/2;
+        int new_img = (int) s_size(new_degree, dim) - (int) n_polys;
+
+        if (new_img < 0)
+        {
+            degree_1 = new_degree;
+            img_1 = new_img;
+        }
+        else if (new_img > 0)
+        {
+            degree_2 = new_degree;
+            img_2 = new_img;
+        }
+        else
+        {
+            return new_degree;
+        }
+    }
+}
+
+// }}}
+// Triangle iterator {{{
+bool Triangle_iterator::s_increment(ivec & multi_index, u_int degree)
+{
+    u_int i, dim = multi_index.size();
     for (i = 0; i < dim - 1; i++)
     {
         if (multi_index[i + 1]  != 0)
@@ -114,7 +265,7 @@ bool Triangle_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_b
         }
     }
 
-    if (i == dim - 1 && multi_index[0] == upper_bound)
+    if (i == dim - 1 && multi_index[0] == degree)
         return true;
 
     multi_index[i] = 1 + multi_index[0];
@@ -127,12 +278,12 @@ bool Triangle_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_b
     return false;
 }
 
-Triangle_iterator::Triangle_iterator(u_int dim, u_int upper_bound)
-    : Multi_index_iterator(dim), upper_bound(upper_bound)
+Triangle_iterator::Triangle_iterator(u_int dim, u_int degree)
+    : Multi_index_iterator(dim), degree(degree)
 {
     #ifdef DEBUG
     std::cout << "Creating triangle iterator with dim = "
-              << dim << ", upper_bound = " << upper_bound << std::endl;
+              << dim << ", degree = " << degree << std::endl;
     #endif
     ivec m(dim, 0);
     u_int ind = 0;
@@ -142,7 +293,7 @@ Triangle_iterator::Triangle_iterator(u_int dim, u_int upper_bound)
         std::string hash = hash_print(m);
         hash_table.insert(std::pair<std::string, u_int>(hash, ind++));
     }
-    while (!Triangle_iterator::s_increment(m, dim, upper_bound));
+    while (!Triangle_iterator::s_increment(m, degree));
 }
 
 u_int Triangle_iterator::s_index(const ivec & m_vec)
@@ -166,10 +317,10 @@ u_int Triangle_iterator::s_size(u_int degree, u_int dim)
     return (u_int) binomial_coefficient<double> (degree + dim, dim);
 }
 
-imat Triangle_iterator::s_list(u_int dim, u_int upper_bound)
+imat Triangle_iterator::s_list(u_int dim, u_int degree)
 {
     imat result;
-    for(Triangle_iterator m(dim, upper_bound); !m.isFull(); m.increment())
+    for(Triangle_iterator m(dim, degree); !m.isFull(); m.increment())
     {
         result.push_back(m.get());
     }
@@ -241,10 +392,10 @@ u_int Triangle_iterator::s_find_dim(u_int degree, u_int n_polys)
 
 // }}}
 // Hyperbolic cross iterator {{{
-bool Cross_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_bound)
+bool Cross_iterator::s_increment(ivec & multi_index, u_int degree)
 {
-    assert(upper_bound > 0);
-    u_int i;
+    assert(degree > 0);
+    u_int i, dim = multi_index.size();
 
     // FIXME: Bug when degree == 1
     for (i = 0; i < dim; i++)
@@ -259,7 +410,7 @@ bool Cross_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_boun
         }
     }
 
-    if (upper_bound == 1)
+    if (degree == 1)
     {
         return true;
     }
@@ -286,7 +437,7 @@ bool Cross_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_boun
 
     if (i == dim - 1)
     {
-        if (multi_index[0] == upper_bound)
+        if (multi_index[0] == degree)
             return true;
         multi_index[i] = 1 + MAX(1, multi_index[0]);
     }
@@ -297,12 +448,12 @@ bool Cross_iterator::s_increment(ivec & multi_index, u_int dim, u_int upper_boun
     return false;
 }
 
-Cross_iterator::Cross_iterator(u_int dim, u_int upper_bound)
-    : Multi_index_iterator(dim), upper_bound(upper_bound)
+Cross_iterator::Cross_iterator(u_int dim, u_int degree)
+    : Multi_index_iterator(dim), degree(degree)
 {
     #ifdef DEBUG
     std::cout << "Creating cross iterator with dim = "
-              << dim << ", upper_bound = " << upper_bound << std::endl;
+              << dim << ", degree = " << degree << std::endl;
     #endif
 
     ivec m(dim, 0);
@@ -313,13 +464,13 @@ Cross_iterator::Cross_iterator(u_int dim, u_int upper_bound)
         std::string hash = hash_print(m);
         hash_table.insert(std::pair<std::string, u_int>(hash, ind++));
     }
-    while (!Cross_iterator::s_increment(m, dim, upper_bound));
+    while (!Cross_iterator::s_increment(m, degree));
 }
 
-imat Cross_iterator::s_list(u_int dim, u_int upper_bound)
+imat Cross_iterator::s_list(u_int dim, u_int degree)
 {
     imat result;
-    for(Cross_iterator m(dim, upper_bound); !m.isFull(); m.increment())
+    for(Cross_iterator m(dim, degree); !m.isFull(); m.increment())
     {
         result.push_back(m.get());
     }

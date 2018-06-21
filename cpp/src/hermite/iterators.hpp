@@ -70,7 +70,7 @@ class Vector_iterator
 };
 
 // Iterator on grids
-class Hyper_cube_iterator : public Vector_iterator
+class Grid_iterator : public Vector_iterator
 {
     private:
         // Upper bounds excluded
@@ -83,7 +83,7 @@ class Hyper_cube_iterator : public Vector_iterator
         u_int index(const ivec & m_vec);
 
         void increment();
-        Hyper_cube_iterator(const ivec & upper_bounds):
+        Grid_iterator(const ivec & upper_bounds):
             Vector_iterator(upper_bounds.size()), upper_bounds(upper_bounds) {}
 };
 
@@ -127,16 +127,31 @@ class Multi_index_iterator : public Vector_iterator
 };
 
 // Consistent orderings
+class Cube_iterator : public Multi_index_iterator
+{
+    private:
+        const u_int degree;
+
+    public:
+        Cube_iterator(u_int dim, u_int degree);
+
+        static bool s_increment(ivec & multi_index, u_int degree);
+        static imat s_list(u_int dim, u_int degree);
+        static u_int s_index(const ivec & m_vec);
+        static u_int s_size(u_int degree, u_int dim);
+        static u_int s_bissect_degree(u_int dim, u_int n_polys);
+};
+
 class Triangle_iterator : public Multi_index_iterator
 {
     private:
-        const u_int upper_bound;
+        const u_int degree;
 
     public:
-        Triangle_iterator(u_int dim, u_int upper_bound);
+        Triangle_iterator(u_int dim, u_int degree);
 
-        static bool s_increment(ivec & multi_index, u_int dim, u_int upper_bound);
-        static imat s_list(u_int dim, u_int upper_bound);
+        static bool s_increment(ivec & multi_index, u_int degree);
+        static imat s_list(u_int dim, u_int degree);
         static u_int s_index(const ivec & m_vec);
         static u_int s_size(u_int degree, u_int dim);
         static u_int s_bissect_degree(u_int dim, u_int n_polys);
@@ -147,13 +162,13 @@ class Triangle_iterator : public Multi_index_iterator
 class Cross_iterator : public Multi_index_iterator
 {
     private:
-        const u_int upper_bound;
+        const u_int degree;
 
     public:
-        Cross_iterator(u_int dim, u_int upper_bound);
+        Cross_iterator(u_int dim, u_int degree);
 
-        static bool s_increment(ivec & multi_index, u_int dim, u_int upper_bound);
-        static imat s_list(u_int dim, u_int upper_bound);
+        static bool s_increment(ivec & multi_index, u_int degree);
+        static imat s_list(u_int dim, u_int degree);
         static u_int s_size(u_int degree, u_int dim);
         static u_int s_bissect_degree(u_int dim, u_int n_polys);
 };
