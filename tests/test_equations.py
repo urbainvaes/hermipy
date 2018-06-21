@@ -29,6 +29,7 @@ import hermipy.quad as hm
 import hermipy.equations as eq
 import hermipy.settings as rc
 import hermipy.stats as stats
+import hermipy.cache as cache
 
 from scipy.special import binom
 
@@ -487,11 +488,12 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
     def solve(self, backward, quad, factors, degrees):
 
-        index_set = "cross"
+        index_set = "triangle"
 
         # Discretization of the operator
         rc.settings['tensorize'] = True
         rc.settings['cache'] = True
+        rc.settings['cachedir'] = '/tmp/test_fp_3d'
         rc.settings['trails'] = True
         rc.settings['debug'] = False
 
@@ -500,8 +502,10 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         var = var.to_cross(degrees[-1]) if index_set == "cross" else var
         mat = var.matrix
 
-        # ipdb.set_trace()
         solutions = []
+
+        nv, bx, by, bz = 200, 3, 5, 5
+        quad_visu = hm.Quad.newton_cotes([nv, nv, nv], [bx, by, bz])
 
         # Discretize factor
         factor = quad.discretize(factors[0] * factors[1] * factors[2])
@@ -512,6 +516,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
             factor_removed *= factors[d]
             weight_removed *= quad.position.weights()[d]
         f_projection = factor_removed / weight_removed
+        f_projection = sym.Rational(1)
         s_projection = quad.project(dirs_removed).\
             transform(f_projection, degrees[-1], index_set=index_set)
         dirs_visu = [i for i in range(3) if i not in dirs_removed]
@@ -520,11 +525,12 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
             factor_visu *= factors[d]
 
         # Quadrature for vizualization
-        quad_visu = quad.project(dirs_visu)
+        quad_visu = quad_visu.project(dirs_visu)
 
         v0, eig_vec = None, None
         for d in degrees:
             print(d)
+            ipdb.set_trace()
 
             npolys = int(binom(d + self.dim, d))
             if d is not degrees[0]:
@@ -535,23 +541,24 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
             if type(sub_mat) is np.ndarray:
                 sub_mat = sub_mat.copy(order='C')
-            eig_vals, eig_vecs = stats.log_stats(las.eigs)(sub_mat, k=1, v0=v0,
-                                                           which='LR')
+            eigs = stats.log_stats(cache.cache(quiet=True)(las.eigs))
+            eig_vals, eig_vecs = eigs(sub_mat, k=1, v0=v0, which='LR')
             eig_vec = np.real(eig_vecs.T[0])
             ground_state = eig_vec * np.sign(eig_vec[0])
             ground_state_series = quad.series(ground_state,
                                               index_set=index_set)
-            ground_state_eval = quad.eval(ground_state_series)*factor
-            norm = quad.norm(ground_state_eval, n=1, l2=True)
-            ground_state_eval = ground_state_eval / norm
-            solutions.append(ground_state_eval)
+            # ground_state_eval = quad.eval(ground_state_series)*factor
+            # norm = quad.norm(ground_state_eval, n=1, l2=True)
+            # ground_state_eval = ground_state_eval / norm
+            # solutions.append(ground_state_eval)
 
             sub_projection = s_projection.subdegree(d)
             inner_series = ground_state_series.inner(sub_projection)
 
-            fig, ax = plt.subplots(1, 1)
+            fig, (ax1, ax2) = plt.subplots(1, 2)
             # ipdb.set_trace()
-            quad_visu.plot(inner_series, factor_visu, ax=ax)
+            quad_visu.plot(inner_series, factor_visu, ax=ax1)
+            inner_series.plot(ax2)
             plt.show()
 
         return solutions, quad.series(ground_state)
@@ -560,8 +567,8 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
         r = sym.Rational
         Vp, degree = self.x**4/4 - self.x**2/2, 50
-        s2x, s2y, s2z = r(1, 2), 1, 1
-        params = {'β': 5, 'ε': 0.5, 'γ': 0, 'θ': 0, 'm': 0}
+        s2x, s2y, s2z = r(1, 10), r(1, 10), r(1, 10)
+        params = {'β': r(1), 'ε': r(1, 2), 'γ': 0, 'θ': 0, 'm': 0}
         args = [Vp, params, s2x, s2y, s2z, degree]
         quad, forward, backward, factor, fx, fy, fz = self.sym_calc(*args)
 

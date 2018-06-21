@@ -123,7 +123,6 @@ class Quad:
                     tens_fun = t.tensorize if t is hv.Varf or t is hs.Series \
                         else core.tensorize
                     tensorized = tens_fun(func_dirs, **kwargs_func)
-                    # pdb.set_trace()
                     results.append(tensorized*float(add[-1]))
 
                 return sum(results[1:], results[0])
@@ -210,8 +209,6 @@ class Quad:
     @stats.debug
     @stats.log_stats
     def varf(self, f_grid, degree, sparse=False, index_set="triangle"):
-        if rc.settings['debug']:
-            print("Entering body of Quad.varf")
         if not isinstance(f_grid, np.ndarray):
             f_grid = self.discretize(f_grid)
         var = core.varf(degree, f_grid, self.nodes, self.weights,
@@ -222,7 +219,6 @@ class Quad:
     @stats.log_stats
     def varfd(self, function, degree, directions, sparse=False,
               index_set="triangle"):
-        # import ipdb; ipdb.set_trace()
         directions = core.to_numeric(directions)
         var = self.varf(function, degree, sparse=sparse, index_set=index_set)
         mat = var.matrix
@@ -245,18 +241,17 @@ class Quad:
             d_vector = sum([[v[i]]*m[i] for i in range(self.position.dim)], [])
             varf_part = self.varfd(coeff, degree, d_vector, sparse=sparse,
                                    index_set=index_set)
-            # import ipdb; ipdb.set_trace()
             mat_operator = varf_part + mat_operator
         return mat_operator
 
     # TODO: Ensure order is right (urbain, Tue 01 May 2018)
     def plot(self, series, factor=None, ax=None):
         assert self.position.is_diag
-        assert self.position == series.position
+        #  FIXME: Only orientation, not positions
+        # assert self.position == series.position
         if factor is None:
             factor = self.position.weight()
         if not isinstance(factor, np.ndarray):
-            # ipdb.set_trace()
             factor = symfunc.Function(factor, dirs=self.position.dirs)
             factor = self.discretize(factor)
         n_nodes = []
