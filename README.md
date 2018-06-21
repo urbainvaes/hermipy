@@ -1,6 +1,6 @@
 # Testing
 
-To run the tests, run the following in the root directory.
+Run the following command in the root directory.
 
 ```bash
 $ python -m unittest discover -v tests
@@ -24,15 +24,9 @@ $ python -m unittest discover -v tests
 
 - Two passes in tensorize in 1d
 
-- Rexpress project in terms of inner?
-
 - In plot, add bounds of Hermite series
 
 - Order of dim and degree not always consistent
-
-# Ideas
-
-- Keyword argument instead of C++ template?
 
 # License
 

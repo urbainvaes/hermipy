@@ -154,6 +154,7 @@ def integrate(fgrid, nodes, weights):
 @debug
 @log_stats
 def transform(degree, fgrid, nodes, weights, forward, index_set="triangle"):
+    degree = int(degree)
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
     return np.array(hm.transform(degree, fgrid, nodes,
                                  weights, forward, index_set))
@@ -186,7 +187,7 @@ def varfd(dim, degree, direction, var, sparse=True, index_set="triangle"):
         var = hm.to_boost_mat(var)
     elif type(var) is ss.csr_matrix:
         var = convert_to_cpp_sparse(var)
-    var = to_cpp(var)
+    # var = to_cpp(var)
     result = log_stats(hm.varfd)(dim, degree, direction, var, index_set)
     return log_stats(to_numpy)(result)
 
@@ -196,7 +197,6 @@ def varfd(dim, degree, direction, var, sparse=True, index_set="triangle"):
 @log_stats
 def tensorize(inp, dim=None, direction=None,
               sparse=False, index_set="triangle"):
-
     # Scalar case
     is_scalar = isinstance(inp[0], (float, int))
     if is_scalar and dim is None and direction is None:
