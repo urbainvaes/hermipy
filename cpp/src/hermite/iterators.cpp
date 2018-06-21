@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <unordered_map>
 #include "hermite/io.hpp"
+#include "hermite/lib.hpp"
 #include "hermite/types.hpp"
 #include "hermite/iterators.hpp"
 #include <boost/math/special_functions/binomial.hpp>
@@ -212,43 +213,8 @@ imat Cube_iterator::s_list(u_int dim, u_int degree)
 
 u_int Cube_iterator::s_bissect_degree(u_int dim, u_int n_polys)
 {
-    u_int degree_1 = 0, degree_2 = DEGREE_BISSECT_MAX;
-
-    int img_1 = (int) s_size(degree_1, dim) - (int) n_polys;
-    int img_2 = (int) s_size(degree_2, dim) - (int) n_polys;
-
-    if (img_1 > 0 || img_2 < 0)
-    {
-        std::cout << "Can't find degree, Invalid arguments!" << std::endl;
-        exit(0);
-    }
-
-    if (img_1 == 0)
-        return degree_1;
-
-    if (img_2 == 0)
-        return degree_2;
-
-    while (true)
-    {
-        u_int new_degree = (degree_1 + degree_2)/2;
-        int new_img = (int) s_size(new_degree, dim) - (int) n_polys;
-
-        if (new_img < 0)
-        {
-            degree_1 = new_degree;
-            img_1 = new_img;
-        }
-        else if (new_img > 0)
-        {
-            degree_2 = new_degree;
-            img_2 = new_img;
-        }
-        else
-        {
-            return new_degree;
-        }
-    }
+    auto function = [dim] (u_int degree) {return s_size(degree, dim);};
+    return pos_bissect (n_polys, function, DEGREE_BISSECT_MAX);
 }
 
 // }}}
@@ -329,43 +295,8 @@ imat Triangle_iterator::s_list(u_int dim, u_int degree)
 
 u_int Triangle_iterator::s_bissect_degree(u_int dim, u_int n_polys)
 {
-    u_int degree_1 = 0, degree_2 = DEGREE_BISSECT_MAX;
-
-    int img_1 = (int) s_size(degree_1, dim) - (int) n_polys;
-    int img_2 = (int) s_size(degree_2, dim) - (int) n_polys;
-
-    if (img_1 > 0 || img_2 < 0)
-    {
-        std::cout << "Can't find degree, Invalid arguments!" << std::endl;
-        exit(0);
-    }
-
-    if (img_1 == 0)
-        return degree_1;
-
-    if (img_2 == 0)
-        return degree_2;
-
-    while (true)
-    {
-        u_int new_degree = (degree_1 + degree_2)/2;
-        int new_img = (int) s_size(new_degree, dim) - (int) n_polys;
-
-        if (new_img < 0)
-        {
-            degree_1 = new_degree;
-            img_1 = new_img;
-        }
-        else if (new_img > 0)
-        {
-            degree_2 = new_degree;
-            img_2 = new_img;
-        }
-        else
-        {
-            return new_degree;
-        }
-    }
+    auto function = [dim] (u_int degree) {return s_size(degree, dim);};
+    return pos_bissect (n_polys, function, DEGREE_BISSECT_MAX);
 }
 
 u_int Triangle_iterator::s_find_dim(u_int degree, u_int n_polys)

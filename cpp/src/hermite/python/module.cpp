@@ -142,7 +142,7 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     def("full", full);
 
     // Iterator functions
-    def("list_cube_indices", Hyper_cube_iterator::list);
+    def("list_cube_indices", Grid_iterator::list);
     def("triangle_list_indices", Triangle_iterator::s_list);
     def("triangle_bissect_degree", Triangle_iterator::s_bissect_degree);
     def("triangle_index", Triangle_iterator::s_index);

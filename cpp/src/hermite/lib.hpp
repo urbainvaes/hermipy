@@ -22,6 +22,7 @@
 #define LIB_H
 
 #include <string>
+#include <functional>
 #include "hermite/types.hpp"
 
 namespace hermite
@@ -46,6 +47,7 @@ std::vector<T> extract (const std::vector<T> & input, const ivec & indices)
 
 u_int hash_multi_ind(const ivec & v, int degree);
 std::string hash_print(const ivec & v);
+u_int pos_bissect(u_int image, std::function<u_int(u_int)>, u_int max);
 
 }
 
