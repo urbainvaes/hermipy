@@ -189,23 +189,12 @@ T varf(
         mat const & weights,
         std::string index_set)
 {
-    if (index_set == "cross")
-    {
-        return varf<Cross_iterator,T>(degree, input, nodes, weights);
-    }
-    else if (index_set == "triangle")
-    {
-        return varf<Triangle_iterator,T>(degree, input, nodes, weights);
-    }
-    else if (index_set == "cube")
-    {
-        return varf<Cube_iterator,T>(degree, input, nodes, weights);
-    }
-    else
-    {
-        std::cerr << "Invalid index set!" << std::endl;
-        exit(1);
-    }
+    auto function = varf<Cross_iterator,T>;
+    if (index_set == "triangle");
+    else if (index_set == "cross") function = varf<Cross_iterator,T>;
+    else if (index_set == "cube") function = varf<Cube_iterator,T>;
+    else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
+    return function(degree, input, nodes, weights);
 }
 
 template <typename T>

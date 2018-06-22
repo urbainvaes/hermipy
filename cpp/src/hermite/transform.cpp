@@ -127,23 +127,12 @@ vec transform(
         bool forward,
         std::string index_set)
 {
-    if (index_set == "cross")
-    {
-        return transform<Cross_iterator>(degree, input, nodes, weights, forward);
-    }
-    else if (index_set == "triangle")
-    {
-        return transform<Triangle_iterator>(degree, input, nodes, weights, forward);
-    }
-    else if (index_set == "cube")
-    {
-        return transform<Cube_iterator>(degree, input, nodes, weights, forward);
-    }
-    else
-    {
-        std::cerr << "Invalid index set!" << std::endl;
-        exit(1);
-    }
+    auto function = transform<Triangle_iterator>;
+    if (index_set == "triangle");
+    else if (index_set == "cross") function = transform<Cross_iterator>;
+    else if (index_set == "cube") function = transform<Cube_iterator>;
+    else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
+    return function(degree, input, nodes, weights, forward);
 }
 
 double integrate(
