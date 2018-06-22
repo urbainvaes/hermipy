@@ -239,6 +239,17 @@ def project(inp, dim, directions, index_set="triangle"):
 @cache()
 @debug
 @log_stats
+def inner(s1, s2, d1, d2, index_set="triangle"):
+    s1, s2 = to_cpp_array(s1, s2)
+    d1_cpp, d2_cpp = hm.int_vec(), hm.int_vec()
+    d1_cpp.extend(d1)
+    d2_cpp.extend(d2)
+    return np.array(hm.inner(s1, s2, d1_cpp, d2_cpp, index_set))
+
+
+@cache()
+@debug
+@log_stats
 def multi_indices(dim, degree, index_set="triangle"):
     if index_set == "triangle":
         result = hm.triangle_list_indices(dim, degree)
@@ -280,9 +291,13 @@ def triangle_index(mult_ind):
 @cache()
 @debug
 @log_stats
-def inner(s1, s2, d1, d2, index_set="triangle"):
-    s1, s2 = to_cpp_array(s1, s2)
-    d1_cpp, d2_cpp = hm.int_vec(), hm.int_vec()
-    d1_cpp.extend(d1)
-    d2_cpp.extend(d2)
-    return np.array(hm.inner(s1, s2, d1_cpp, d2_cpp, index_set))
+def iterator_size(dim, degree, index_set="triangle"):
+    if index_set == "triangle":
+        size = hm.triangle_size(dim, degree)
+    elif index_set == "cross":
+        size = hm.cross_size(dim, degree)
+    elif index_set == "cube":
+        size = hm.cube_size(dim, degree)
+    else:
+        raise ValueError("Unknown index set")
+    return size
