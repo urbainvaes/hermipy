@@ -266,15 +266,14 @@ def multi_indices(dim, degree, index_set="triangle"):
 @debug
 @log_stats
 def bissect_degree(dim, n_polys, index_set="triangle"):
-    if index_set == "triangle":
-        degree = hm.triangle_bissect_degree(dim, n_polys)
-    elif index_set == "cross":
-        degree = hm.cross_bissect_degree(dim, n_polys)
-    elif index_set == "cube":
-        degree = hm.cube_bissect_degree(dim, n_polys)
-    else:
+    bissect_func = {
+            "triangle": hm.triangle_bissect_degree,
+            "cross": hm.cross_bissect_degree,
+            "cube": hm.cube_bissect_degree,
+            }
+    if index_set not in bissect_func:
         raise ValueError("Unknown index set")
-    return degree
+    return bissect_func[index_set](dim, n_polys)
 
 
 @cache()
@@ -292,12 +291,11 @@ def triangle_index(mult_ind):
 @debug
 @log_stats
 def iterator_size(dim, degree, index_set="triangle"):
-    if index_set == "triangle":
-        size = hm.triangle_size(dim, degree)
-    elif index_set == "cross":
-        size = hm.cross_size(dim, degree)
-    elif index_set == "cube":
-        size = hm.cube_size(dim, degree)
-    else:
+    size_func = {
+            "triangle": hm.triangle_size,
+            "cross": hm.cross_size,
+            "cube": hm.cube_size,
+            }
+    if index_set not in size_func:
         raise ValueError("Unknown index set")
-    return size
+    return size_func[index_set](dim, degree)
