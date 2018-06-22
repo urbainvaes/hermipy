@@ -20,11 +20,12 @@ import hashlib
 import numpy.linalg as la
 import sympy as sym
 import numpy as np
-from functools import wraps
 import scipy.sparse as sparse
+import os
+
+from functools import wraps
 from hermipy.settings import settings
 
-import os
 
 def gen_hash(extend=None):
 
@@ -135,9 +136,8 @@ def cache(hash_extend=None, error_extend=None, quiet=False):
             if cached_exists:
                 load = sparse.load_npz if is_sparse_cache else extended_load
                 result_cache = load(savefile)
-
-            if use_cache:
-                return result_cache
+                if use_cache:
+                    return result_cache
 
             result = function(*args, **kwargs)
             is_sparse_result = isinstance(result, sparse.csr_matrix)

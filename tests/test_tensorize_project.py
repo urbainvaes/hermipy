@@ -24,8 +24,6 @@ import unittest
 import numpy.linalg as la
 import scipy.sparse.linalg as las
 
-import ipdb
-
 
 class TestProject(unittest.TestCase):
 

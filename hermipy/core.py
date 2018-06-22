@@ -20,7 +20,6 @@ import scipy.sparse as ss
 import numpy as np
 import hermite_cpp as hm
 
-from hermipy.settings import settings
 from hermipy.cache import cache
 from hermipy.stats import log_stats, debug
 
@@ -171,8 +170,6 @@ def triple_products(degree):
 @debug()
 @log_stats()
 def varf(degree, fgrid, nodes, weights, sparse=False, index_set="triangle"):
-    if settings['debug']:
-        print("Entering varf with dim: " + str(len(nodes)))
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
     args = [degree, fgrid, nodes, weights, index_set]
     function = hm.varf_sp if sparse else hm.varf
