@@ -139,7 +139,7 @@ class Cube_iterator : public Multi_index_iterator
         static imat s_list(u_int dim, u_int degree);
         static u_int s_index(const ivec & m_vec);
         static u_int s_size(u_int dim, u_int degree);
-        static u_int s_bissect_degree(u_int dim, u_int n_polys);
+        static u_int s_get_degree(u_int dim, u_int n_polys);
 };
 
 class Triangle_iterator : public Multi_index_iterator
@@ -154,7 +154,7 @@ class Triangle_iterator : public Multi_index_iterator
         static imat s_list(u_int dim, u_int degree);
         static u_int s_index(const ivec & m_vec);
         static u_int s_size(u_int dim, u_int degree);
-        static u_int s_bissect_degree(u_int dim, u_int n_polys);
+        static u_int s_get_degree(u_int dim, u_int n_polys);
         static u_int s_find_dim(u_int degree, u_int n_polys);
 
 };
@@ -170,7 +170,7 @@ class Cross_iterator : public Multi_index_iterator
         static bool s_increment(ivec & multi_index, u_int degree);
         static imat s_list(u_int dim, u_int degree);
         static u_int s_size(u_int dim, u_int degree);
-        static u_int s_bissect_degree(u_int dim, u_int n_polys);
+        static u_int s_get_degree(u_int dim, u_int n_polys);
 };
 
 }

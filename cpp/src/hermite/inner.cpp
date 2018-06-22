@@ -95,8 +95,8 @@ vec inner(const vec & s1,
         << " and n_polys = " << s1.size() << "," << s2.size() <<  std::endl;
     #endif
 
-    u_int degree = Iterator::s_bissect_degree(dim1, s1.size());
-    assert( degree == Iterator::s_bissect_degree(dim2, s2.size()) );
+    u_int degree = Iterator::s_get_degree(dim1, s1.size());
+    assert( degree == Iterator::s_get_degree(dim2, s2.size()) );
 
     #ifdef DEBUG
     std::cout << "Initializing iterators" <<  std::endl;

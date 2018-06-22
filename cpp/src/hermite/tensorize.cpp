@@ -93,7 +93,7 @@ vec tensorize(const mat & inputs, const imat & dirs)
         dim += dims[i];
     }
 
-    u_int degree = Iterator::s_bissect_degree(dims[0], inputs[0].size());
+    u_int degree = Iterator::s_get_degree(dims[0], inputs[0].size());
     std::vector<Iterator> it_mul;
     for (u_int i = 0; i < dirs.size(); i++)
         it_mul.push_back(Iterator(dims[i], degree));
@@ -218,10 +218,10 @@ spmat tensorize(const spmat & A, const spmat & B,
     ivec d, dA_to_ind, dB_to_ind;
     tensorize_dirs(dA, dB, d, dA_to_ind, dB_to_ind);
 
-    u_int degree = Iterator::s_bissect_degree(sA, A.size1());
+    u_int degree = Iterator::s_get_degree(sA, A.size1());
 
     #ifdef DEBUG
-    assert(Iterator::s_bissect_degree(sB, B.size1()) == degree);
+    assert(Iterator::s_get_degree(sB, B.size1()) == degree);
     #endif
 
     u_int n_polys = Iterator::s_size(dim, degree);
@@ -317,7 +317,7 @@ T _tensorize_mats_dirs(const vector<S> & inputs, const imat & dirs)
     #ifdef DEBUG
     check_dims(dirs, dim);
 
-    u_int degree = Iterator::s_bissect_degree(dims[0], matrix::size1(inputs[0]));
+    u_int degree = Iterator::s_get_degree(dims[0], matrix::size1(inputs[0]));
     for (u_int i = 1; i < inputs.size(); i++)
         check_degree<Iterator>(matrix::size1(inputs[i]), dims[i], degree);
     #endif

@@ -151,9 +151,9 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     def("cross_list_indices", Cross_iterator::s_list);
     def("cube_list_indices", Cube_iterator::s_list);
 
-    def("triangle_bissect_degree", Triangle_iterator::s_bissect_degree);
-    def("cross_bissect_degree", Cross_iterator::s_bissect_degree);
-    def("cube_bissect_degree", Cube_iterator::s_bissect_degree);
+    def("triangle_get_degree", Triangle_iterator::s_get_degree);
+    def("cross_get_degree", Cross_iterator::s_get_degree);
+    def("cube_get_degree", Cube_iterator::s_get_degree);
 
     def("triangle_size", Triangle_iterator::s_size);
     def("cross_size", Cross_iterator::s_size);

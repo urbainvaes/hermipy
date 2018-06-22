@@ -211,7 +211,7 @@ imat Cube_iterator::s_list(u_int dim, u_int degree)
     return result;
 }
 
-u_int Cube_iterator::s_bissect_degree(u_int dim, u_int n_polys)
+u_int Cube_iterator::s_get_degree(u_int dim, u_int n_polys)
 {
     auto function = [dim] (u_int degree) {return s_size(dim, degree);};
     return pos_bissect (n_polys, function, DEGREE_BISSECT_MAX);
@@ -293,7 +293,7 @@ imat Triangle_iterator::s_list(u_int dim, u_int degree)
     return result;
 }
 
-u_int Triangle_iterator::s_bissect_degree(u_int dim, u_int n_polys)
+u_int Triangle_iterator::s_get_degree(u_int dim, u_int n_polys)
 {
     auto function = [dim] (u_int degree) {return s_size(dim, degree);};
     return pos_bissect (n_polys, function, DEGREE_BISSECT_MAX);
@@ -408,7 +408,7 @@ imat Cross_iterator::s_list(u_int dim, u_int degree)
     return result;
 }
 
-u_int Cross_iterator::s_bissect_degree(u_int dim, u_int n_polys)
+u_int Cross_iterator::s_get_degree(u_int dim, u_int n_polys)
 {
     Cross_iterator m(dim, DEGREE_BISSECT_MAX);
     assert (n_polys <= m.list.size());

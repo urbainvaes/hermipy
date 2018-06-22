@@ -37,7 +37,7 @@ vec project(const vec & input, u_int dim, const ivec & dirs)
 {
     u_int n_polys = input.size();
     u_int dim_sub = dirs.size();
-    u_int degree = Iterator::s_bissect_degree(dim, n_polys);
+    u_int degree = Iterator::s_get_degree(dim, n_polys);
     u_int polys_sub = Iterator::s_size(dim_sub, degree);
     vec results(polys_sub, 0.);
 
@@ -89,7 +89,7 @@ M project(const M & input, u_int dim, const ivec & dirs)
 {
     u_int n_polys = matrix::size1(input);
     u_int dim_sub = dirs.size();
-    u_int degree = Iterator::s_bissect_degree(dim, n_polys);
+    u_int degree = Iterator::s_get_degree(dim, n_polys);
     u_int polys_sub = Iterator::s_size(dim_sub, degree);
     M results = matrix::construct<M>(polys_sub, polys_sub);
 
