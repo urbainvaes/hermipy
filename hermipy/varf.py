@@ -19,15 +19,10 @@
 import hermipy.core as core
 import hermipy.lib as lib
 import hermipy.position as pos
-import hermipy.core as core
-
 import scipy.sparse as ss
-
 import numpy as np
 import numpy.linalg as la
 import scipy.sparse.linalg as las
-
-import ipdb
 
 
 very_small = 1e-10
@@ -118,7 +113,7 @@ class Varf:
 
     def multi_indices(self):
         return core.iterator_list_indices(self.position.dim, self.degree,
-                                  index_set=self.index_set)
+                                          index_set=self.index_set)
 
     def to_cross(self, degree):
         assert self.index_set == "triangle"

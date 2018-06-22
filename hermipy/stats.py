@@ -26,54 +26,58 @@ indent = 0
 threshold = 1e-3
 
 
-def debug(function, force=False):
+def debug(force=False):
+    def decorator(function):
+        def stringify_arg(arg):
+            if isinstance(arg, list):
+                return str([stringify_arg(a) for a in arg])
+            if isinstance(arg, np.ndarray):
+                return "numpy ndarray " + str(arg.shape)
+            else:
+                return str(arg)
 
-    def stringify_arg(arg):
-        if isinstance(arg, list):
-            return str([stringify_arg(a) for a in arg])
-        if isinstance(arg, np.ndarray):
-            return "numpy ndarray " + str(arg.shape)
-        else:
-            return str(arg)
-
-    @wraps(function)
-    def wrapper(*args, **kwargs):
-        key = function.__name__ + '-' + function.__module__
-        if rc.settings['debug'] or force:
-            print("▶ Entering function " + key)
-            print("-▲ args")
-            for a in args:
-                print("--● A " + stringify_arg(a))
-            print("-▲ kwargs")
-            for kw in kwargs:
-                print("--● KW " + str(kw) + ": " + stringify_arg(kwargs[kw]))
-        result = function(*args, **kwargs)
-        return result
-    return wrapper
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            key = function.__name__ + '-' + function.__module__
+            if rc.settings['debug'] or force:
+                print("▶ Entering function " + key)
+                print("-▲ args")
+                for a in args:
+                    print("--● A " + stringify_arg(a))
+                print("-▲ kwargs")
+                for kw in kwargs:
+                    print("--● KW " + str(kw) + ": " +
+                          stringify_arg(kwargs[kw]))
+            result = function(*args, **kwargs)
+            return result
+        return wrapper
+    return decorator
 
 
-def log_stats(function, force=False):
-    @wraps(function)
-    def wrapper(*args, **kwargs):
-        global indent, threshold
-        indent += 1
-        time_start = time.time()
-        result = function(*args, **kwargs)
-        time_end = time.time()
-        indent -= 1
+def log_stats(force=False):
+    def decorator(function):
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            global indent, threshold
+            indent += 1
+            time_start = time.time()
+            result = function(*args, **kwargs)
+            time_end = time.time()
+            indent -= 1
 
-        key = function.__name__ + '-' + function.__module__
-        if key not in stats:
-            stats[key] = {'Calls': 0, 'Time': 0}
-        stats[key]['Calls'] += 1
-        stats[key]['Time'] += time_end - time_start
-        if rc.settings['trails'] or force:
-            delta_time = time_end - time_start
-            if delta_time > threshold:
-                print(str(indent) + " Function " + key
-                      + ": " + str(delta_time))
-        return result
-    return wrapper
+            key = function.__name__ + '-' + function.__module__
+            if key not in stats:
+                stats[key] = {'Calls': 0, 'Time': 0}
+            stats[key]['Calls'] += 1
+            stats[key]['Time'] += time_end - time_start
+            if rc.settings['trails'] or force:
+                delta_time = time_end - time_start
+                if delta_time > threshold:
+                    print(str(indent) + " Function " + key
+                          + ": " + str(delta_time))
+            return result
+        return wrapper
+    return decorator
 
 
 def print_stats():

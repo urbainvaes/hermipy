@@ -1,8 +1,12 @@
-import hermite_cpp as cpp
+import numpy as np
+import scipy.sparse as ss
 import numpy.linalg as la
 import numpy.random as rand
 import unittest
 import time
+
+import hermite_cpp as cpp
+import hermipy.core as core
 
 
 def timeit(function):
@@ -38,3 +42,15 @@ class TestConverters(unittest.TestCase):
 
         # print("Times of conversions to python")
         # print(t_to_pyt_1, t_to_pyt_2, t_to_pyt_3)
+
+    def test_simple_sparse(self):
+        matrix = [[0, 1, 0, 0, 0],
+                  [0, 2, 0, 3, 0],
+                  [0, 0, 4, 0, 0],
+                  [5, 6, 0, 0, 0],
+                  [7, 0, 0, 0, 8]]
+        matrix = np.array(matrix, dtype=float)
+        csr_mat = ss.csr_matrix(matrix)
+        spmat = core.convert_to_cpp_sparse(csr_mat)
+        cpp_mat = cpp.full(spmat)
+        self.assertTrue(la.norm(cpp.to_numpy(cpp_mat) - matrix) < 1e-10)

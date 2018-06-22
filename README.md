@@ -8,6 +8,10 @@ $ python -m unittest discover -v tests
 
 # Todo
 
+- Improve separability
+
+- Implement composite quadrature
+
 - Auto conversion from triangle, cube -> cross when appropriate?
 
 - Do varfd before tensorization

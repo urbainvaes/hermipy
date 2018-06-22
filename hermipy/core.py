@@ -47,7 +47,7 @@ def convert_to_cpp_cube(cube):
     return cpp_cube
 
 
-@log_stats
+@log_stats()
 def to_cpp_array(*args):
     if len(args) > 1:
         return (to_cpp_array(arg) for arg in args)
@@ -67,7 +67,7 @@ def to_cpp_array(*args):
     return array
 
 
-@log_stats
+@log_stats()
 def convert_to_cpp_sparse(mat):
     assert type(mat) is ss.csr_matrix
     data = hm.double_vec()
@@ -80,7 +80,7 @@ def convert_to_cpp_sparse(mat):
     return hm.to_spmat(data, indices, indptr, size1, size2)
 
 
-@log_stats
+@log_stats()
 def to_csr(sp_matrix):
     assert isinstance(sp_matrix, hm.sparse_matrix)
     rcv = np.array(hm.row_col_val(sp_matrix))
@@ -88,7 +88,7 @@ def to_csr(sp_matrix):
     return ss.csr_matrix((rcv[2], (rcv[0], rcv[1])), shape=shape)
 
 
-@log_stats
+@log_stats()
 def to_cpp(*args):
     if len(args) > 1:
         return (to_cpp(arg) for arg in args)
@@ -103,7 +103,7 @@ def to_cpp(*args):
         return arg
 
 
-@log_stats
+@log_stats()
 def to_numpy(arg):
     if type(arg) == hm.double_vec:
         return np.array(arg)
@@ -134,16 +134,16 @@ def to_numeric(var):
 
 
 @cache()
-@debug
-@log_stats
+@debug()
+@log_stats()
 def discretize(function, nodes, translation, dilation):
     nodes, translation, dilation = to_cpp_array(nodes, translation, dilation)
     return np.array(hm.discretize(function, nodes, translation, dilation))
 
 
 @cache()
-@debug
-@log_stats
+@debug()
+@log_stats()
 def integrate(fgrid, nodes, weights):
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
     result = hm.integrate(fgrid, nodes, weights)
@@ -151,8 +151,8 @@ def integrate(fgrid, nodes, weights):
 
 
 @cache()
-@debug
-@log_stats
+@debug()
+@log_stats()
 def transform(degree, fgrid, nodes, weights, forward, index_set="triangle"):
     degree = int(degree)
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
@@ -161,39 +161,39 @@ def transform(degree, fgrid, nodes, weights, forward, index_set="triangle"):
 
 
 @cache()
-@debug
-@log_stats
+@debug()
+@log_stats()
 def triple_products(degree):
     return np.array(hm.triple_products(degree))
 
 
 @cache()
-@debug
-@log_stats
+@debug()
+@log_stats()
 def varf(degree, fgrid, nodes, weights, sparse=False, index_set="triangle"):
     if settings['debug']:
         print("Entering varf with dim: " + str(len(nodes)))
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
     args = [degree, fgrid, nodes, weights, index_set]
     function = hm.varf_sp if sparse else hm.varf
-    return log_stats(to_numpy)(log_stats(function)(*args))
+    return to_numpy(log_stats()(function)(*args))
 
 
 @cache()
-@debug
-@log_stats
+@debug()
+@log_stats()
 def varfd(dim, degree, direction, var, sparse=True, index_set="triangle"):
     if type(var) is np.ndarray:
         var = hm.to_boost_mat(var)
     elif type(var) is ss.csr_matrix:
         var = convert_to_cpp_sparse(var)
-    result = log_stats(hm.varfd)(dim, degree, direction, var, index_set)
-    return log_stats(to_numpy)(result)
+    result = log_stats()(hm.varfd)(dim, degree, direction, var, index_set)
+    return to_numpy(result)
 
 
 @cache()
-@debug
-@log_stats
+@debug()
+@log_stats()
 def tensorize(inp, dim=None, direction=None,
               sparse=False, index_set="triangle"):
     # Scalar case
@@ -224,8 +224,8 @@ def tensorize(inp, dim=None, direction=None,
 
 
 @cache()
-@debug
-@log_stats
+@debug()
+@log_stats()
 def project(inp, dim, directions, index_set="triangle"):
     if type(directions) is int:
         directions = [directions]
@@ -237,8 +237,8 @@ def project(inp, dim, directions, index_set="triangle"):
 
 
 @cache()
-@debug
-@log_stats
+@debug()
+@log_stats()
 def inner(s1, s2, d1, d2, index_set="triangle"):
     s1, s2 = to_cpp_array(s1, s2)
     d1_cpp, d2_cpp = hm.int_vec(), hm.int_vec()
@@ -249,8 +249,8 @@ def inner(s1, s2, d1, d2, index_set="triangle"):
 
 # Iterator functions {{{
 @cache()
-@debug
-@log_stats
+@debug()
+@log_stats()
 def iterator_get_degree(dim, n_polys, index_set="triangle"):
     cpp_func = {
             "triangle": hm.triangle_get_degree,
@@ -263,8 +263,8 @@ def iterator_get_degree(dim, n_polys, index_set="triangle"):
 
 
 @cache()
-@debug
-@log_stats
+@debug()
+@log_stats()
 def iterator_index(mult_ind, index_set="triangle"):
 
     if isinstance(mult_ind, np.ndarray):
@@ -283,8 +283,8 @@ def iterator_index(mult_ind, index_set="triangle"):
 
 
 @cache()
-@debug
-@log_stats
+@debug()
+@log_stats()
 def iterator_size(dim, degree, index_set="triangle"):
     cpp_func = {
             "triangle": hm.triangle_size,
@@ -297,8 +297,8 @@ def iterator_size(dim, degree, index_set="triangle"):
 
 
 @cache()
-@debug
-@log_stats
+@debug()
+@log_stats()
 def iterator_list_indices(dim, degree, index_set="triangle"):
     cpp_func = {
             "triangle": hm.triangle_list_indices,

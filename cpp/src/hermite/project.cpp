@@ -109,7 +109,7 @@ M project(const M & input, u_int dim, const ivec & dirs)
 template<typename M>
 M project_mat_nd(const M & input, u_int dim, const ivec & dirs, std::string index_set)
 {
-    auto function = project<Cross_iterator,M>;
+    auto function = project<Triangle_iterator,M>;
     if (index_set == "triangle");
     else if (index_set == "cross") function = project<Cross_iterator,M>;
     else if (index_set == "cube") function = project<Cube_iterator,M>;
