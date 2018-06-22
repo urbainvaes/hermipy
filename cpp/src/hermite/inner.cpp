@@ -102,7 +102,7 @@ vec inner(const vec & s1,
     std::cout << "Initializing iterators" <<  std::endl;
     #endif
 
-    vec result(Iterator::s_size(degree, dim_result), 0.);
+    vec result(Iterator::s_size(dim_result, degree), 0.);
 
     Iterator m_result(dim_result, degree);
     Iterator m_inner(dim_inner, degree);

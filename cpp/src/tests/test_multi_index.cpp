@@ -40,7 +40,7 @@ int main()
     }
 
     Triangle_iterator m(dim, degree);
-    if (m.s_size(degree, dim) != m.size())
+    if (m.s_size(dim, degree) != m.size())
     {
         return 1;
     }
@@ -54,7 +54,7 @@ int main()
     }
 
     Cube_iterator mc(dim, degree);
-    if (mc.s_size(degree, dim) != mc.size())
+    if (mc.s_size(dim, degree) != mc.size())
     {
         return 1;
     }
