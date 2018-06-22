@@ -61,6 +61,9 @@ class TestSeries(unittest.TestCase):
     def test_simple_cross(self):
         self.aux_test_simple("cross")
 
+    def test_simple_cube(self):
+        self.aux_test_simple("cube")
+
     def test_consistence_series_1d(self):
         n_points, degree = 200, 40
         fx = 'exp(x - .5)'
