@@ -247,55 +247,68 @@ def inner(s1, s2, d1, d2, index_set="triangle"):
     return np.array(hm.inner(s1, s2, d1_cpp, d2_cpp, index_set))
 
 
+# Iterator functions {{{
 @cache()
 @debug
 @log_stats
-def multi_indices(dim, degree, index_set="triangle"):
-    if index_set == "triangle":
-        result = hm.triangle_list_indices(dim, degree)
-    elif index_set == "cross":
-        result = hm.cross_list_indices(dim, degree)
-    elif index_set == "cube":
-        result = hm.cube_list_indices(dim, degree)
-    else:
-        raise ValueError("Unknown index set")
-    return np.asarray(result, dtype=int)
-
-
-@cache()
-@debug
-@log_stats
-def bissect_degree(dim, n_polys, index_set="triangle"):
-    bissect_func = {
-            "triangle": hm.triangle_bissect_degree,
-            "cross": hm.cross_bissect_degree,
-            "cube": hm.cube_bissect_degree,
+def iterator_get_degree(dim, n_polys, index_set="triangle"):
+    cpp_func = {
+            "triangle": hm.triangle_get_degree,
+            "cross": hm.cross_get_degree,
+            "cube": hm.cube_get_degree,
             }
-    if index_set not in bissect_func:
+    if index_set not in cpp_func:
         raise ValueError("Unknown index set")
-    return bissect_func[index_set](dim, n_polys)
+    return cpp_func[index_set](dim, n_polys)
 
 
 @cache()
 @debug
 @log_stats
-def triangle_index(mult_ind):
+def iterator_index(mult_ind, index_set="triangle"):
+
     if isinstance(mult_ind, np.ndarray):
         mult_ind = list(mult_ind.astype('uint32'))
     ind_vec = hm.int_vec()
     ind_vec.extend(mult_ind)
-    return hm.triangle_index(ind_vec)
+
+    cpp_func = {
+            "triangle": hm.triangle_index,
+            "cube": hm.cube_index
+            }
+
+    if index_set not in cpp_func:
+        raise ValueError("Unknown index set")
+    return cpp_func[index_set](ind_vec)
 
 
 @cache()
 @debug
 @log_stats
 def iterator_size(dim, degree, index_set="triangle"):
-    size_func = {
+    cpp_func = {
             "triangle": hm.triangle_size,
             "cross": hm.cross_size,
             "cube": hm.cube_size,
             }
-    if index_set not in size_func:
+    if index_set not in cpp_func:
         raise ValueError("Unknown index set")
-    return size_func[index_set](dim, degree)
+    return cpp_func[index_set](dim, degree)
+
+
+@cache()
+@debug
+@log_stats
+def iterator_list_indices(dim, degree, index_set="triangle"):
+    cpp_func = {
+            "triangle": hm.triangle_list_indices,
+            "cross": hm.cross_list_indices,
+            "cube": hm.cube_list_indices,
+            }
+    if index_set not in cpp_func:
+        raise ValueError("Unknown index set")
+    result = cpp_func[index_set](dim, degree)
+    return np.asarray(result, dtype=int)
+
+# }}}
+# }}}

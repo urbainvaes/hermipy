@@ -60,7 +60,7 @@ class Varf:
 
         if degree is None:
             dim, npolys = self.position.dim, self.matrix.shape[0]
-            self.degree = core.bissect_degree(dim, npolys, index_set=index_set)
+            self.degree = core.iterator_get_degree(dim, npolys, index_set=index_set)
         else:
             self.degree = degree
 
@@ -117,7 +117,7 @@ class Varf:
                     index_set=self.index_set)
 
     def multi_indices(self):
-        return core.multi_indices(self.position.dim, self.degree,
+        return core.iterator_list_indices(self.position.dim, self.degree,
                                   index_set=self.index_set)
 
     def to_cross(self, degree):

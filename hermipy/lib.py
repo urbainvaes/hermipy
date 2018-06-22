@@ -54,8 +54,8 @@ def natural_bissect(func, x1=0, x2=1000):
 
 
 def cross_in_triangle(dim, degree):
-        list_cross = core.multi_indices(dim, degree, index_set="cross")
-        return [core.triangle_index(m) for m in list_cross]
+        list_cross = core.iterator_list_indices(dim, degree, index_set="cross")
+        return [core.iterator_index(m) for m in list_cross]
 
 
 def split_operator(op, func, order):
