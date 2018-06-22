@@ -59,23 +59,12 @@ vec project(const vec & input, u_int dim, const ivec & dirs)
 
 vec project_vec_nd(const vec & input, u_int dim, const ivec & dirs, std::string index_set)
 {
-    if (index_set == "cross")
-    {
-        return project<Cross_iterator>(input, dim, dirs);
-    }
-    else if (index_set == "triangle")
-    {
-        return project<Triangle_iterator>(input, dim, dirs);
-    }
-    else if (index_set == "cube")
-    {
-        return project<Cube_iterator>(input, dim, dirs);
-    }
-    else
-    {
-        std::cerr << "Invalid index set!" << std::endl;
-        exit(1);
-    }
+    auto function = project<Triangle_iterator>;
+    if (index_set == "triangle");
+    else if (index_set == "cross") function = project<Cross_iterator>;
+    else if (index_set == "cube") function = project<Cube_iterator>;
+    else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
+    return function(input, dim, dirs);
 }
 
 vec project_vec_1d(const vec & input, u_int dim, u_int dir, std::string index_set)
@@ -120,23 +109,12 @@ M project(const M & input, u_int dim, const ivec & dirs)
 template<typename M>
 M project_mat_nd(const M & input, u_int dim, const ivec & dirs, std::string index_set)
 {
-    if (index_set == "cross")
-    {
-        return project<Cross_iterator,M>(input, dim, dirs);
-    }
-    else if (index_set == "triangle")
-    {
-        return project<Triangle_iterator,M>(input, dim, dirs);
-    }
-    else if (index_set == "cube")
-    {
-        return project<Cube_iterator,M>(input, dim, dirs);
-    }
-    else
-    {
-        std::cerr << "Invalid index set!" << std::endl;
-        exit(1);
-    }
+    auto function = project<Cross_iterator,M>;
+    if (index_set == "triangle");
+    else if (index_set == "cross") function = project<Cross_iterator,M>;
+    else if (index_set == "cube") function = project<Cube_iterator,M>;
+    else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
+    return function(input, dim, dirs);
 }
 
 template <typename M>

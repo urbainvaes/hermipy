@@ -122,23 +122,12 @@ vec tensorize(const mat & inputs, const imat & dirs)
 
 vec tensorize_vecs_dirs(const mat & inputs, const imat & dirs, std::string index_set)
 {
-    if (index_set == "cross")
-    {
-        return tensorize<Cross_iterator>(inputs, dirs);
-    }
-    else if (index_set == "triangle")
-    {
-        return tensorize<Triangle_iterator>(inputs, dirs);
-    }
-    else if (index_set == "cube")
-    {
-        return tensorize<Cube_iterator>(inputs, dirs);
-    }
-    else
-    {
-        std::cerr << "Invalid index set!" << std::endl;
-        exit(1);
-    }
+    auto function = tensorize<Triangle_iterator>;
+    if (index_set == "triangle");
+    else if (index_set == "cross") function = tensorize<Cross_iterator>;
+    else if (index_set == "cube") function = tensorize<Cube_iterator>;
+    else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
+    return function(inputs, dirs);
 }
 
 vec tensorize_vecs_axes(const mat & inputs, std::string index_set)
@@ -377,23 +366,12 @@ T tensorize_mats_dirs(const vector<S> & inputs, const imat & dirs, std::string i
 template <typename T, typename S>
 T tensorize_mats_axes(const vector<S> & inputs, std::string index_set)
 {
-    if (index_set == "cross")
-    {
-        return _tensorize_mats_axes<Cross_iterator,T,S>(inputs);
-    }
-    else if (index_set == "triangle")
-    {
-        return _tensorize_mats_axes<Triangle_iterator,T,S>(inputs);
-    }
-    else if (index_set == "cube")
-    {
-        return _tensorize_mats_axes<Cube_iterator,T,S>(inputs);
-    }
-    else
-    {
-        std::cerr << "Invalid index set!" << std::endl;
-        exit(1);
-    }
+    auto function = _tensorize_mats_axes<Triangle_iterator,T,S>;
+    if (index_set == "triangle");
+    else if (index_set == "cross") function = _tensorize_mats_axes<Cross_iterator,T,S>;
+    else if (index_set == "cube") function = _tensorize_mats_axes<Cube_iterator,T,S>;
+    else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
+    return function(inputs);
 }
 
 template<typename T, typename S>

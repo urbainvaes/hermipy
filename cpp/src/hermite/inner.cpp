@@ -168,23 +168,12 @@ vec inner(const vec & s1,
           const ivec & dirs2,
           std::string index_set)
 {
-    if (index_set == "cross")
-    {
-        return inner<Cross_iterator>(s1, s2, dirs1, dirs2);
-    }
-    else if (index_set == "triangle")
-    {
-        return inner<Triangle_iterator>(s1, s2, dirs1, dirs2);
-    }
-    else if (index_set == "cube")
-    {
-        return inner<Cube_iterator>(s1, s2, dirs1, dirs2);
-    }
-    else
-    {
-        std::cerr << "Invalid index set!" << std::endl;
-        exit(1);
-    }
+    auto function = inner<Triangle_iterator>;
+    if (index_set == "triangle");
+    else if (index_set == "cross") function = inner<Cross_iterator>;
+    else if (index_set == "cube") function = inner<Cube_iterator>;
+    else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
+    return function(s1, s2, dirs1, dirs2);
 }
 
 }
