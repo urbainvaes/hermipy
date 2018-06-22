@@ -22,8 +22,6 @@
 #include "hermite/types.hpp"
 #include "hermite/io.hpp"
 
-#include <boost/math/special_functions/binomial.hpp>
-
 using namespace hermite;
 using namespace std;
 

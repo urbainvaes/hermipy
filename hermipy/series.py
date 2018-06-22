@@ -20,7 +20,6 @@ import hermipy.core as core
 import hermipy.lib as lib
 import hermipy.position as pos
 
-from scipy.special import binom
 import numpy as np
 import numpy.linalg as la
 
@@ -128,7 +127,7 @@ class Series:
 
     def subdegree(self, degree):
         assert degree <= self.degree
-        n_polys = int(binom(degree + self.position.dim, degree))
+        n_polys = self.position.core(self.position.dim, degree)
         coeffs = self.coeffs[0:n_polys]
         return Series(coeffs, self.position, degree=degree,
                       index_set=self.index_set)
@@ -146,14 +145,14 @@ class Series:
             coeffs = self.coeffs / max(abs(self.coeffs))
             coeffs = (abs(coeffs) > 1e-10) * coeffs
             mx, my = m[:, 0], m[:, 1]
-            zoom = 1e3/max(mx)
-            positives = zoom * (coeffs > 0) * coeffs
-            negatives = zoom * (coeffs < 0) * coeffs * (-1)
-            ax.scatter(mx, my, s=positives, c='g', marker='o')
-            ax.scatter(mx, my, s=negatives, c='r', marker='o')
+            # zoom = 1e3/max(mx)
+            # positives = zoom * (coeffs > 0) * coeffs
+            # negatives = zoom * (coeffs < 0) * coeffs * (-1)
+            # ax.scatter(mx, my, s=positives, c='g', marker='o')
+            # ax.scatter(mx, my, s=negatives, c='r', marker='o')
             ax.scatter(mx, my, c=1-abs(coeffs), cmap='gray')
-            # ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-            # ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+            ax.yaxis.set_major_locator(MaxNLocator(integer=True))
         ax.set_title("Coefficients of the Hermite expansion")
 
     def to_cross(self, degree):

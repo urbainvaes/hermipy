@@ -277,7 +277,7 @@ u_int Triangle_iterator::s_index(const ivec & m_vec)
     return result;
 }
 
-u_int Triangle_iterator::s_size(u_int degree, u_int dim)
+u_int Triangle_iterator::s_size(u_int dim, u_int degree)
 {
     using boost::math::binomial_coefficient;
     return (u_int) binomial_coefficient<double> (degree + dim, dim);
@@ -304,12 +304,12 @@ u_int Triangle_iterator::s_find_dim(u_int degree, u_int n_polys)
     using boost::math::binomial_coefficient;
 
     u_int dim = 0;
-    u_int n_dim = (u_int) binomial_coefficient<double> (degree + dim, dim);
+    u_int n_dim = s_size(dim, degree);
 
     while (n_dim < n_polys)
     {
         dim += 1;
-        n_dim = (u_int) binomial_coefficient<double> (degree + dim, dim);
+        n_dim = s_size(dim, degree);;
     }
 
     if (n_dim != n_polys)
