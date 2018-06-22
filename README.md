@@ -8,11 +8,9 @@ $ python -m unittest discover -v tests
 
 # Todo
 
-- Auto conversion from triangle -> cross when appropriate?
+- Auto conversion from triangle, cube -> cross when appropriate?
 
 - Do varfd before tensorization
-
-- Graph of index set with weights
 
 - Add support for Hermite Fourier
 
@@ -25,8 +23,6 @@ $ python -m unittest discover -v tests
 - Two passes in tensorize in 1d
 
 - In plot, add bounds of Hermite series
-
-- Order of dim and degree not always consistent
 
 # License
 

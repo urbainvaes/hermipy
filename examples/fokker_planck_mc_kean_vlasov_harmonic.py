@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 import hermipy.quad as hm
 import hermipy.equations as eq
 import hermipy.settings as rc
-from scipy.special import binom
+import hermipy.core as core
 
 rc.settings['tensorize'] = True
 rc.settings['trails'] = True
@@ -80,7 +80,7 @@ solutions = []
 v0, eig_vec = None, None
 for d in degrees:
     print(d)
-    npolys = int(binom(d + dim, d))
+    npolys = core.iterator_size(dim, degree)
     if d is not degrees[0]:
         v0 = np.zeros(npolys)
         for i in range(len(eig_vec)):

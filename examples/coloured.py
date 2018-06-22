@@ -38,8 +38,8 @@ import hermipy.cache
 import hermipy.equations as eq
 import hermipy.quad as hm
 import hermipy.settings as rc
+import hermipy.core as core
 
-from scipy.special import binom
 from sympy.printing import pprint
 
 
@@ -459,7 +459,7 @@ def convergence():
     errors = []
     for d in range(5, degree):
         print("-- Solving for degree = " + str(d))
-        npolys = int(binom(d + 2, d))
+        npolys = core.iterator_size(2, d)
         sub_mat = (r_mat[0:npolys, 0:npolys]).copy(order='C')
         # sub_mat = sub_mat
         if v0 is not None:

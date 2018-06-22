@@ -19,8 +19,8 @@
 import hermipy.core as core
 import hermipy.lib as lib
 import hermipy.position as pos
+import hermipy.core as core
 
-from scipy.special import binom
 import scipy.sparse as ss
 
 import numpy as np
@@ -111,7 +111,7 @@ class Varf:
 
     def subdegree(self, degree):
         assert degree <= self.degree
-        n_polys = int(binom(degree + self.position.dim, degree))
+        n_polys = core.iterator_size(self.position.dim, degree)
         matrix = self.matrix[0:n_polys][0:n_polys]
         return Varf(matrix, self.position, degree=degree,
                     index_set=self.index_set)

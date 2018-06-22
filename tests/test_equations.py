@@ -25,13 +25,12 @@ import numpy.linalg as la
 import scipy.sparse.linalg as las
 import matplotlib.pyplot as plt
 
+import hermipy.core as core
 import hermipy.quad as hm
 import hermipy.equations as eq
 import hermipy.settings as rc
 import hermipy.stats as stats
 import hermipy.cache as cache
-
-from scipy.special import binom
 
 
 class TestConvergenceFokkerPlanck1d(unittest.TestCase):
@@ -281,7 +280,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         v0, eig_vec = None, None
         for d in degrees:
             # print(d)
-            npolys = int(binom(d + 2, d))
+            npolys = core.iterator_size(2, d)
             if d is not degrees[0]:
                 v0 = np.zeros(npolys)
                 for i in range(len(eig_vec)):
@@ -488,7 +487,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
     def solve(self, backward, quad, factors, degrees):
 
-        index_set = "triangle"
+        index_set = "cube"
 
         # Discretization of the operator
         rc.settings['tensorize'] = True
@@ -497,9 +496,9 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         rc.settings['trails'] = True
         rc.settings['debug'] = False
 
-        var = quad.discretize_op(backward, self.f, degrees[-1] + 2, 2,
-                                 sparse=True, index_set="triangle")
-        var = var.to_cross(degrees[-1]) if index_set == "cross" else var
+        var = quad.discretize_op(backward, self.f, 29, 2,
+                                 sparse=True, index_set=index_set)
+        # var = var.to_cross(degrees[-1]) if index_set == "cross" else var
         mat = var.matrix
 
         solutions = []
@@ -508,7 +507,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         quad_visu = hm.Quad.newton_cotes([nv, nv, nv], [bx, by, bz])
 
         # Discretize factor
-        factor = quad.discretize(factors[0] * factors[1] * factors[2])
+        # factor = quad.discretize(factors[0] * factors[1] * factors[2])
 
         dirs_removed = [1]
         factor_removed, weight_removed = 1, 1
@@ -530,9 +529,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         v0, eig_vec = None, None
         for d in degrees:
             print(d)
-            ipdb.set_trace()
-
-            npolys = int(binom(d + self.dim, d))
+            npolys = core.iterator_size(self.dim, d, index_set=index_set)
             if d is not degrees[0]:
                 v0 = np.zeros(npolys)
                 for i in range(len(eig_vec)):
@@ -543,6 +540,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
                 sub_mat = sub_mat.copy(order='C')
             eigs = stats.log_stats(cache.cache(quiet=True)(las.eigs))
             eig_vals, eig_vecs = eigs(sub_mat, k=1, v0=v0, which='LR')
+            ipdb.set_trace()
             eig_vec = np.real(eig_vecs.T[0])
             ground_state = eig_vec * np.sign(eig_vec[0])
             ground_state_series = quad.series(ground_state,
@@ -563,40 +561,40 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
         return solutions, quad.series(ground_state)
 
-    def test_bistable(self):
+#     def test_bistable(self):
 
-        r = sym.Rational
-        Vp, degree = self.x**4/4 - self.x**2/2, 50
-        s2x, s2y, s2z = r(1, 10), r(1, 10), r(1, 10)
-        params = {'β': r(1), 'ε': r(1, 2), 'γ': 0, 'θ': 0, 'm': 0}
-        args = [Vp, params, s2x, s2y, s2z, degree]
-        quad, forward, backward, factor, fx, fy, fz = self.sym_calc(*args)
+#         r = sym.Rational
+#         Vp, degree = self.x**4/4 - self.x**2/2, 40
+#         s2x, s2y, s2z = r(1, 10), r(1, 10), r(1, 10)
+#         params = {'β': r(1), 'ε': r(1, 2), 'γ': 0, 'θ': 0, 'm': 0}
+#         args = [Vp, params, s2x, s2y, s2z, degree]
+#         quad, forward, backward, factor, fx, fy, fz = self.sym_calc(*args)
 
-        # Numerical solutions
-        degrees = list(range(20, degree + 1, 5))
-        solutions, finest = self.solve(backward, quad, [fx, fy, fz], degrees)
-        finest_eval = solutions[-1]
+#         # Numerical solutions
+#         degrees = list(range(20, degree + 1, 5))
+#         solutions, finest = self.solve(backward, quad, [fx, fy, fz], degrees)
+#         finest_eval = solutions[-1]
 
-        # Plot of the finest solution
-        fig, ax = plt.subplots(1, 1)
-        quad.plot(finest, factor, ax=ax)
-        plt.show()
+#         # Plot of the finest solution
+#         fig, ax = plt.subplots(1, 1)
+#         quad.plot(finest, factor, ax=ax)
+#         plt.show()
 
-        # Associated errors
-        errors, degrees = [], degrees[0:-1]
-        for sol in solutions[0:-1]:
-            error = quad.norm(sol - finest_eval, l2=True)
-            errors.append(error)
-            print(error)
+#         # Associated errors
+#         errors, degrees = [], degrees[0:-1]
+#         for sol in solutions[0:-1]:
+#             error = quad.norm(sol - finest_eval, l2=True)
+#             errors.append(error)
+#             print(error)
 
-        log_errors = np.log(errors)
-        poly_approx = np.polyfit(degrees, log_errors, 1)
-        errors_approx = np.exp(np.polyval(poly_approx, degrees))
-        error = la.norm(log_errors - np.log(errors_approx), 2)
+#         log_errors = np.log(errors)
+#         poly_approx = np.polyfit(degrees, log_errors, 1)
+#         errors_approx = np.exp(np.polyval(poly_approx, degrees))
+#         error = la.norm(log_errors - np.log(errors_approx), 2)
 
-        plt.semilogy(degrees, errors, 'k.')
-        plt.semilogy(degrees, errors_approx)
-        plt.show()
+#         plt.semilogy(degrees, errors, 'k.')
+#         plt.semilogy(degrees, errors_approx)
+#         plt.show()
 
-        self.assertTrue(errors[-1] < 1e-3)
-        self.assertTrue(error < 1)
+#         self.assertTrue(errors[-1] < 1e-3)
+#         self.assertTrue(error < 1)
