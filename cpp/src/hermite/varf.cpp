@@ -189,7 +189,7 @@ T varf(
         mat const & weights,
         std::string index_set)
 {
-    auto function = varf<Cross_iterator,T>;
+    auto function = varf<Triangle_iterator,T>;
     if (index_set == "triangle");
     else if (index_set == "cross") function = varf<Cross_iterator,T>;
     else if (index_set == "cube") function = varf<Cube_iterator,T>;

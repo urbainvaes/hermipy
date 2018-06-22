@@ -183,4 +183,3 @@ class TestTensorize(unittest.TestCase):
 #     #     tensorized = core.tensorize([varf_x, varf_yz], [[0], [1, 2]])
 #     #     # diff = (la.norm(varf_2d - projection, 2))
 #     #     # self.assertAlmostEqual(diff, 0)
-

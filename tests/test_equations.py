@@ -538,7 +538,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
             if type(sub_mat) is np.ndarray:
                 sub_mat = sub_mat.copy(order='C')
-            eigs = stats.log_stats(cache.cache(quiet=True)(las.eigs))
+            eigs = stats.log_stats()(cache.cache(quiet=True)(las.eigs))
             eig_vals, eig_vecs = eigs(sub_mat, k=1, v0=v0, which='LR')
             ipdb.set_trace()
             eig_vec = np.real(eig_vecs.T[0])
