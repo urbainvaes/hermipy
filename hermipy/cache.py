@@ -26,7 +26,6 @@ from hermipy.settings import settings
 
 import os
 
-
 def gen_hash(extend=None):
 
     def default_extend(argument):
@@ -95,7 +94,7 @@ def cache(hash_extend=None, error_extend=None, quiet=False):
     hash_fun = gen_hash(extend=hash_extend)
     error_fun = gen_error(extend=error_extend)
 
-    def numpy_extended_load(filename):
+    def extended_load(filename):
         result = np.load(filename)
         if result.shape is ():
             result = float(result)
@@ -119,33 +118,42 @@ def cache(hash_extend=None, error_extend=None, quiet=False):
             if settings['debug']:
                 print("Hash of arguments: " + prefix + '-' + '-'.join(hashes))
 
-            is_sparse = 'sparse' in kwargs and kwargs['sparse'] is True
-            ext = '.npz' if is_sparse else '.npy'
-            save = sparse.save_npz if is_sparse else np.save
-            load = sparse.load_npz if is_sparse else numpy_extended_load
-
             cachedir = settings['cachedir']
             if not os.path.exists(cachedir):
                 os.makedirs(cachedir)
 
-            savefile = cachedir + '/' + prefix + '-' + str(hash_args) + ext
-            try:
-                result_cache = load(savefile)
+            savefile = cachedir + '/' + prefix + '-' + str(hash_args)
 
-            except IOError:
-                result = function(*args, **kwargs)
-                save(savefile, result)
-                return result
+            cached_exists = False
+            if os.path.isfile(savefile + '.npy'):
+                cached_exists, is_sparse_cache = True, False
+                savefile += '.npy'
+            elif os.path.isfile(savefile + '.npz'):
+                cached_exists, is_sparse_cache = True, True
+                savefile += '.npz'
+
+            if cached_exists:
+                load = sparse.load_npz if is_sparse_cache else extended_load
+                result_cache = load(savefile)
 
             if use_cache:
                 return result_cache
-            else:
-                result = function(*args, **kwargs)
+
+            result = function(*args, **kwargs)
+            is_sparse_result = isinstance(result, sparse.csr_matrix)
+
+            if cached_exists:
                 error = error_fun(result, result_cache)
-                if not quiet and error > 1e-10:
+                ok = is_sparse_cache is is_sparse_result and error < 1e-10
+                if not quiet and not ok:
                     import pdb
                     pdb.set_trace()
                     raise ValueError("Result does not correspond to cache")
                 return result
+
+            save = sparse.save_npz if is_sparse_result else np.save
+            save(savefile, result)
+            return result
+
         return wrapper
     return cache_aux

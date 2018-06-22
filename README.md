@@ -8,6 +8,8 @@ $ python -m unittest discover -v tests
 
 # Todo
 
+- Danger cache + global options !!!
+
 - Improve separability
 
 - Implement composite quadrature
