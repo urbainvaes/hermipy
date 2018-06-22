@@ -69,7 +69,7 @@ void check_dims(const imat & dirs, u_int dim)
 template<typename Iterator>
 void check_degree(u_int size, u_int dim, u_int degree)
 {
-    u_int n_polys = Iterator::s_size(degree, dim);
+    u_int n_polys = Iterator::s_size(dim, degree);
     if (n_polys != size)
     {
         cout << "Size of input does not match dimension!" << endl;
@@ -104,7 +104,7 @@ vec tensorize(const mat & inputs, const imat & dirs)
         check_degree<Iterator>(inputs[i].size(), dims[i], degree);
     #endif
 
-    u_int n_polys = Iterator::s_size(degree, dim);
+    u_int n_polys = Iterator::s_size(dim, degree);
     vec results(n_polys, 0.);
     Iterator m(dim, degree);
     for (u_int i = 0; !m.isFull(); i++, m.increment())
@@ -224,7 +224,7 @@ spmat tensorize(const spmat & A, const spmat & B,
     assert(Iterator::s_bissect_degree(sB, B.size1()) == degree);
     #endif
 
-    u_int n_polys = Iterator::s_size(degree, dim);
+    u_int n_polys = Iterator::s_size(dim, degree);
     spmat product = matrix::construct<spmat>(n_polys, n_polys);
 
     Iterator it_product = Iterator(dim, degree);

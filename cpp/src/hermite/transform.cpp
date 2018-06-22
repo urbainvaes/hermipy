@@ -49,7 +49,7 @@ vec transform(
         bool forward)
 {
     u_int dim = nodes.size();
-    u_int n_polys = Iterator::s_size (degree, dim);
+    u_int n_polys = Iterator::s_size (dim, degree);
 
     u_int i,j,k;
 

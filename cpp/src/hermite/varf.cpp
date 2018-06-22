@@ -100,7 +100,7 @@ T varf(
         mat const & weights)
 {
     u_int dim = nodes.size();
-    u_int n_polys = Iterator::s_size(degree, dim);
+    u_int n_polys = Iterator::s_size(dim, degree);
 
     #ifdef DEBUG
     cout << "Entering varf in dimension " << dim << "." << endl;
