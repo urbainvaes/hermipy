@@ -1,12 +1,16 @@
+# Build files
 hermite_cpp.so
+/doc/build/*
+/build/*
 
+# Cache files
+/.cache/*
+/examples/.cache/*
 __pycache__
 
-/.cache/*
-/build
-/examples/.cache/*
-
-doc/*
+# Source files created automatically
+/doc/source/modules.rst
+/doc/source/hermipy.rst
 tags
 
 !*.gitkeep

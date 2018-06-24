@@ -355,7 +355,7 @@ def plot():
         fig, ax = plt.subplots(1, 1)
         as_sol = sym.exp(- params['β'] * functions['Vp'])/factor_x
         as_series = quad_num.project('x').transform(as_sol, degree, norm=True)
-        quad_visu.project('x').plot(as_series, degree, factor_x, ax)
+        quad_visu.project('x').plot(as_series, factor_x, ax)
         plt.show()
 
 

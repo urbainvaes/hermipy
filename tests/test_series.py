@@ -24,11 +24,21 @@ import unittest
 import numpy as np
 import numpy.linalg as la
 
-settings = {'cache': False, 'cachedir': '/tmp/test_hermite'}
-rc.settings.update(settings)
-
 
 class TestSeries(unittest.TestCase):
+
+    def setUp(self):
+
+        settings = {
+            'cache': False,
+            'cachedir': '/tmp/test_hermite',
+            'tensorize': False,
+            'sparse': False,
+            'trails': True,
+            'debug': False,
+            }
+
+        rc.settings.update(settings)
 
     def test_inner_positions(self):
         m1, m2 = [1, 2], [3, 4, 5]

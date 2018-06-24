@@ -36,6 +36,21 @@ class Quad:
 
     def __init__(self, nodes, weights,
                  mean=None, cov=None, dirs=None, position=None):
+
+        """Create a quadrature object
+
+        Args:
+            nodes: The nodes of the quadrature.
+            weights: The weights of the quadrature, in the basis.
+
+        Returns:
+            True if successful, False otherwise.
+
+        Note:
+            Do not include the  parameter in the Args section.
+
+        """
+
         self.nodes = np.asarray(nodes, float)
         self.weights = np.asarray(weights, float)
 
@@ -177,8 +192,7 @@ class Quad:
             f_grid = self.discretize(f_grid)
         coeffs = core.transform(degree, f_grid, self.nodes, self.weights,
                                 forward=True, index_set=index_set)
-        return hs.Series(coeffs, self.position, norm=norm,
-                         degree=degree, index_set=index_set)
+        return hs.Series(coeffs, self.position, norm=norm, index_set=index_set)
 
     def eval(self, series):
         if type(series) is np.ndarray:
@@ -204,7 +218,7 @@ class Quad:
             f_grid = self.discretize(f_grid)
         var = core.varf(degree, f_grid, self.nodes, self.weights,
                         sparse=sparse, index_set=index_set)
-        return hv.Varf(var, self.position, degree=degree, index_set=index_set)
+        return hv.Varf(var, self.position, index_set=index_set)
 
     @stats.debug()
     @stats.log_stats()
@@ -218,7 +232,7 @@ class Quad:
             mat = core.varfd(self.position.dim, degree, d, mat,
                              sparse=sparse, index_set=index_set)
             mat = mat/np.sqrt(eigval[d])
-        return hv.Varf(mat, self.position, degree=degree, index_set=index_set)
+        return hv.Varf(mat, self.position, index_set=index_set)
 
     @stats.debug()
     @stats.log_stats()
@@ -274,6 +288,16 @@ class Quad:
 
     # Only works with ints
     def project(self, directions):
+        """Project the quadrature.
+
+        Args:
+            directions: a list of integers containing the directions along
+            which the quadrature is to be projected.
+
+        Returns:
+            A `Quad` object.
+
+        """
         if type(directions) is int:
             directions = [directions]
         dim = len(directions)
@@ -286,6 +310,20 @@ class Quad:
         pos = self.position.project(directions)
         return Quad(nodes, weights, position=pos)
 
-    def series(self, coeffs, degree=None, norm=False, index_set="triangle"):
-        return hs.Series(coeffs, self.position, degree=degree,
-                         norm=norm, index_set=index_set)
+    def series(self, coeffs, norm=False, index_set="triangle"):
+        """Return a series from a vector of coefficients.
+
+        Args:
+            coeffs: a numpy array of coefficients.
+
+            norm: whether or not to normalize the coefficients (using the
+                  little L² norm).
+
+            index_set: the index set corresponding to the series.
+
+        Returns:
+            A `Series` object.
+
+        """
+        return hs.Series(coeffs, self.position, norm=norm,
+                         index_set=index_set)

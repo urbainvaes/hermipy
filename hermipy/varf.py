@@ -46,18 +46,15 @@ class Varf:
         tens_pos = pos.Position.tensorize([a.position for a in args])
         return Varf(tens_mat, tens_pos, index_set=index_set)
 
-    def __init__(self, matrix, position,
-                 degree=None, index_set="triangle"):
+    def __init__(self, matrix, position, index_set="triangle"):
         self.matrix = matrix
         self.is_sparse = isinstance(matrix, ss.csr_matrix)
         self.position = position
         self.index_set = index_set
 
-        if degree is None:
-            dim, npolys = self.position.dim, self.matrix.shape[0]
-            self.degree = core.iterator_get_degree(dim, npolys, index_set=index_set)
-        else:
-            self.degree = degree
+        dim, npolys = self.position.dim, self.matrix.shape[0]
+        self.degree = core.iterator_get_degree(dim, npolys,
+                                               index_set=index_set)
 
         assert len(self.multi_indices()) == self.matrix.shape[0]
 
@@ -108,8 +105,7 @@ class Varf:
         assert degree <= self.degree
         n_polys = core.iterator_size(self.position.dim, degree)
         matrix = self.matrix[0:n_polys][0:n_polys]
-        return Varf(matrix, self.position, degree=degree,
-                    index_set=self.index_set)
+        return Varf(matrix, self.position, index_set=self.index_set)
 
     def multi_indices(self):
         return core.iterator_list_indices(self.position.dim, self.degree,
@@ -120,4 +116,4 @@ class Varf:
         assert degree + self.position.dim - 1 <= self.degree
         inds_triangle = lib.cross_in_triangle(self.position.dim, degree)
         matrix = self.matrix[np.ix_(inds_triangle, inds_triangle)]
-        return Varf(matrix, self.position, degree=degree, index_set="cross")
+        return Varf(matrix, self.position, index_set="cross")
