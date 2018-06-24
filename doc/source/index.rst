@@ -13,7 +13,7 @@ Welcome to hermipy's documentation!
    installation
    introduction
    quickstart
-   hermipy
+   modules
 
 
 Indices and tables
