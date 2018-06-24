@@ -44,18 +44,14 @@ class Series:
         tens_pos = pos.Position.tensorize([a.position for a in args])
         return Series(tens_vec, tens_pos, index_set=index_set)
 
-    def __init__(self, coeffs, position,
-                 degree=None, norm=False, index_set="triangle"):
+    def __init__(self, coeffs, position, norm=False, index_set="triangle"):
         self.coeffs = coeffs/la.norm(coeffs, 2) if norm else coeffs
         self.position = position
         self.index_set = index_set
 
-        if degree is None:
-            dim, npolys = self.position.dim, len(self.coeffs)
-            self.degree = core.iterator_get_degree(dim, npolys, index_set=index_set)
-        else:
-            self.degree = degree
-
+        dim, npolys = self.position.dim, len(self.coeffs)
+        self.degree = core.iterator_get_degree(dim, npolys,
+                                               index_set=index_set)
         assert len(self.multi_indices()) == len(self.coeffs)
 
     def __eq__(self, other):
@@ -113,8 +109,7 @@ class Series:
         result = core.inner(self.coeffs, other.coeffs, d1, d2,
                             index_set=self.index_set)
         inner_pos = pos.Position.inner(self.position, other.position)
-        return Series(result, inner_pos,
-                      degree=self.degree, index_set=self.index_set)
+        return Series(result, inner_pos, index_set=self.index_set)
 
     def project(self, directions):
         if type(directions) is int:
@@ -129,8 +124,7 @@ class Series:
         assert degree <= self.degree
         n_polys = self.position.core(self.position.dim, degree)
         coeffs = self.coeffs[0:n_polys]
-        return Series(coeffs, self.position, degree=degree,
-                      index_set=self.index_set)
+        return Series(coeffs, self.position, index_set=self.index_set)
 
     def multi_indices(self):
         return core.iterator_list_indices(self.position.dim, self.degree,
@@ -159,4 +153,4 @@ class Series:
         assert self.index_set == "triangle"
         assert degree + self.position.dim - 1 <= self.degree
         coeffs = self.coeffs[lib.cross_in_triangle(self.position.dim, degree)]
-        return Series(coeffs, self.position, degree=degree, index_set="cross")
+        return Series(coeffs, self.position, index_set="cross")
