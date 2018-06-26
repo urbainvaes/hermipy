@@ -8,6 +8,8 @@ $ python -m unittest discover -v tests
 
 # Todo
 
+- Inconsistency sparse = False / None
+
 - Danger cache + global options !!!
 
 - Improve separability

@@ -63,6 +63,27 @@ class Quad:
             hash(frozenset(self.weights.flatten())),
             hash(self.position)}))
 
+    @classmethod
+    def gauss_hermite(cls, n_points, dim=None, **kwargs):
+        if dim is not None:
+            n_points = np.full(dim, n_points)
+        elif isinstance(n_points, int):
+            n_points = [n_points]
+        nodes, weights = lib.hermegauss_nd(n_points)
+        return cls(nodes, weights, **kwargs)
+
+    @classmethod
+    def newton_cotes(cls, n_points, extrema, **kwargs):
+        nodes, weights = [], []
+        for i in range(len(extrema)):
+            nodes.append(np.linspace(-extrema[i], extrema[i], n_points[i]))
+            mesh_size = 2*extrema[i]/(n_points[i] - 1)
+            weights_simpson = np.zeros(n_points[i]) + 1
+            weights_simpson[0], weights_simpson[-1] = .5, .5
+            gaussian_weight = 1/np.sqrt(2*np.pi) * np.exp(-nodes[-1]**2/2.)
+            weights.append(weights_simpson * gaussian_weight * mesh_size)
+        return cls(nodes, weights, **kwargs)
+
     def __mul__(self, other):
         assert self.position.is_diag and other.position.is_diag
         nodes = [*self.nodes, *other.nodes]
@@ -134,27 +155,6 @@ class Quad:
                 return sum(results[1:], results[0])
             return wrapper
         return tensorize_arg
-
-    @classmethod
-    def gauss_hermite(cls, n_points, dim=None, **kwargs):
-        if dim is not None:
-            n_points = np.full(dim, n_points)
-        elif isinstance(n_points, int):
-            n_points = [n_points]
-        nodes, weights = lib.hermegauss_nd(n_points)
-        return cls(nodes, weights, **kwargs)
-
-    @classmethod
-    def newton_cotes(cls, n_points, extrema, **kwargs):
-        nodes, weights = [], []
-        for i in range(len(extrema)):
-            nodes.append(np.linspace(-extrema[i], extrema[i], n_points[i]))
-            mesh_size = 2*extrema[i]/(n_points[i] - 1)
-            weights_simpson = np.zeros(n_points[i]) + 1
-            weights_simpson[0], weights_simpson[-1] = .5, .5
-            gaussian_weight = 1/np.sqrt(2*np.pi) * np.exp(-nodes[-1]**2/2.)
-            weights.append(weights_simpson * gaussian_weight * mesh_size)
-        return cls(nodes, weights, **kwargs)
 
     def mapped_nodes(self):
         coords_nodes = []
