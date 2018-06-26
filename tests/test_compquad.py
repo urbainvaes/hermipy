@@ -16,21 +16,35 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-#  Composite quadrature {{{
+import hermipy.comp_quad as hm
+import hermipy.settings as rc
+import hermipy.lib as lib
+
+import unittest
+import numpy as np
+import numpy.polynomial.hermite_e as herm
+import numpy.linalg as la
+import sympy as sym
+import math
+import os
+import tempfile
+
+import scipy.sparse as sp
+import scipy.sparse.linalg as las
 
 
-class CompQuad:
-    def __init__(self, quads, weights):
-        self.quads = quads
-        self.weights = weights
+class TestCompQuad(unittest.TestCase):
 
-    # def integrate(f):
+    def setUp(self):
 
-    # def eval(self, degree, nodes):
-    #     return eval_simple_quad(self.coeffs, degree, nodes)
+        settings = {
+            'cache': False,
+            'cachedir': '/tmp/test_hermite',
+            'tensorize': False,
+            'sparse': False,
+            'trails': True,
+            'debug': False,
+            }
 
-# def herm_to_poly(c):
-#     herme_coeffs = c/np.sqrt(np.sqrt(2*np.pi)*np.arange(len(c)))
-#     return herm.herme2poly(herme_coeffs)
-# }}}
-# vim: foldmethod=marker foldnestmax=2
+        rc.settings.update(settings)
+
