@@ -41,13 +41,13 @@ class build_ext(build_ext_orig):
         os.chdir(str(cwd))
 
 
-setup(name='Hermite',
+setup(name='Hermipy',
       version='v0.1',
       description='Library for the Hermite spectral method',
       author='Urbain Vaes',
       author_email='urbain@vaes.uk',
       url='https://github.com/urbainvaes/hermite',
-      packages=['hermite'],
+      packages=['hermipy'],
       ext_modules=[Extension('hermite_cpp', sources=[])],
       cmdclass={'build_ext': build_ext}
       )
