@@ -135,6 +135,40 @@ class McKean_Vlasov:
         return operator
 
 
+class Langevin:
+
+    # Space variables
+    variables = sym.symbols('x y', real=True)
+
+    # Sharthand notations
+    x, y = variables
+
+    # Unknown
+    f = sym.Function('f')(x, y)
+
+    @classmethod
+    def forward(cls, λ):
+
+        # Shorthand notations
+        d, x, y, f = sym.diff, cls.x, cls.y, cls.f
+
+        # Fokker planck operator
+        operator = (-x*d(f, y) + y*d(f, x)) + λ*d(f*x + d(f, x), x)
+
+        return operator
+
+    @classmethod
+    def backward(cls, λ):
+
+        # Shorthand notations
+        d, x, y, f = sym.diff, cls.x, cls.y, cls.f
+
+        # Backward Kolmogorov operator
+        operator = (x*d(f, y) - y*d(f, x)) + λ*(- x*d(f, x) + d(f, x, x))
+
+        return operator
+
+
 class McKean_Vlasov_harmonic_noise:
 
     # Space variables
