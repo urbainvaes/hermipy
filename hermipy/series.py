@@ -19,6 +19,7 @@
 import hermipy.core as core
 import hermipy.lib as lib
 import hermipy.position as pos
+import hermipy.function as func
 
 import numpy as np
 import numpy.linalg as la
@@ -133,7 +134,7 @@ class Series:
 
     def multi_indices(self):
         return core.iterator_list_indices(self.position.dim, self.degree,
-                                  index_set=self.index_set)
+                                          index_set=self.index_set)
 
     def plot(self, ax):
         m = self.multi_indices()
@@ -153,6 +154,38 @@ class Series:
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
             ax.yaxis.set_major_locator(MaxNLocator(integer=True))
         ax.set_title("Coefficients of the Hermite expansion")
+
+    def to_sympy(self):
+        assert self.position.is_diag
+
+        def rec_a(i):
+            return float(1/np.sqrt(i+1))
+
+        def rec_b(i):
+            return float(np.sqrt(i)/np.sqrt(i+1))
+
+        dirs = self.position.dirs
+        hermite_dirs = []
+
+        for i, d in enumerate(dirs):
+            var = func.Function.xyz[d]
+            print(var)
+            h0 = func.Function('1', dirs=dirs)
+            μ, σ = self.position.mean[i], self.position.cov[i][i]
+            f1 = np.sqrt(σ) * (var - μ)
+            h1 = func.Function(f1, dirs=dirs)
+            hermite_dirs.append([h0, h1])
+            for j in range(1, self.degree):
+                hermite_dirs[i].append(hermite_dirs[i][-1] * rec_a(j)
+                                       + hermite_dirs[i][-2] * rec_b(j))
+
+        result = func.Function('0', dirs=dirs)
+        for im, m in enumerate(self.multi_indices()):
+            result_m = func.Function(self.coeffs[im], dirs=dirs)
+            for i in range(0, self.position.dim):
+                result_m *= hermite_dirs[i][m[i]]
+            result += result_m
+        return result
 
     def to_cross(self, degree):
         assert self.index_set == "triangle"

@@ -8,6 +8,8 @@ $ python -m unittest discover -v tests
 
 # Todo
 
+- Add operator() for varf?
+
 - Inconsistency sparse = False / None
 
 - Danger cache + global options !!!

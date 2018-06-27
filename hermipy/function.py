@@ -20,7 +20,6 @@ import sympy as sym
 from sympy.parsing.sympy_parser import parse_expr
 import re
 
-
 class Function():
 
     # xyz notation
@@ -87,7 +86,8 @@ class Function():
             assert s in symbols
 
     def __eq__(self, other):
-        return self.sym_func == other.sym_func
+        return self.dirs == other.dirs and \
+            self.sym_func == other.sym_func
 
     def __str__(self):
         return sym.ccode(self.sym_func)
@@ -95,6 +95,21 @@ class Function():
     def __repr__(self):
         variables = [self.v_array[d] for d in self.dirs]
         return str(variables) + " --> " + str(self)
+
+    def __mul__(self, other):
+        if type(other) in (float, int):
+            new_sym_func = self.sym_func*other
+        elif type(other) is Function:
+            assert self.dirs == other.dirs
+            new_sym_func = self.sym_func * other.sym_func
+        else:
+            raise ValueError("Unsupported type: " + str(type(other)))
+        return Function(new_sym_func, dirs=self.dirs)
+
+    def __add__(self, other):
+        assert self.dirs == other.dirs
+        return Function(self.sym_func + other.sym_func,
+                        dirs=self.dirs)
 
     def as_string(self, format='array', toC=False):
         function = str(self)
