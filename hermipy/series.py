@@ -42,9 +42,10 @@ class Series:
             vecs.append(a.coeffs)
         tens_vec = core.tensorize(vecs, index_set=index_set)
         tens_pos = pos.Position.tensorize([a.position for a in args])
-        return Series(tens_vec, tens_pos, index_set=index_set)
+        return Series(tens_vec, tens_pos, index_set=0)
 
-    def __init__(self, coeffs, position, norm=False, index_set="triangle"):
+    def __init__(self, coeffs, position, norm=False,
+                 index_set="triangle", significant=0):
         self.coeffs = coeffs/la.norm(coeffs, 2) if norm else coeffs
         self.position = position
         self.index_set = index_set
@@ -53,6 +54,10 @@ class Series:
         self.degree = core.iterator_get_degree(dim, npolys,
                                                index_set=index_set)
         assert len(self.multi_indices()) == len(self.coeffs)
+
+        if significant is not 0:
+            for i, c in enumerate(self.coeffs):
+                self.coeffs[i] = round(self.coeffs[i], significant)
 
     def __eq__(self, other):
         assert type(other) is Series
