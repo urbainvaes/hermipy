@@ -127,7 +127,7 @@ class McKean_Vlasov:
         d, x, y, f = sym.diff, cls.x, cls.y, cls.f
 
         # Fokker planck operator
-        operator = d(d(Vp, x)*f + θ*(x-m)*f + (1-γ)*sym.sqrt(1/β)*y*f/ε, x) \
+        operator = d(d(Vp, x)*f + θ*(x-m)*f - (1-γ)*sym.sqrt(1/β)*y*f/ε, x) \
             + γ**2/β * d(d(f, x), x) \
             + (1/ε**2) * d(y * f, y) \
             + (1/ε**2) * d(d(f, y), y)
