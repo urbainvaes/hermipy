@@ -59,7 +59,7 @@ class Function():
             if str(s) in self.conv:
                 expr = expr.subs(s, self.conv[str(s)])
 
-            else:
+            elif not allow_sym:
                 raise ValueError("Unrecognized variable: " + str(s))
 
         self.sym_func = expr
@@ -80,10 +80,17 @@ class Function():
                     self.dim = 0
             self.dirs = list(range(self.dim))
 
-        assert len(expr.free_symbols) <= self.dim
-        symbols = [self.v_array[d] for d in self.dirs]
-        for s in expr.free_symbols:
-            assert s in symbols
+        if not allow_sym:
+            if len(expr.free_symbols) > self.dim:
+                raise ValueError("Too many free symbols: " + str(expr)
+                                 + ", dim: " + str(self.dim))
+
+            symbols = [self.v_array[d] for d in self.dirs]
+            for s in expr.free_symbols:
+                if s not in symbols:
+                    print("Unknown symbol!")
+                    import pdb
+                    pdb.set_trace()
 
     def __eq__(self, other):
         return self.dirs == other.dirs and \
@@ -135,6 +142,7 @@ class Function():
         return function
 
     def split(self):
+        variables = [self.v_array[d] for d in self.dirs]
         is_add = isinstance(self.sym_func, sym.add.Add)
         add_terms = self.sym_func.args if is_add else [self.sym_func]
         to_return = []
@@ -143,21 +151,23 @@ class Function():
             mul_terms = term.args if is_mul else [term]
             result, tensorizable = [sym.Rational('1')] * (self.dim + 1), True
             for arg in mul_terms:
-                if len(arg.free_symbols) == 0:
+                vars_arg = [v for v in variables if v in arg.free_symbols]
+                if len(vars_arg) is 0:
                     result[-1] *= (arg)  # Store constant in last element
                 else:
-                    if len(arg.free_symbols) == 1:
-                        symbol = list(arg.free_symbols)[0]
-                        x_ified = arg.subs(symbol, self.v_array[0])
-                        result[self.v_array.index(symbol)] *= x_ified
+                    if len(vars_arg) is 1:
+                        symbol = vars_arg[0]
+                        result[variables.index(symbol)] *= arg
                     else:
                         result[0] *= arg
                         tensorizable = False
             if tensorizable:
                 for i in range(self.dim):
-                    result[i] = Function(result[i], dim=1)
+                    result[i] = Function(result[i], dirs=[self.dirs[i]],
+                                         allow_sym=True)
             else:
-                func = Function(term/result[-1], dim=self.dim)
+                func = Function(term/result[-1], dirs=self.dirs,
+                                allow_sym=True)
                 result = [func, result[-1]]
             to_return.append(result)
         return to_return
