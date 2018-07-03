@@ -276,7 +276,7 @@ def iterator_index(mult_ind, index_set="triangle"):
 
     if index_set not in cpp_func:
         raise ValueError("Unknown index set")
-    return cpp_func[index_set](ind_vec)
+    return int(cpp_func[index_set](ind_vec))
 
 
 @cache()
@@ -290,7 +290,7 @@ def iterator_size(dim, degree, index_set="triangle"):
             }
     if index_set not in cpp_func:
         raise ValueError("Unknown index set")
-    return cpp_func[index_set](dim, degree)
+    return int(cpp_func[index_set](dim, degree))
 
 
 @cache()
