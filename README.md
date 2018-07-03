@@ -8,6 +8,12 @@ $ python -m unittest discover -v tests
 
 # Todo
 
+- Improve split to minimize number of terms
+
+- Use absolute and relative direction terminology?
+
+- Fix scaling of OU process
+
 - Add operator() for varf?
 
 - Inconsistency sparse = False / None
