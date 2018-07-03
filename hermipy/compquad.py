@@ -18,6 +18,7 @@
 
 import hermipy.quad as quad
 
+
 class CompQuad():
 
     def __init__(self, quads, qweights):
@@ -34,9 +35,8 @@ class CompQuad():
         self.qweights = qweights
         self.position = position0
 
-    @classmethod
-    def smolyak(cls, n_points_max, **kwargs):
-
+    # @classmethod
+    # def smolyak(cls, n_points_max, **kwargs):
 
     def __eq__(self, other):
 
@@ -77,7 +77,7 @@ class CompQuad():
 
     def discretize_op(self, op, func, degree, order,
                       sparse=None, index_set="triangle"):
-        return quad.Quad.discretize_op(self, op, func, degree, order, 
+        return quad.Quad.discretize_op(self, op, func, degree, order,
                                        sparse=sparse, index_set = index_set)
 
     def project(self, projection):
