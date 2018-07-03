@@ -128,7 +128,7 @@ class Series:
 
     def subdegree(self, degree):
         assert degree <= self.degree
-        n_polys = self.position.core(self.position.dim, degree)
+        n_polys = core.iterator_size(self.position.dim, degree)
         coeffs = self.coeffs[0:n_polys]
         return Series(coeffs, self.position, index_set=self.index_set)
 

@@ -34,7 +34,6 @@ class TestSeries(unittest.TestCase):
             'cachedir': '/tmp/test_hermite',
             'tensorize': False,
             'sparse': False,
-            'trails': True,
             'debug': False,
             }
 

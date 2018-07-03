@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import hermipy.comp_quad as hm
+import hermipy.compquad as comquad
 import hermipy.settings as rc
 import hermipy.lib as lib
 
@@ -47,4 +47,3 @@ class TestCompQuad(unittest.TestCase):
             }
 
         rc.settings.update(settings)
-
