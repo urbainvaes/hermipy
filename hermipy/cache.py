@@ -136,6 +136,9 @@ def cache(hash_extend=None, error_extend=None, quiet=False):
                 load = sparse.load_npz if is_sparse_cache else extended_load
                 result_cache = load(savefile)
                 if use_cache:
+                    if type(result_cache) is float and \
+                            result_cache.is_integer():
+                        result_cache = int(result_cache)
                     return result_cache
 
             result = function(*args, **kwargs)
