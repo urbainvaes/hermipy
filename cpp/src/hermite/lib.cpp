@@ -111,7 +111,7 @@ u_int pos_bissect(u_int image, std::function<u_int(u_int)> f, u_int max)
         {
             if (new_x == x1)
             {
-                std::cout << "Can't find x, infinite loop!" << std::endl;
+                std::cout << "[lib.cpp:pos_bissect] Can't find x, infinite loop!" << std::endl;
                 exit(1);
             }
 

@@ -27,6 +27,9 @@
 #define REC_A(i) (1/sqrt(i+1))
 #define REC_B(i) (sqrt(i)/sqrt(i+1))
 
+// Recurrence relation (NOTE THE MINUS SIGN!)
+// H_{i+1} = REC_A(i) x H_{i} - REC_B(i) H_{i-1}
+
 namespace hermite {
 
 void hermite_eval(double x,
