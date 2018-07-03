@@ -58,19 +58,20 @@ class Quad:
         self.position = position if position is not None else \
             pos.Position(dim=dim, mean=mean, cov=cov, dirs=dirs)
 
-        self.hash = hash(frozenset({
-            hash(frozenset(self.nodes.flatten())),
-            hash(frozenset(self.weights.flatten())),
-            hash(self.position)}))
-
     @classmethod
-    def gauss_hermite(cls, n_points, dim=None, **kwargs):
+    def gauss_hermite(cls, n_points, dim=None, dirs=None, **kwargs):
+
+        if dirs is not None:
+            dim = len(dirs)
+
         if dim is not None:
             n_points = np.full(dim, n_points)
+
         elif isinstance(n_points, int):
             n_points = [n_points]
+
         nodes, weights = lib.hermegauss_nd(n_points)
-        return cls(nodes, weights, **kwargs)
+        return cls(nodes, weights, dirs=dirs, **kwargs)
 
     @classmethod
     def newton_cotes(cls, n_points, extrema, **kwargs):
@@ -126,7 +127,7 @@ class Quad:
                 results = []
                 if not isinstance(function, symfunc.Function):
                     function = symfunc.Function(function,
-                                                dim=quad.position.dim)
+                                                dirs=quad.position.dirs)
 
                 for add in function.split():
                     if len(add) == 2:
@@ -165,7 +166,7 @@ class Quad:
 
     def discretize(self, f):
         if not isinstance(f, symfunc.Function):
-            f = symfunc.Function(f)
+            f = symfunc.Function(f, dirs=self.position.dirs)
         f = f.as_string(format='array', toC=True)
         function = core.discretize(f, self.nodes,
                                    self.position.mean, self.position.factor)
@@ -187,12 +188,14 @@ class Quad:
         elif n is 1:
             return self.integrate(abs(function), l2=l2)
 
-    def transform(self, f_grid, degree, norm=False, index_set="triangle"):
+    def transform(self, f_grid, degree, norm=False,
+                  index_set="triangle", significant=0):
         if not isinstance(f_grid, np.ndarray):
             f_grid = self.discretize(f_grid)
         coeffs = core.transform(degree, f_grid, self.nodes, self.weights,
                                 forward=True, index_set=index_set)
-        return hs.Series(coeffs, self.position, norm=norm, index_set=index_set)
+        return hs.Series(coeffs, self.position, norm=norm,
+                         index_set=index_set, significant=significant)
 
     def eval(self, series):
         if type(series) is np.ndarray:
@@ -224,7 +227,6 @@ class Quad:
     @stats.log_stats()
     def varfd(self, function, degree, directions, sparse=False,
               index_set="triangle"):
-        directions = core.to_numeric(directions)
         var = self.varf(function, degree, sparse=sparse, index_set=index_set)
         mat = var.matrix
         eigval, _ = la.eig(self.position.cov)
@@ -238,18 +240,18 @@ class Quad:
     @stats.log_stats()
     def discretize_op(self, op, func, degree, order,
                       sparse=None, index_set="triangle"):
+
+        assert len(func.args) <= self.position.dim
         sparse = rc.settings['sparse'] if sparse is None else sparse
         mat_operator = 0.
         splitop, mult = lib.split_operator(op, func, order)
-        v = ['x', 'y', 'z']
         for m, coeff in zip(mult, splitop):
-            d_vector = sum([[v[i]]*m[i] for i in range(self.position.dim)], [])
+            d_vector = sum([[i]*m[i] for i in range(self.position.dim)], [])
             varf_part = self.varfd(coeff, degree, d_vector, sparse=sparse,
                                    index_set=index_set)
             mat_operator = varf_part + mat_operator
         return mat_operator
 
-    # TODO: Ensure order is right (urbain, Tue 01 May 2018)
     def plot(self, series, factor=None, ax=None):
         assert self.position.is_diag
 

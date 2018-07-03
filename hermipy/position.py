@@ -56,17 +56,31 @@ class Position:
             self.dim = len(mean)
         elif cov is not None:
             self.dim = len(cov)
-        else:
-            assert dim is not None
+        elif dirs is not None:
+            self.dim = len(dirs)
+        elif dim is not None:
             self.dim = dim
+        else:
+            raise ValueError("All args are None!")
+
+        # Checks
+        if mean is not None:
+            assert self.dim == len(mean)
+        elif cov is not None:
+            assert self.dim == len(cov)
+        elif dirs is not None:
+            assert self.dim == len(dirs)
+        elif dim is not None:
+            assert self.dim == dim
+
+        # Defaults to first directions
+        self.dirs = list(range(dim)) if dirs is None else dirs
 
         self.mean = np.zeros(self.dim) if mean is None \
             else np.asarray(mean, float)
 
         self.cov = np.eye(self.dim) if cov is None \
             else np.asarray(cov, float)
-
-        self.dirs = list(range(dim)) if dirs is None else dirs
 
         eigval, eigvec = la.eig(self.cov)
         self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
@@ -105,11 +119,12 @@ class Position:
         if type(directions) is int:
             directions = [directions]
         assert self.is_diag
-        dim = len(directions)
-        mean = np.zeros(dim)
-        cov = np.zeros((dim, dim))
+        dirs = [-1]*len(directions)
+        dim = len(dirs)
+        mean, cov = np.zeros(dim), np.zeros((dim, dim))
         for i in range(dim):
             d = directions[i]
+            dirs[i] = self.dirs[d]
             assert d < self.dim
             mean[i] = self.mean[d]
             cov[i][i] = self.cov[d][d]
