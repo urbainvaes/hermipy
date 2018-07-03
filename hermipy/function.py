@@ -20,6 +20,7 @@ import sympy as sym
 from sympy.parsing.sympy_parser import parse_expr
 import re
 
+
 class Function():
 
     # xyz notation
@@ -39,7 +40,7 @@ class Function():
         conv[str(v_sub[i])] = v_array[i]
         conv[str(v_array[i])] = v_array[i]
 
-    def __init__(self, expr, dim=None, dirs=None):
+    def __init__(self, expr, dim=None, dirs=None, allow_sym=False):
 
         if isinstance(expr, int) or isinstance(expr, float):
             expr = str(expr)
@@ -97,7 +98,7 @@ class Function():
             self.sym_func == other.sym_func
 
     def __str__(self):
-        return sym.ccode(self.sym_func)
+        return str(self.sym_func)
 
     def __repr__(self):
         variables = [self.v_array[d] for d in self.dirs]
@@ -118,17 +119,7 @@ class Function():
         return Function(self.sym_func + other.sym_func,
                         dirs=self.dirs)
 
-    def as_string(self, format='array', toC=False):
-        function = str(self)
-
-        # Convert dirs[i] -> i, to ease discretization
-        if toC:
-            for i in range(self.dim):
-                if self.dirs[i] is not i:
-                    assert not re.search(r'\bv\[{}\]'.format(i), function)
-                    function = re.sub(r'\bv\[{}\]'.format(self.dirs[i]),
-                                      'v[{}]'.format(i), function)
-
+    def as_format(self, format):
         if format == 'array':
             return self.sym_func
 
@@ -193,3 +184,21 @@ class Function():
                 result = [func, result[-1]]
             to_return.append(result)
         return to_return
+
+    @staticmethod
+    def sanitize(expr, max_denom=1e8):
+        result, expr = sym.Integer(0), (sym.Integer(0) + expr).expand()
+        is_add = isinstance(expr, sym.add.Add)
+        add_terms = expr.args if is_add else [expr]
+        for aterm in add_terms:
+            result_tmp = sym.Integer(1)
+            is_mul = isinstance(aterm, sym.mul.Mul)
+            mul_terms = aterm.args if is_mul else [aterm]
+            for mterm in mul_terms:
+                if type(mterm) is sym.numbers.Float:
+                    if abs(mterm) < 1e-14:
+                        mterm = 0
+                    mterm = sym.Rational(mterm).limit_denominator(max_denom)
+                result_tmp *= mterm
+            result += result_tmp
+        return result
