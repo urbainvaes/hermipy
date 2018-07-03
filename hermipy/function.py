@@ -130,16 +130,38 @@ class Function():
                                       'v[{}]'.format(i), function)
 
         if format == 'array':
-            return function
+            return self.sym_func
+
         if format == 'xyz':
             to = self.xyz
         elif format == 'sub':
             to = self.v_sub
         else:
             raise ValueError("Invalid format: " + format)
+
+        result = self.sym_func
         for i in range(len(self.xyz)):
-            function = re.sub(r'\bv\[{}\]'.format(i), str(to[i]), function)
-        return function
+            result = result.subs(self.v_array[i], to[i])
+
+        return result
+
+    def as_string(self, format='array', toC=False):
+        if toC:
+            # Convert dirs[i] -> i, to ease discretization
+            function = sym.ccode(self.sym_func)
+            for i in range(self.dim):
+                if self.dirs[i] is not i:
+                    assert not re.search(r'\bv\[{}\]'.format(i), function)
+                    function = re.sub(r'\bv\[{}\]'.format(self.dirs[i]),
+                                      'v[{}]'.format(i), function)
+            return function
+        return sym.ccode(self.as_format(format))
+
+    def with_vars(self, variables):
+        sym_func = self.sym_func
+        for i, d in enumerate(self.dirs):
+            sym_func = sym_func.subs(self.v_array[d], variables[i])
+        return sym_func
 
     def split(self):
         variables = [self.v_array[d] for d in self.dirs]
