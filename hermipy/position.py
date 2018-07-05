@@ -128,4 +128,4 @@ class Position:
             assert d < self.dim
             mean[i] = self.mean[d]
             cov[i][i] = self.cov[d][d]
-        return Position(dim=dim, mean=mean, cov=cov, dirs=directions)
+        return Position(dim=dim, mean=mean, cov=cov, dirs=dirs)
