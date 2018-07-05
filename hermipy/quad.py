@@ -27,6 +27,7 @@ import hermipy.stats as stats
 
 import numpy as np
 import numpy.linalg as la
+import sympy  as sym
 
 
 very_small = 1e-10
@@ -200,6 +201,8 @@ class Quad:
     def eval(self, series):
         if type(series) is np.ndarray:
             series = hs.Series(series, self.position)
+        #  FIXME: Only orientation, not positions
+        # assert self.position == series.position
         degree, coeffs = series.degree, series.coeffs
         inv = la.inv(series.position.factor)
         translation = inv.dot(self.position.mean - series.position.mean)
@@ -252,41 +255,64 @@ class Quad:
             mat_operator = varf_part + mat_operator
         return mat_operator
 
-    def plot(self, series, factor=None, ax=None):
+    def plot(self, arg, factor=None, ax=None):
         assert self.position.is_diag
 
-        bounds, adim_width = [], np.sqrt(2) * np.sqrt(2*series.degree + 1)
-        for i in range(series.position.dim):
-            mean, cov = series.position.mean[i], series.position.cov[i][i]
-            bounds.append([mean - adim_width * np.sqrt(cov),
-                           mean + adim_width * np.sqrt(cov)])
+        show_plt = ax is None
+        if show_plt:
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(1)
 
-        if self.position.dim >= 1:
-            ax.axvline(x=bounds[0][0])
-            ax.axvline(x=bounds[0][1])
-        if self.position.dim == 2:
-            ax.axhline(y=bounds[1][0])
-            ax.axhline(y=bounds[1][1])
-
-        #  FIXME: Only orientation, not positions
-        # assert self.position == series.position
         if factor is None:
             factor = self.position.weight()
+
         if not isinstance(factor, np.ndarray):
             factor = symfunc.Function(factor, dirs=self.position.dirs)
             factor = self.discretize(factor)
+
+        if isinstance(arg, tuple(sym.core.all_classes)):
+            arg = symfunc.Function(arg, dirs=self.position.dirs)
+
+        if type(arg) is symfunc.Function:
+            solution = self.discretize(arg)*factor
+
+        elif type(arg) is hs.Series:
+            series = arg
+            solution = self.eval(series)*factor
+
+            bounds, adim_width = [], np.sqrt(2) * np.sqrt(2*series.degree + 1)
+            for i in range(series.position.dim):
+                mean, cov = series.position.mean[i], series.position.cov[i][i]
+                bounds.append([mean - adim_width * np.sqrt(cov),
+                               mean + adim_width * np.sqrt(cov)])
+
+            if self.position.dim >= 1:
+                ax.axvline(x=bounds[0][0])
+                ax.axvline(x=bounds[0][1])
+            if self.position.dim == 2:
+                ax.axhline(y=bounds[1][0])
+                ax.axhline(y=bounds[1][1])
+
+        else:
+            raise TypeError("Unsupported type: " + str(type(arg)))
+
         n_nodes = []
         r_nodes = []
         for i in range(self.position.dim):
+            direction = symfunc.Function.xyz[self.position.dirs[i]]
             n_nodes.append(len(self.nodes[i]))
-            #  FIXME: Not clear why direction can't be actual direction
-            r_nodes.append(self.project(i).discretize('x'))
-        solution = self.eval(series)*factor
+            r_nodes.append(self.project(i).discretize(direction))
         solution = solution.reshape(*n_nodes).T
+
         if self.position.dim == 1:
-            return ax.plot(*r_nodes, solution)
+            plot = ax.plot(*r_nodes, solution)
         elif self.position.dim == 2:
-            return ax.contourf(*r_nodes, solution, 100)
+            plot = ax.contourf(*r_nodes, solution, 100)
+
+        if show_plt:
+            plt.show()
+        else:
+            return plot
 
     # Only works with ints
     def project(self, directions):
