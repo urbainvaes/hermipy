@@ -150,7 +150,7 @@ class TestTensorize(unittest.TestCase):
     def test_tensorize_varf(self):
         n_points = 200
         degree = 10
-        f, fx, fy = 'exp(x) * (y*y*y)', 'exp(x)', 'x*x*x'
+        f, fx, fy = 'exp(x) * (y*y*y)', 'exp(x)', 'y*y*y'
         quad = hm.Quad.gauss_hermite(n_points, dim=2)
         varf_x = quad.project(0).varf(fx, degree)
         varf_y = quad.project(1).varf(fy, degree)
@@ -177,7 +177,6 @@ class TestTensorize(unittest.TestCase):
 #     #     varf_x = quad_x.varf(fx, degree)
 #     #     varf_yz = quad_xy.varf(fyz, degree)
 #     #     varf_xyz = quad.varf(f, degree)
-#     #     # ipdb.set_trace()
 #     #     tensorized = core.tensorize([varf_x, varf_yz], [[0], [1, 2]])
 #     #     # diff = (la.norm(varf_2d - projection, 2))
 #     #     # self.assertAlmostEqual(diff, 0)

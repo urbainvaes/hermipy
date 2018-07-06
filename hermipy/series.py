@@ -43,7 +43,7 @@ class Series:
             vecs.append(a.coeffs)
         tens_vec = core.tensorize(vecs, index_set=index_set)
         tens_pos = pos.Position.tensorize([a.position for a in args])
-        return Series(tens_vec, tens_pos, index_set=0)
+        return Series(tens_vec, tens_pos, index_set=index_set)
 
     def __init__(self, coeffs, position, norm=False,
                  index_set="triangle", significant=0):

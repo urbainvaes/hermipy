@@ -66,13 +66,13 @@ class TestSplit(unittest.TestCase):
         for i in range(3):
             if split[i][-1] == 1:
                 self.assertTrue(len(split[i]) == 4)
-                self.assertTrue(split[i][0] == newf('x'))
-                self.assertTrue(split[i][1] == newf('x*x'))
+                self.assertTrue(split[i][0] == newf('x', dirs=[0]))
+                self.assertTrue(split[i][1] == newf('y*y', dirs=[1]))
             if split[i][-1] == 5:
                 self.assertTrue(len(split[i]) == 4)
-                self.assertTrue(split[i][0] == newf('1'))
-                self.assertTrue(split[i][1] == newf('x'))
-                self.assertTrue(split[i][2] == newf('exp(x)'))
+                self.assertTrue(split[i][0] == newf('1', dirs=[0]))
+                self.assertTrue(split[i][1] == newf('y', dirs=[1]))
+                self.assertTrue(split[i][2] == newf('exp(z)', dirs=[2]))
             if split[i][-1] == 3:
                 self.assertTrue(len(split[i]) == 2)
-                self.assertTrue(split[i][0] == newf('log(x*z)'))
+                self.assertTrue(split[i][0] == newf('log(x*z)', dim=3))
