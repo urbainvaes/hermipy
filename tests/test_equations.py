@@ -257,7 +257,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
 
         # Map to appropriate space
         factor_x = sym.exp(- β / 2 * (Vqx + Vp))
-        factor_y = sym.exp(- 1/2 * (Vqy + sym.sqrt(2)*y*y/2))
+        factor_y = sym.exp(- 1/2 * (Vqy + y*y/2))
         factor = factor_x * factor_y
 
         # Mapped operator
@@ -356,7 +356,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
 
         r = sym.Rational
         Vp, degree = self.x**4/4 - self.x**2/2, 40
-        m, s2x, s2y = r(1, 10), r(1, 20), 1/2
+        m, s2x, s2y = r(1, 10), r(1, 20), 1
         params = {'β': r(10), 'ε': r(.5), 'γ': 0, 'θ': 0, 'm': 0}
         args = [Vp, params, m, s2x, s2y, degree]
         quad, forward, backward, factor, _, _ = self.sym_calc(*args)
