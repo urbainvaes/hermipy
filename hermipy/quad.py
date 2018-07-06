@@ -263,20 +263,22 @@ class Quad:
             import matplotlib.pyplot as plt
             fig, ax = plt.subplots(1)
 
-        if factor is None:
-            factor = self.position.weight()
-
-        if not isinstance(factor, np.ndarray):
-            factor = symfunc.Function(factor, dirs=self.position.dirs)
-            factor = self.discretize(factor)
-
         if isinstance(arg, tuple(sym.core.all_classes)):
             arg = symfunc.Function(arg, dirs=self.position.dirs)
 
         if type(arg) is symfunc.Function:
-            solution = self.discretize(arg)*factor
+            assert factor is None
+            solution = self.discretize(arg)
 
         elif type(arg) is hs.Series:
+
+            if factor is None:
+                factor = self.position.weight()
+
+            if not isinstance(factor, np.ndarray):
+                factor = symfunc.Function(factor, dirs=self.position.dirs)
+                factor = self.discretize(factor)
+
             series = arg
             solution = self.eval(series)*factor
 
@@ -310,6 +312,8 @@ class Quad:
             plot = ax.contourf(*r_nodes, solution, 100)
 
         if show_plt:
+            if self.position.dim == 2:
+                plt.colorbar(plot, ax=ax)
             plt.show()
         else:
             return plot
