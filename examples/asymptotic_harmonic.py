@@ -186,13 +186,17 @@ assert centered[6].subs(unk[0], solution_0)\
 quady = quad.Quad.gauss_hermite(nquad, dirs=[1], mean=[0], cov=[[σy]])
 solution, proj_xz = u[0] + ε*u[1] + ε**2*u[2] + ε**3*u[3] + ε**4*u[4], 0
 split = func.Function(solution.expand(), dim=3, allow_sym=True).split()
-for term in split:
-    xz_part = term[-1] \
-        * term[0].as_format('xyz') \
-        * term[2].as_format('xyz')
-    integ = quady.integrate(term[1].as_format('xyz'))
-    proj_xz += integ * xz_part
-proj_xz = func.Function.sanitize(proj_xz)
+n_proj = 5
+proj_xz = [0]*n_proj
+for i in range(n_proj):
+    split = func.Function(u[i].expand(), dim=3, allow_sym=True).split()
+    for term in split:
+        xz_part = term[-1] \
+            * term[0].as_format('xyz') \
+            * term[2].as_format('xyz')
+        integ = quady.integrate(term[1].as_format('xyz'))
+        proj_xz[i] += integ * xz_part
+        proj_xz[i] = func.Function.sanitize(proj_xz[i])
 # }}}
 # Check solution {{{
 
@@ -227,15 +231,14 @@ assert (operator/epsilon**4).expand()\
 
 
 # }}}
-# Particular
+# Plot
 n_points = 100
 potential = (x**4/4 - x**2/2) + θ/2*(x**2 - 2*x*m)
-quad_visu = quad.Quad.newton_cotes([n_points, n_points], [2, 2], dirs=[0, 2])
 quad_gauss = quad.Quad.gauss_hermite(n_points, dirs=[0, 2], cov=[[1, 0], [0, 1]])
 quadx = quad.Quad.gauss_hermite(100, dirs=[0], cov=[[1]])
 
 r = sym.Rational
-θn, mn, βn, εn = r(.5), r(1, 5), r(1, 10), r(.5)
+θn, mn, βn, εn = r(0), r(0, 5), r(1), r(1, 2)
 potential_n = potential.subs(((θ, θn), (m, mn), (β, βn), (ε, εn)))
 Z_n = quadx.integrate(sym.exp(-βn*potential_n), l2=True)
 solution_0_n = sym.exp(-βn*potential_n)/Z_n
@@ -246,18 +249,34 @@ solution_4_n = solution_4_n.subs(C2, C2_n)
 assert abs(quadx.integrate(solution_0_n, l2=True) - 1) < 1e-8
 assert abs(quadx.integrate(solution_4_n, l2=True) - 0) < 1e-8
 
-rho_z = 1/sym.sqrt(2*sym.pi)*sym.exp(-z*z/2)
-proj_xz_n = (proj_xz*rho_z).subs(unk[0], solution_0)\
-                           .subs(unk[4], solution_4).doit()
-proj_xz_n = proj_xz_n.subs(Vp, potential).doit()
-proj_xz_n = proj_xz_n.factor().subs(((θ, θn), (m, mn), (β, βn),
-                                     (ε, εn), (Z, Z_n), (C2, C2_n)))
-assert abs(quad_gauss.integrate(proj_xz_n, l2=True) - 1) < 1e-8
-image = quad_gauss.discretize(proj_xz_n).reshape(n_points, n_points)
+rho_z = 1/sym.sqrt(2*sym.pi) * sym.exp(-z*z/2)
 
+proj_xz_n = [0]*n_proj
+for i, p in enumerate(proj_xz):
+    proj_xz_n[i] = (proj_xz[i]*rho_z).subs(unk[0], solution_0)\
+                                  .subs(unk[4], solution_4).doit()
+    proj_xz_n[i] = proj_xz_n[i].subs(Vp, potential).doit()
+    proj_xz_n[i] = proj_xz_n[i].factor().subs(((θ, θn), (m, mn), (β, βn),
+                                               (ε, εn), (Z, Z_n), (C2, C2_n)))
+    assert abs(quad_gauss.integrate(proj_xz_n[i], l2=True) - i == 0) < 1e-8
+
+import matplotlib
 import matplotlib.pyplot as plt
-plt.contour(image)
-plt.show()
+matplotlib.rc('font', size=14)
+matplotlib.rc('font', family='serif')
+matplotlib.rc('text', usetex=True)
 
-import sympy.plotting as sp
-sp.plot(solution_x_n)
+fig, axes = plt.subplots(2, 2)
+quad_visu = quad.Quad.newton_cotes([n_points, n_points], [2, 2], dirs=[0, 2])
+proj_total = 0
+
+for i in (0, 1):
+    for j in (0, 1):
+        n = 1 + 2*i + j
+        cont = quad_visu.plot(proj_xz_n[n], ax=axes[i][j])
+        plt.colorbar(cont, ax=axes[i][j], pad=.01)
+        for c in cont.collections:
+            c.set_edgecolor("face")
+# plt.tight_layout()
+# plt.savefig("test.eps", bbox_inches='tight')
+plt.show()
