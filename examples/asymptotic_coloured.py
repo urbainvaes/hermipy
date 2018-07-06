@@ -27,6 +27,7 @@ import numpy as np
 import numpy.linalg as la
 import sympy as sym
 
+# Declare variables, operators and parameters {{{
 sym.init_printing()
 equation = eq.McKean_Vlasov
 x, y, f = equation.x, equation.y, equation.f
@@ -54,10 +55,31 @@ fy = sym.Function('fy')(y)
 # import ipdb; ipdb.set_trace()
 op = quad_num.discretize_op(L0.subs(f, fy), fy, degree, 2, sparse=False)
 
-# Expansion of the solution
+# }}}
+# Expansion of the solution {{{
 nterms = 5
 zeros = [sym.Integer(0)] * nterms
 u, centered, unk = zeros, zeros.copy(), zeros.copy()
+
+
+def iL0(term):
+    t_rhs = quad_num.transform(term, degree)
+    solution = la.solve(op.matrix[1:, 1:], t_rhs.coeffs[1:])
+    solution = np.array([0, *solution])
+    sol_series = series.Series(solution, t_rhs.position, significant=14)
+    symbolic = sol_series.to_function().as_format('xyz')
+    symbolic = func.Function.sanitize(symbolic, max_denom=1e8)
+
+    print("--> Solving cell problem with rhs: " + str(term))
+    print("----> Solution: " + str(symbolic))
+    diff = (L0.subs(f, symbolic).doit() - term)
+    if len(diff.expand().free_symbols) > 0:
+        print("----> Error: does not match!")
+        sym.pprint(diff)
+        import ipdb
+        ipdb.set_trace()
+    return symbolic
+
 
 for i in range(nterms):
     print("Solving for power " + str(i))
@@ -78,22 +100,12 @@ for i in range(nterms):
         y_part = term[1].as_format('xyz')
         t_rhs = quad_num.transform(y_part, degree)
         centered[i] += round(t_rhs.coeffs[0], 10) * x_part
-        solution = la.solve(op.matrix[1:, 1:], t_rhs.coeffs[1:])
-        solution = np.array([0, *solution])
-        sol_series = series.Series(solution, t_rhs.position, significant=14)
-        symbolic = sol_series.to_function().as_format('xyz')
-        symbolic = func.Function.sanitize(symbolic)
-        u[i] += x_part * symbolic
+        u[i] += x_part * iL0(y_part)
+    u[i] = func.Function.sanitize(u[i])
+    centered[i] = func.Function.sanitize(centered[i])
 
-        print("--> Solving cell problem with rhs: " + str(y_part))
-        print("----> Solution: " + str(symbolic))
-        diff = (L0.subs(f, symbolic).doit() - y_part)
-        if len(diff.expand().free_symbols) > 0:
-            print("----> Error: does not match!")
-            sym.pprint(diff)
-            import ipdb
-            ipdb.set_trace()
-
+# }}}
+# Some manual calculations {{{
 # Operator
 fx = sym.Function('fx')(x)
 LFP = ((1/β)*sym.exp(-β*Vp)*(fx*sym.exp(β*Vp)).diff(x)).diff(x)
@@ -101,7 +113,8 @@ LFP = ((1/β)*sym.exp(-β*Vp)*(fx*sym.exp(β*Vp)).diff(x)).diff(x)
 # Centering condition for u₀
 print("Equation for u₀: ")
 sym.pprint(centered[2])
-solution_0 = sym.exp(-β*Vp)
+Z = sym.symbols('Z', real=True)
+solution_0 = sym.exp(-β*Vp)/Z
 assert centered[2].subs(unk[0], solution_0).doit().cancel() == 0
 
 # Centering condition for u₁
@@ -160,3 +173,52 @@ for term in split:
 
 print("x-projection of the solution: ")
 sym.pprint(func.Function.sanitize(solution_x).factor())
+# }}}
+# Plot x - y {{{
+n_points = 100
+potential = (x**4/4 - x**2/2) + θ/2*(x**2 - 2*x*m)
+quad_gauss = quad.Quad.gauss_hermite(n_points, dirs=[0, 1],
+                                     cov=[[1, 0], [0, 1]])
+quadx = quad.Quad.gauss_hermite(100, dirs=[0], cov=[[1]])
+
+r, ε = sym.Rational, epsilon
+θn, mn, βn, εn = r(0), r(0, 5), r(1), r(1, 2)
+potential_n = potential.subs(((θ, θn), (m, mn), (β, βn), (ε, εn)))
+Z_n = quadx.integrate(sym.exp(-βn*potential_n), l2=True)
+solution_0_n = sym.exp(-βn*potential_n)/Z_n
+solution_2_n = solution_2.subs(Vp, potential).doit()
+solution_2_n = solution_2_n.factor().subs(((θ, θn), (m, mn), (β, βn),
+                                           (ε, εn), (Z, Z_n)))
+C2_n = quadx.integrate(sym.solve(solution_2_n, C2)[0] * solution_0_n, l2=True)
+solution_4_n = solution_2_n.subs(C2, C2_n)
+assert abs(quadx.integrate(solution_0_n, l2=True) - 1) < 1e-8
+assert abs(quadx.integrate(solution_4_n, l2=True) - 0) < 1e-8
+
+rho_z = 1/sym.sqrt(2*sym.pi) * sym.exp(-y*y/2)
+
+un = [0]*3
+for i, p in enumerate(un):
+    un[i] = (u[i]*rho_z).subs(unk[0], solution_0)\
+                        .subs(unk[2], solution_2).doit()
+    un[i] = un[i].subs(Vp, potential).doit()
+    un[i] = un[i].factor().subs(((θ, θn), (m, mn), (β, βn),
+                                 (ε, εn), (Z, Z_n), (C2, C2_n)))
+    assert abs(quad_gauss.integrate(un[i], l2=True) - i == 0) < 1e-8
+
+
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.rc('font', size=14)
+matplotlib.rc('font', family='serif')
+matplotlib.rc('text', usetex=True)
+
+fig, axes = plt.subplots(1, 2)
+quad_visu = quad.Quad.newton_cotes([n_points, n_points], [2, 2], dirs=[0, 1])
+proj_total = 0
+
+for i in (0, 1):
+    cont = quad_visu.plot(un[i+1], ax=axes[i])
+    plt.colorbar(cont, ax=axes[i], pad=.01)
+    for c in cont.collections:
+        c.set_edgecolor("face")
+plt.show()
