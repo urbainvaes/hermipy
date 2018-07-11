@@ -254,6 +254,47 @@ class Quad:
                                    index_set=index_set)
             mat_operator = varf_part + mat_operator
         return mat_operator
+    # Only works with ints
+    def project(self, directions):
+        """Project the quadrature.
+
+        Args:
+            directions: a list of integers containing the directions along
+            which the quadrature is to be projected.
+
+        Returns:
+            A `Quad` object.
+
+        """
+        if type(directions) is int:
+            directions = [directions]
+        dim = len(directions)
+        nodes, weights = [], []
+        for i in range(dim):
+            d = directions[i]
+            assert d < self.position.dim
+            nodes.append(self.nodes[d])
+            weights.append(self.weights[d])
+        pos = self.position.project(directions)
+        return Quad(nodes, weights, position=pos)
+
+    def series(self, coeffs, norm=False, index_set="triangle"):
+        """Return a series from a vector of coefficients.
+
+        Args:
+            coeffs: a numpy array of coefficients.
+
+            norm: whether or not to normalize the coefficients (using the
+                  little L² norm).
+
+            index_set: the index set corresponding to the series.
+
+        Returns:
+            A `Series` object.
+
+        """
+        return hs.Series(coeffs, self.position, norm=norm,
+                         index_set=index_set)
 
     def plot(self, arg, factor=None, ax=None):
         assert self.position.is_diag
@@ -311,6 +352,9 @@ class Quad:
         elif self.position.dim == 2:
             plot = ax.contourf(*r_nodes, solution, 100)
 
+        min, max = np.min(solution), np.max(solution)
+        ax.set_title("Min: {:.3f}, Max: {:.3f}".format(min, max))
+
         if show_plt:
             if self.position.dim == 2:
                 plt.colorbar(plot, ax=ax)
@@ -318,44 +362,70 @@ class Quad:
         else:
             return plot
 
-    # Only works with ints
-    def project(self, directions):
-        """Project the quadrature.
+    def streamlines(self, fx, fy, factor=None, ax=None, **kwargs):
+        assert self.position.is_diag
+        assert type(fx) is type(fy)
+        assert self.position.dim is 2
 
-        Args:
-            directions: a list of integers containing the directions along
-            which the quadrature is to be projected.
+        show_plt = ax is None
+        if show_plt:
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(1)
 
-        Returns:
-            A `Quad` object.
+        if isinstance(fx, tuple(sym.core.all_classes)):
+            fx = symfunc.Function(fx, dirs=self.position.dirs)
+            fy = symfunc.Function(fy, dirs=self.position.dirs)
 
-        """
-        if type(directions) is int:
-            directions = [directions]
-        dim = len(directions)
-        nodes, weights = [], []
-        for i in range(dim):
-            d = directions[i]
-            assert d < self.position.dim
-            nodes.append(self.nodes[d])
-            weights.append(self.weights[d])
-        pos = self.position.project(directions)
-        return Quad(nodes, weights, position=pos)
+        if type(fx) is symfunc.Function:
+            assert factor is None
+            fx, fy = self.discretize(fx), self.discretize(fy)
 
-    def series(self, coeffs, norm=False, index_set="triangle"):
-        """Return a series from a vector of coefficients.
+        elif type(fx) is hs.Series:
 
-        Args:
-            coeffs: a numpy array of coefficients.
+            if factor is None:
+                factor = self.position.weight()
 
-            norm: whether or not to normalize the coefficients (using the
-                  little L² norm).
+            if not isinstance(factor, np.ndarray):
+                factor = symfunc.Function(factor, dirs=self.position.dirs)
+                factor = self.discretize(factor)
 
-            index_set: the index set corresponding to the series.
+            sx, sy = self.eval(fx)*factor, self.eval(fy)*factor
 
-        Returns:
-            A `Series` object.
+        else:
+            raise TypeError("Unsupported type: " + str(type(fx)))
 
-        """
-        return hs.Series(coeffs, self.position, norm=norm,
-                         index_set=index_set)
+        n_nodes = []
+        r_nodes = []
+        for i in range(self.position.dim):
+            direction = symfunc.Function.xyz[self.position.dirs[i]]
+            n_nodes.append(len(self.nodes[i]))
+            r_nodes.append(self.project(i).discretize(direction))
+        sx, sy = sx.reshape(*n_nodes).T, sy.reshape(*n_nodes).T
+        # magnitude = sx**2 + sy**2
+        x, y = r_nodes[0], r_nodes[1]
+
+        # See https://github.com/matplotlib/matplotlib/issues/9269
+        def calc_psi2d(x, y, fx, fy):  # solenoidal flows
+            # psi by integrating dpsi = -fy*dx + fx*dy, psi[0,0]=0
+            ny, nx = fx.shape
+            psi = np.zeros((ny, nx))
+            for jx in range(1, nx):
+                psi[0, jx] = psi[0, jx-1] - fy[0, jx] * (x[jx] - x[jx-1])
+            for jy in range(1, ny):
+                psi[jy, :] = psi[jy-1, :] + fx[jy, :] * (y[jy] - y[jy-1])
+            return psi
+
+        psi = calc_psi2d(x, y, sx, sy)
+        min, max, thresh = np.min(psi), np.max(psi), .1
+        if abs(min) < thresh*(max - min):
+            min = thresh*(max - min)
+        if abs(max) < thresh*(max - min):
+            max = - thresh*(max - min)
+        levels = np.linspace(min, max, 10)
+        streams = ax.contour(x, y, psi, levels=levels, **kwargs)
+
+        # ax.quiver(x, y, sx, sy)
+        # streams = ax.streamplot(r_nodes[0], r_nodes[1], sx, sy,
+        #                         color=magnitude, density=0.6, cmap='autumn')
+
+        return plt.show() if show_plt else streams
