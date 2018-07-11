@@ -115,7 +115,7 @@ class McKean_Vlasov:
         return {**params, **functions}
 
     @classmethod
-    def equation(cls, params):
+    def fluxes(cls, params):
 
         # Real parameters
         β, γ, ε, θ, m = (params[x] for x in ['β', 'γ', 'ε', 'θ', 'm'])
@@ -127,12 +127,22 @@ class McKean_Vlasov:
         d, x, y, f = sym.diff, cls.x, cls.y, cls.f
 
         # Fokker planck operator
-        operator = d(d(Vp, x)*f + θ*(x-m)*f - (1-γ)*sym.sqrt(1/β)*y*f/ε, x) \
-            + γ**2/β * d(d(f, x), x) \
-            + (1/ε**2) * d(y * f, y) \
-            + (1/ε**2) * d(d(f, y), y)
+        flux_x = - (d(Vp, x)*f + θ*(x-m)*f - (1-γ)*sym.sqrt(1/β)*y*f/ε
+                    + γ**2/β * d(f, x))
+        flux_y = - (1/ε**2) * (f*y + d(f, y))
+        return [flux_x, flux_y]
 
-        return operator
+    @classmethod
+    def equation(cls, params):
+
+        # Shorthand notations
+        x, y = cls.x, cls.y
+
+        # Compute fluxes
+        fx, fy = cls.fluxes(params)
+
+        # Fokker planck operator
+        return - fx.diff(x) - fy.diff(y)
 
 
 class Langevin:
@@ -201,7 +211,7 @@ class McKean_Vlasov_harmonic_noise:
         return {**params, **functions}
 
     @classmethod
-    def equation(cls, params):
+    def fluxes(cls, params):
 
         # Real parameters
         β, γ, ε, θ, m = (params[x] for x in ['β', 'γ', 'ε', 'θ', 'm'])
@@ -216,9 +226,20 @@ class McKean_Vlasov_harmonic_noise:
         λ = 1
 
         # Fokker planck operator
-        operator = d(d(Vp, x)*f + θ*(x-m)*f - (1-γ)*sym.sqrt(1/β)*z*f/ε, x) \
-            + γ**2/β * d(d(f, x), x) \
-            + (1/ε**2) * (-y*d(f, z) + z*d(f, y)) \
-            + (1/ε**2) * λ*d(f*y + d(f, y), y)
+        flux_x = - (d(Vp, x)*f + θ*(x-m)*f - (1-γ)*sym.sqrt(1/β)*z*f/ε
+                    + γ**2/β * d(f, x))
+        flux_y = - (1/ε**2) * (f*z + λ*(f*y + d(f, y)))
+        flux_z = - (1/ε**2) * (-y*f)
+        return [flux_x, flux_y, flux_z]
 
-        return operator
+    @classmethod
+    def equation(cls, params):
+
+        # Shorthand notations
+        x, y, z = cls.x, cls.y, cls.z
+
+        # Compute fluxes
+        fx, fy, fz = cls.fluxes(params)
+
+        # Fokker planck operator
+        return - fx.diff(x) - fy.diff(y) - fz.diff(z)
