@@ -42,6 +42,8 @@ class Function():
 
     def __init__(self, expr, dim=None, dirs=None, allow_sym=False):
 
+        self.allow_sym = allow_sym
+
         if isinstance(expr, int) or isinstance(expr, float):
             expr = str(expr)
 
@@ -177,12 +179,19 @@ class Function():
             if tensorizable:
                 for i in range(self.dim):
                     result[i] = Function(result[i], dirs=[self.dirs[i]],
-                                         allow_sym=True)
+                                         allow_sym=self.allow_sym)
             else:
                 func = Function(term/result[-1], dirs=self.dirs,
-                                allow_sym=True)
+                                allow_sym=self.allow_sym)
                 result = [func, result[-1]]
             to_return.append(result)
+
+        # factorized = []
+        # for i, term in enumerate(to_return):
+        #     for j in range(i, len(to_return)):
+        #         other = to_return[j]
+        #         if len(term
+
         return to_return
 
     @staticmethod
