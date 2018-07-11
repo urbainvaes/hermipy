@@ -218,14 +218,25 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
     def setUp(self):
 
         # Equation parameters
-        equation = eq.McKean_Vlasov
-        self.x, self.y, self.f = equation.x, equation.y, equation.f
+        self.eq = eq.McKean_Vlasov
+        self.x, self.y, self.f = self.eq.x, self.eq.y, self.eq.f
 
         # Default degree
         self.degree = 50
 
         # Set default settings
         rc.settings.update(self.settings)
+
+    def test_correctness_operator(self):
+        params = self.eq.params()
+        β, γ, ε, θ, m = (params[x] for x in ['β', 'γ', 'ε', 'θ', 'm'])
+        d, x, y, f = sym.diff, self.x, self.y, self.f
+        Vp = params['Vp']
+        explicit = d(d(Vp, x)*f + θ*(x-m)*f - (1-γ)*sym.sqrt(1/β)*y*f/ε, x) \
+            + γ**2/β * d(d(f, x), x) \
+            + (1/ε**2) * d(y * f, y) \
+            + (1/ε**2) * d(d(f, y), y)
+        self.assertTrue((explicit - self.eq.equation(params)).cancel() == 0)
 
     def sym_calc(self, Vp, parameters, m, s2x, s2y,
                  degree=None):
@@ -422,10 +433,22 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
     def setUp(self):
 
         # Equation parameters
-        equation = eq.McKean_Vlasov_harmonic_noise
-        self.x, self.y, self.z = equation.x, equation.y, equation.z
-        self.f = equation.f
+        self.eq = eq.McKean_Vlasov_harmonic_noise
+        self.x, self.y, self.z = self.eq.x, self.eq.y, self.eq.z
+        self.f = self.eq.f
         self.dim = 3
+
+    def test_correctness_operator(self):
+        params = self.eq.params()
+        d, x, y, z, f = sym.diff, self.x, self.y, self.z, self.f
+        β, γ, ε, θ, m = (params[x] for x in ['β', 'γ', 'ε', 'θ', 'm'])
+        λ = 1
+        Vp = params['Vp']
+        explicit = d(d(Vp, x)*f + θ*(x-m)*f - (1-γ)*sym.sqrt(1/β)*z*f/ε, x) \
+            + γ**2/β * d(d(f, x), x) \
+            + (1/ε**2) * (-y*d(f, z) + z*d(f, y)) \
+            + (1/ε**2) * λ*d(f*y + d(f, y), y)
+        self.assertTrue((explicit - self.eq.equation(params)).cancel() == 0)
 
     def sym_calc(self, Vp, parameters, s2x, s2y, s2z, degree=10):
 
