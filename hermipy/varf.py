@@ -19,6 +19,7 @@
 import hermipy.core as core
 import hermipy.lib as lib
 import hermipy.position as pos
+import hermipy.series as hs
 import scipy.sparse as ss
 import numpy as np
 import numpy.linalg as la
@@ -92,6 +93,14 @@ class Varf:
         else:
             raise TypeError("Invalid type: " + str(type(other)))
 
+    def __call__(self, series):
+        assert self.position == series.position
+        assert self.index_set == series.index_set
+        assert type(series) is hs.Series
+        coeffs = self.matrix.dot(series.coeffs)
+        return hs.Series(coeffs, self.position,
+                         index_set=self.index_set)
+
     def project(self, directions):
         if type(directions) is int:
             directions = [directions]
@@ -104,7 +113,7 @@ class Varf:
     def subdegree(self, degree):
         assert degree <= self.degree
         n_polys = core.iterator_size(self.position.dim, degree)
-        matrix = self.matrix[0:n_polys][0:n_polys]
+        matrix = self.matrix[0:n_polys, 0:n_polys]
         return Varf(matrix, self.position, index_set=self.index_set)
 
     def multi_indices(self):
