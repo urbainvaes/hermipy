@@ -97,12 +97,12 @@ class Position:
         assert type(other) is Position
         return Position.tensorize([self, other])
 
-    def __hash__(self):
-        return hash(frozenset({
-            self.dim,
-            hash(frozenset(self.mean.flatten())),
-            hash(frozenset(self.cov.flatten())),
-            hash(frozenset(self.dirs))}))
+    def __repr__(self):
+        result = "Dimension: " + str(self.dim) + "\n"
+        result += "Directions: " + str(self.dirs) + "\n"
+        result += "Mean: " + str(self.mean) + "\n"
+        result += "Covariance:\n" + str(self.cov)
+        return result
 
     def weight(self):
         var = [sym.symbols('v' + str(d), real=True) for d in self.dirs]

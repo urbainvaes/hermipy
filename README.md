@@ -12,8 +12,6 @@ $ python -m unittest discover -v tests
 
 - Use absolute and relative direction terminology?
 
-- Fix scaling of OU process
-
 - Add operator() for varf?
 
 - Inconsistency sparse = False / None
@@ -30,15 +28,7 @@ $ python -m unittest discover -v tests
 
 - Add support for Hermite Fourier
 
-- Tie position, directions, and function variables
-
-- Inconsistency with direction in project() and self.dirs
-
-- Project: are directions indices, or actual directions (as in position.dirs)?
-
 - Two passes in tensorize in 1d
-
-- In plot, add bounds of Hermite series
 
 # License
 
