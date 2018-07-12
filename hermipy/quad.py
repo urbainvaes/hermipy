@@ -27,7 +27,7 @@ import hermipy.stats as stats
 
 import numpy as np
 import numpy.linalg as la
-import sympy  as sym
+import sympy as sym
 
 
 very_small = 1e-10
@@ -296,7 +296,7 @@ class Quad:
         return hs.Series(coeffs, self.position, norm=norm,
                          index_set=index_set)
 
-    def plot(self, arg, factor=None, ax=None):
+    def plot(self, arg, factor=None, ax=None, bounds=True):
         assert self.position.is_diag
 
         show_plt = ax is None
@@ -323,18 +323,21 @@ class Quad:
             series = arg
             solution = self.eval(series)*factor
 
-            bounds, adim_width = [], np.sqrt(2) * np.sqrt(2*series.degree + 1)
-            for i in range(series.position.dim):
-                mean, cov = series.position.mean[i], series.position.cov[i][i]
-                bounds.append([mean - adim_width * np.sqrt(cov),
-                               mean + adim_width * np.sqrt(cov)])
+            if bounds:
 
-            if self.position.dim >= 1:
-                ax.axvline(x=bounds[0][0])
-                ax.axvline(x=bounds[0][1])
-            if self.position.dim == 2:
-                ax.axhline(y=bounds[1][0])
-                ax.axhline(y=bounds[1][1])
+                bounds, adim_width = [], np.sqrt(2)*np.sqrt(2*series.degree+1)
+                for i in range(series.position.dim):
+                    mean = series.position.mean[i]
+                    cov = series.position.cov[i][i]
+                    bounds.append([mean - adim_width * np.sqrt(cov),
+                                   mean + adim_width * np.sqrt(cov)])
+
+                if self.position.dim >= 1:
+                    ax.axvline(x=bounds[0][0])
+                    ax.axvline(x=bounds[0][1])
+                if self.position.dim == 2:
+                    ax.axhline(y=bounds[1][0])
+                    ax.axhline(y=bounds[1][1])
 
         else:
             raise TypeError("Unsupported type: " + str(type(arg)))
