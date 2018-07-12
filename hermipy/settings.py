@@ -19,13 +19,8 @@
 settings = {
         'cache': False,
         'cachedir': '.cache',
+        'debug': False,
+        'sparse': False,
         'tensorize': True,
         'trails': False,
-        'debug': False
         }
-
-
-def get(name, **kwargs):
-    if name in kwargs:
-        return kwargs[name]
-    return settings[name]
