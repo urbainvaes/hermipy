@@ -96,6 +96,8 @@ class Series:
         else:
             raise TypeError("Invalid type: " + str(type(other)))
 
+    __rmul__ = __mul__
+
     def __sub__(self, other):
         return self + other * (-1)
 
@@ -136,7 +138,13 @@ class Series:
         return core.iterator_list_indices(self.position.dim, self.degree,
                                           index_set=self.index_set)
 
-    def plot(self, ax):
+    def plot(self, ax=None):
+
+        show_plt = ax is None
+        if show_plt:
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(1)
+
         m = self.multi_indices()
         if self.position.dim == 1:
             mx = m[:, 0]
@@ -148,12 +156,16 @@ class Series:
             # zoom = 1e3/max(mx)
             # positives = zoom * (coeffs > 0) * coeffs
             # negatives = zoom * (coeffs < 0) * coeffs * (-1)
+            zeros = abs(coeffs) < 1e-12
             # ax.scatter(mx, my, s=positives, c='g', marker='o')
-            # ax.scatter(mx, my, s=negatives, c='r', marker='o')
             ax.scatter(mx, my, c=1-abs(coeffs), cmap='gray')
+            ax.scatter(mx, my, s=zeros, c='r', marker='o')
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
             ax.yaxis.set_major_locator(MaxNLocator(integer=True))
         ax.set_title("Coefficients of the Hermite expansion")
+
+        if show_plt:
+            plt.show()
 
     def to_function(self):
         assert self.position.is_diag
