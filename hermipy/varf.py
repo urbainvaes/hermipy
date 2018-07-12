@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import hermipy.cache as cache
 import hermipy.core as core
 import hermipy.lib as lib
 import hermipy.position as pos
@@ -93,6 +94,8 @@ class Varf:
         else:
             raise TypeError("Invalid type: " + str(type(other)))
 
+    __rmul__ = __mul__
+
     def __call__(self, series):
         assert self.position == series.position
         assert self.index_set == series.index_set
@@ -113,7 +116,7 @@ class Varf:
     def subdegree(self, degree):
         assert degree <= self.degree
         n_polys = core.iterator_size(self.position.dim, degree)
-        matrix = self.matrix[0:n_polys, 0:n_polys]
+        matrix = self.matrix[0:n_polys, 0:n_polys].copy(order='C')
         return Varf(matrix, self.position, index_set=self.index_set)
 
     def multi_indices(self):
@@ -126,3 +129,13 @@ class Varf:
         inds_triangle = lib.cross_in_triangle(self.position.dim, degree)
         matrix = self.matrix[np.ix_(inds_triangle, inds_triangle)]
         return Varf(matrix, self.position, index_set="cross")
+
+    def eigs(self, **kwargs):
+        eigs = cache.cache(quiet=True)(las.eigs)
+        eig_vals, eig_vecs = eigs(self.matrix, **kwargs)
+        result = []
+        for v in eig_vecs.T:
+            coeffs = np.real(v)
+            series = hs.Series(coeffs, self.position, index_set=self.index_set)
+            result.append(series)
+        return eig_vals, result
