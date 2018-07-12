@@ -90,6 +90,7 @@ def gen_error(extend=None):
     return the_error
 
 
+# Use only for functions that do not depend on global library options!
 def cache(hash_extend=None, error_extend=None, quiet=False):
     hash_fun = gen_hash(extend=hash_extend)
     error_fun = gen_error(extend=error_extend)

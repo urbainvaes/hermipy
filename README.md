@@ -8,19 +8,17 @@ $ python -m unittest discover -v tests
 
 # Todo
 
+- Improve documentation
+
+- Implement composite quadrature
+
 - Improve split to minimize number of terms
 
 - Use absolute and relative direction terminology?
 
-- Add operator() for varf?
-
 - Inconsistency sparse = False / None
 
-- Danger cache + global options !!!
-
 - Improve separability
-
-- Implement composite quadrature
 
 - Auto conversion from triangle, cube -> cross when appropriate?
 
