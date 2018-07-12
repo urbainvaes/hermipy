@@ -22,32 +22,27 @@
 #  TODO: Error with project (urbain, Fri 27 Apr 2018 05:23:07 PM BST)
 
 # IMPORT MODULES {{{
-import pdb
+import multiprocessing
 
 import argparse
 import sympy as sym
 # import sympy.plotting as splot
 import importlib
-import multiprocessing
 import numpy as np
 import numpy.linalg as la
 import scipy.sparse.linalg as las
 
+import hermipy
 import hermipy.stats
-import hermipy.cache
 import hermipy.equations as eq
-import hermipy.quad as hm
-import hermipy.settings as rc
 import hermipy.core as core
 
 from sympy.printing import pprint
 
-
-eigs = hermite.cache.cache(quiet=True)(las.eigs)
 sym.init_printing()
 
 # }}}
-# Parse options {{{
+# PARSE OPTIONS {{{
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-tc', '--convergence', action='store_true',
@@ -109,19 +104,18 @@ def vprint(*args, **kwargs):
 
 
 # Set library option
-rc.settings.update(config.misc)
+hermipy.settings.update(config.misc)
 
 if config.misc['plots']:
     import matplotlib.pyplot as plt
-    import examples.plot as plot
+    # import examples.plot as plots
 
 # }}}
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
 vprint("Symbolic calculations")
 
 # Variables and function
-x = eq.McKean_Vlasov.x
-y = eq.McKean_Vlasov.y
+x, y = eq.McKean_Vlasov.x, eq.McKean_Vlasov.y
 f = eq.McKean_Vlasov.f
 
 # Parameters
@@ -162,12 +156,8 @@ def eq_params():
 
 
 def vy():
-    alpha = sym.sqrt(2)
-    σy = Parameter(sym.symbols('σy', real=True, positive=True),
-                   1/(alpha), type='equation')
-    Vy = Parameter(sym.Function('Vy')(y), alpha*y*y/2,
-                   type='equation')
-    return {'σy': σy, 'Vy': Vy}
+    Vy = Parameter(sym.Function('Vy')(y), y*y/2, type='equation')
+    return {'Vy': Vy}
 
 
 def vq():
@@ -259,14 +249,14 @@ vprint("Defining quadratures")
 def compute_quads():
     μx = params['μx'].value
     σx = params['σx'].value
-    σy = params['σy'].value
+    σy = 1
 
-    quad_num = hm.Quad.gauss_hermite(
+    quad_num = hermipy.Quad.gauss_hermite(
             config.num['n_points_num'], dim=2,
             mean=[μx, 0], cov=[[σx, 0], [0, σy]])
 
     # Calculate limits of resolution
-    band_width = np.sqrt(2) * np.sqrt(2*degree + 1)
+    # band_width = np.sqrt(2) * np.sqrt(2*degree + 1)
     # x_min = μx - band_width * np.sqrt(σx)
     # x_max = μx + band_width * np.sqrt(σx)
     # y_min = 0 - band_width * np.sqrt(σy)
@@ -276,8 +266,8 @@ def compute_quads():
     nv = 200
     # bounds_x, bounds_y = band_width*np.sqrt('σx'), band_width*np.sqrt(cov_y)
     # bounds_x, bounds_y = 5*np.sqrt('σx'), 5*np.sqrt(cov_y)
-    bounds_x, bounds_y = 3, 4
-    quad_visu = hm.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y])
+    bounds_x, bounds_y = 3, 3
+    quad_visu = hermipy.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y])
     return quad_num, quad_visu
 
 
@@ -293,11 +283,14 @@ r_operator = (backward - params['m'].symbol*m_operator).cancel()
 vprint("Discretizing operators")
 m_mat = quad_num.discretize_op(m_operator, f, degree, 2)
 r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
-eig_vals, eig_vecs = eigs(r_mat, k=1, which='LR')
+
+vprint("Solving eigenvalue problem")
+eig_vals, eig_vecs = r_mat.eigs(k=4, which='LR')
+eig_vals = list(reversed(eig_vals))
+eig_vecs.reverse()
 
 # if config.misc['verbose']:
 #     hermite.stats.print_stats()
-
 
 # if args.mass:
 #     print(compute_moment1(float(args.mass)))
@@ -316,8 +309,6 @@ eig_vals, eig_vecs = eigs(r_mat, k=1, which='LR')
 #     plt.colorbar(cont, ax=ax)
 #     plt.show()
 
-
-
 def plot():
 
     print("[plot]")
@@ -325,45 +316,75 @@ def plot():
     def plot_eigenfunctions():
         fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
         axes = (ax11, ax12, ax21, ax22)
-        for e_val, e_vec, ax in zip(eig_vals, eig_vecs.T, axes):
-            e_vec = np.real(e_vec) * np.sign(np.real(e_vec[0]))
-            series = quad_num.series(e_vec, norm=True)
-            cont = quad_visu.plot(series, degree, factor, ax)
+        for e_val, series, ax in zip(eig_vals, eig_vecs, axes):
+            series = series * np.sign(series.coeffs[0])
+            cont = quad_visu.plot(series, factor, ax=ax, bounds=False)
             ax.set_title("Eigenvalue: " + str(e_val))
             plt.colorbar(cont, ax=ax)
         plt.show()
 
-
     def plot_hermite_functions():
-        fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
-        plot.plot_hf((degree, 0), quad_num, quad_visu, ax11)
-        plot.plot_hf((0, degree), quad_num, quad_visu, ax12)
-        plot.plot_hf((degree // 2, degree // 2), quad_num, quad_visu, ax21)
-        plt.show()
 
+        def plot_hf(degrees, quad_num, quad_visu, ax):
+            dim = len(degrees)
+            adim_width = [np.sqrt(2) * np.sqrt(2*d + 1) for d in degrees]
+            pos, bounds = quad_num.position, []
+            for i in range(dim):
+                width = adim_width[i] * np.sqrt(pos.cov[i][i])
+                bounds.append([pos.mean[i] - width, pos.mean[i] + width])
+            if dim >= 1:
+                ax.axvline(x=bounds[0][0])
+                ax.axvline(x=bounds[0][1])
+            if dim == 2:
+                ax.axhline(y=bounds[1][0])
+                ax.axhline(y=bounds[1][1])
+            deg_max = sum(degrees)
+            index_set = "triangle"
+            hf = np.zeros(core.iterator_size(2, deg_max, index_set=index_set))
+            hf[core.iterator_index(degrees, index_set="triangle")] = 1
+            hf = quad_num.series(hf, quad_num.position)
+            factor = quad_num.position.weight()
+            return quad_visu.plot(hf, factor, ax, bounds=False)
+
+        fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
+        plot_hf((degree, 0), quad_num, quad_visu, ax11)
+        plot_hf((0, degree), quad_num, quad_visu, ax12)
+        plot_hf((degree // 2, degree // 2), quad_num, quad_visu, ax21)
+        plt.show()
 
     def plot_ground_state():
-        ground_state = np.real(eig_vecs.T[0])
-        ground_state = ground_state * np.sign(ground_state[0])
-        ground_series = quad_num.series(ground_state, norm=True)
-        factors = {'x': factor_x, 'y': factor_y.subs(y, x)}
-        plot.plot_projections(ground_series, quad_visu, factors, degree)
-        plt.show()
+        ground_state = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])
+        factors = {'x': factor_x, 'y': factor_y}
 
+        # Plot the projections
+        degrees = np.arange(degree + 1)
+        series_x = ground_state.project(0)
+        series_y = ground_state.project(1)
+        quad_x = quad_visu.project(0)
+        quad_y = quad_visu.project(1)
+        fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
+        quad_x.plot(series_x, factors['x'], ax11)
+        ax11.set_title("Marginal distribution in x direction")
+        ax12.bar(degrees, series_x.coeffs)
+        ax12.set_title("Hermite coefficients of x marginal")
+        quad_y.plot(series_y, factors['y'], ax21)
+        ax21.set_title("Marginal distribution in y direction")
+        ax22.bar(degrees, series_y.coeffs)
+        ax22.set_title("Hermite coefficients of y marginal")
+        plt.show()
 
     def plot_comparison_with_asym():
         fig, ax = plt.subplots(1, 1)
-        as_sol = sym.exp(- params['β'] * functions['Vp'])/factor_x
-        as_series = quad_num.project('x').transform(as_sol, degree, norm=True)
-        quad_visu.project('x').plot(as_series, factor_x, ax)
+        as_sol = sym.exp(- params['β'].value * params['Vp'].eval())/factor_x
+        as_series = quad_num.project(0).transform(as_sol, degree, norm=True)
+        quad_visu.project(0).plot(as_series, factor_x, ax)
         plt.show()
-
 
     def plot_discretization_error():
         fig, ax = plt.subplots(1, 2)
-        quad_visu_x = quad_visu.project('x')
-        as_sol = sym.exp(- params['β'] * functions['Vp'])
-        as_series = quad_num.project('x').transform(as_sol/factor_x, degree)
+        quad_visu_x = quad_visu.project(0)
+        as_sol = sym.exp(- params['β'].value * params['Vp'].eval())
+        as_series = quad_num.project(0).transform(as_sol/factor_x, degree)
         norm_as = la.norm(as_series.coeffs, 2)
         as_series.coeffs = as_series.coeffs / norm_as
         quad_visu_x.plot(as_series, degree, factor_x, ax[0])
@@ -371,12 +392,20 @@ def plot():
         ax[0].plot(quad_visu_x.discretize('x'), sol_x/norm_as)
         plt.show()
 
+    plot_eigenfunctions()
+    plot_hermite_functions()
+    plot_ground_state()
+    plot_comparison_with_asym()
+
+
+plot()
+
 
 def bifurcation(factor_x, m_init):
 
     def compute_m(series):
-        quad_x = quad_num.project('x')
-        series_x = series.project('x')
+        quad_x = quad_num.project(0)
+        series_x = series.project(0)
         x_d = quad_x.discretize('x')
         factor_d = quad_x.discretize(factor_x)
         solution_d = quad_x.eval(series_x) * factor_d
@@ -388,19 +417,17 @@ def bifurcation(factor_x, m_init):
     def compute_moment1(m_val):
         if config.misc['verbose']:
             print("Solving the eigenvalue problem for m = " + str(m_val) + ".")
-        mat_operator = r_mat + m_val * m_mat
-        eig_vals, eig_vecs = eigs(mat_operator, k=1, which='LR')
-        ground_state = np.real(eig_vecs.T[0])
-        ground_state = ground_state * np.sign(ground_state[0])
-        ground_series = quad_num.series(ground_state, norm=True)
-        value = compute_m(ground_series)
-        # if config.misc['verbose']:
-        #     print(value)
-        # if config.misc['plots']:
-        #     fig, ax = plt.subplots(1, 1)
-        #     cont = quad_visu.plot(ground_series, degree, factor, ax)
-        #     plt.colorbar(cont, ax=ax)
-        #     plt.show()
+        mat_operator = r_mat + m_mat * m_val
+        eig_vals, eig_vecs = mat_operator.eigs(k=1, which='LR')
+        ground_state = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])
+        value = compute_m(ground_state)
+        if config.misc['verbose']:
+            print(value)
+        if config.misc['plots']:
+            fig, ax = plt.subplots(1, 1)
+            cont = quad_visu.plot(ground_state, factor, ax)
+            plt.colorbar(cont, ax=ax)
+            plt.show()
         return value
 
     # m_values = np.linspace(-2, 2, 41)
@@ -435,8 +462,7 @@ def convergence():
     factor_eval = quad_num.discretize(factor)
 
     def get_ground_state(eig_vec):
-        eig_vec = eig_vec * np.sign(eig_vec[0])
-        ground_series = quad_num.series(eig_vec)
+        ground_series = eig_vec * np.sign(eig_vec.coeffs[0])
         ground_state_eval = quad_num.eval(ground_series)
         ground_state_eval = ground_state_eval * factor_eval
         norm = quad_num.integrate(ground_state_eval, l2=True)
@@ -448,9 +474,8 @@ def convergence():
         solution = eq.solve_gaussian(forward, f, [x, y])
         solution_eval = quad_num.discretize(solution)
     else:
-        eig_vals, eig_vecs = eigs(r_mat, k=1, which='LR')
-        eig_vec = np.real(eig_vecs.T[0])
-        solution_eval = get_ground_state(eig_vec)
+        eig_vals, eig_vecs = r_mat.eigs(k=1, which='LR')
+        solution_eval = get_ground_state(eig_vecs[0])
     norm_sol = quad_num.integrate(solution_eval, l2=True)
     assert abs(norm_sol - 1) < 1e-6
 
@@ -460,33 +485,30 @@ def convergence():
     for d in range(5, degree):
         print("-- Solving for degree = " + str(d))
         npolys = core.iterator_size(2, d)
-        sub_mat = (r_mat[0:npolys, 0:npolys]).copy(order='C')
+        sub_varf = r_mat.subdegree(d)
         # sub_mat = sub_mat
         if v0 is not None:
             actual_v0 = np.zeros(npolys)
             for i in range(len(v0)):
                 actual_v0[i] = v0[i]
             v0 = actual_v0
-        eig_vals, eig_vecs = eigs(sub_mat, v0=v0, k=1, which='LR')
-        # else:
-        #     eig_vals, eig_vecs = cache(las.eigs)(sub_mat, k=1, which='LR')
-        eig_vec = np.real(eig_vecs.T[0])
-        v0 = eig_vec.copy(order='C')
-        ground_state_eval = get_ground_state(eig_vec)
+        eig_vals, eig_vecs = sub_varf.eigs(v0=v0, k=1, which='LR')
+        v0 = eig_vecs[0].coeffs.copy(order='C')
+        ground_state_eval = get_ground_state(eig_vecs[0])
         error = la.norm(ground_state_eval - solution_eval, 2)
         degrees.append(d)
         errors.append(error)
 
     fig, ax = plt.subplots(1, 1)
-    eig_vec = eig_vec * np.sign(eig_vec[0])
-    ground_series = quad_num.series(eig_vec)
-    cont = quad_visu.plot(ground_series, degree, factor, ax)
+    ground_series = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])
+    cont = quad_visu.plot(ground_series, factor, ax=ax)
     plt.colorbar(cont, ax=ax)
     plt.show()
     fig, ax = plt.subplots(1, 1)
     ax.semilogy(degrees, errors, 'k.')
     plt.show()
     # splot.contour(solution, (x, -1, 1), (y, -1, 1))
+
 
 convergence()
 
@@ -509,9 +531,9 @@ while beta > 1:
     # vprint("Discretizing operators")
     m_mat = quad_num.discretize_op(m_operator, f, degree, 2)
     r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
-    eig_vals, eig_vecs = eigs(r_mat, k=1, which='LR')
+    eig_vals, eig_vecs = r_mat.eigs(k=1, which='LR')
 
-    bif = hermite.cache.cache()(bifurcation)
+    bif = hermipy.cache()(bifurcation)
     conv.append(bifurcation(factor_x.subs(params['β'].symbol, beta), m_init))
     if len(conv) > 1:
         for i in range(len(m_init)):
@@ -531,3 +553,6 @@ conv2 = [c[1] for c in conv]
 ax.plot(betas, conv1, 'k.')
 ax.plot(betas, conv2, 'k.')
 plt.show()
+
+import ipdb;
+ipdb.set_trace()
