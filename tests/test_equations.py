@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import os
-import ipdb
 import unittest
 import sympy as sym
 import numpy as np
@@ -480,11 +478,16 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         factor_y = sym.exp(- 1/2 * (y*y/2 + Vqy))
         factor_z = sym.exp(- 1/2 * (z*z/2 + Vqz))
         factor = factor_x * factor_y * factor_z
+        factors = [factor_x, factor_y, factor_z]
 
         # Mapped operator
         backward = eq.map_operator(forward, f, factor)
 
-        return quad, forward, backward, factor, factor_x, factor_y, factor_z
+        # Probability density fluxes
+        fluxes = eq.McKean_Vlasov_harmonic_noise.fluxes(parameters)
+        fluxes = [eq.map_operator(flux, f, factor) for flux in fluxes]
+
+        return quad, backward, fluxes, factor, factors
 
     def check_consistency_varf(self, sparse=True):
         r = sym.Rational
@@ -508,7 +511,8 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         rc.settings['tensorize'] = True
         self.check_consistency_varf(sparse=True)
 
-    def solve(self, backward, quad, factors, degrees, index_set="triangle"):
+    def solve(self, backward, quad, factors, degrees,
+              index_set="triangle", fluxes=None):
 
         # Discretization of the operator
         rc.settings['tensorize'] = True
@@ -517,19 +521,13 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         rc.settings['trails'] = True
         rc.settings['debug'] = False
 
-        var = quad.discretize_op(backward, self.f, degrees[-1], 2,
-                                 sparse=True, index_set=index_set)
-        # var = var.to_cross(degrees[-1]) if index_set == "cross" else var
+        args = [self.f, degrees[-1], 2]
+        kwargs = {'sparse': True, 'index_set': index_set}
+        var = quad.discretize_op(backward, *args, **kwargs)
+        fd = [quad.discretize_op(flux, *args, **kwargs) for flux in fluxes]
         mat = var.matrix
 
         solutions = []
-
-        nv, bx, by, bz = 200, 3, 5, 5
-        quad_visu = hm.Quad.newton_cotes([nv, nv, nv], [bx, by, bz])
-
-        # Discretize factor
-        # factor = quad.discretize(factors[0] * factors[1] * factors[2])
-
         dirs_removed = [1]
         factor_removed, weight_removed = 1, 1
         for d in dirs_removed:
@@ -545,7 +543,12 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
             factor_visu *= factors[d]
 
         # Quadrature for vizualization
+        nv, bx, by, bz = 200, 3, 5, 5
+        quad_visu = hm.Quad.newton_cotes([nv, nv, nv], [bx, by, bz])
         quad_visu = quad_visu.project(dirs_visu)
+
+        import ipdb
+        ipdb.set_trace()
 
         v0, eig_vec = None, None
         for d in degrees:
@@ -569,14 +572,38 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
             # ground_state_eval = ground_state_eval / norm
             # solutions.append(ground_state_eval)
 
+            fluxes_eq = [flux.subdegree(d)(ground_state_series) for flux in fd]
             sub_projection = s_projection.subdegree(d)
             inner_series = ground_state_series.inner(sub_projection)
+            flux_proj = [flux.inner(sub_projection) for flux in fluxes_eq]
 
-            fig, (ax1, ax2) = plt.subplots(1, 2)
-            # ipdb.set_trace()
-            quad_visu.plot(inner_series, factor_visu, ax=ax1)
-            inner_series.plot(ax2)
+            fig, ax = plt.subplots(1, 2)
+            cont = quad_visu.plot(inner_series, factor_visu, ax=ax[0])
+            streams = quad_visu.\
+                streamlines(flux_proj[0], flux_proj[1], factor_visu, ax=ax[0],
+                            colors='k', vmax=-.2, vmin=.2)
+            inner_series.plot(ax=ax[1])
+            plt.colorbar(cont, ax=ax[0])
+
+            fig, ax = plt.subplots(1, 2)
+            # factor_visu_d = quad_visu.discretize(factor_visu)
+            # fx, fy = quad_visu.eval(flux_proj[0]), quad_visu.eval(flux_proj[1])
+            cont1 = quad_visu.plot(flux_proj[0], factor_visu, ax=ax[0])
+            cont2 = quad_visu.plot(flux_proj[1], factor_visu, ax=ax[1])
+            plt.colorbar(cont1, ax=ax[0])
+            plt.colorbar(cont2, ax=ax[1])
             plt.show()
+
+            # quad_visu.quiver(flux_proj[0], flux_proj[1],
+            #                  factor=factor_visu, ax=ax)
+            fig, ax = plt.subplots(1)
+            streams = quad_visu.streamlines(flux_proj[0], flux_proj[1],
+                                            factor_visu, ax)
+            plt.colorbar(streams, ax=ax)
+            plt.show()
+
+            import ipdb
+            ipdb.set_trace()
 
         return solutions, quad.series(ground_state)
 
@@ -584,13 +611,13 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
         r = sym.Rational
         Vp, degree = self.x**4/4 - self.x**2/2, 80
-        s2x, s2y, s2z = r(1, 2), r(1, 4), r(1, 4)
+        s2x, s2y, s2z = r(1, 2), r(1, 1), r(1, 1)
         params = {'β': r(1, 1), 'ε': r(1, 1), 'γ': 0, 'θ': r(2), 'm': 0}
         args = [Vp, params, s2x, s2y, s2z, degree]
         quad, forward, backward, factor, fx, fy, fz = self.sym_calc(*args)
 
         # Numerical solutions
-        degrees = list(range(40, degree + 1, 5))
+        degrees = list(range(50, degree + 1, 5))
         solutions, finest = self.solve(backward, quad, [fx, fy, fz], degrees,
                                        index_set="cross")
 
@@ -598,14 +625,15 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
         r = sym.Rational
         Vp, degree = self.x**4/4 - self.x**2/2, 40
-        s2x, s2y, s2z = r(1, 2), r(1, 5), r(1, 5)
-        params = {'β': r(1), 'ε': r(1, 2), 'γ': 0, 'θ': 2, 'm': 0}
+        s2x, s2y, s2z = r(1, 8), r(1, 1), r(1, 1)
+        params = {'β': r(1), 'ε': r(1, 2), 'γ': 0, 'θ': .5, 'm': .0}
         args = [Vp, params, s2x, s2y, s2z, degree]
-        quad, forward, backward, factor, fx, fy, fz = self.sym_calc(*args)
+        quad, backward, fluxes, factor, factors = self.sym_calc(*args)
 
         # Numerical solutions
         degrees = list(range(20, degree + 1, 5))
-        solutions, finest = self.solve(backward, quad, [fx, fy, fz], degrees)
+        solutions, finest = self.solve(backward, quad, factors, degrees,
+                                       index_set="triangle", fluxes=fluxes)
         finest_eval = solutions[-1]
 
         # Plot of the finest solution
