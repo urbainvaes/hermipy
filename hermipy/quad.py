@@ -219,7 +219,8 @@ class Quad:
     @tensorize_at(1)
     @stats.debug()
     @stats.log_stats()
-    def varf(self, f_grid, degree, sparse=False, index_set="triangle"):
+    def varf(self, f_grid, degree, sparse=None, index_set="triangle"):
+        sparse = rc.settings['sparse'] if sparse is None else sparse
         if not isinstance(f_grid, np.ndarray):
             f_grid = self.discretize(f_grid)
         var = core.varf(degree, f_grid, self.nodes, self.weights,
@@ -228,8 +229,9 @@ class Quad:
 
     @stats.debug()
     @stats.log_stats()
-    def varfd(self, function, degree, directions, sparse=False,
-              index_set="triangle"):
+    def varfd(self, function, degree, directions,
+              sparse=None, index_set="triangle"):
+        sparse = rc.settings['sparse'] if sparse is None else sparse
         var = self.varf(function, degree, sparse=sparse, index_set=index_set)
         mat = var.matrix
         eigval, _ = la.eig(self.position.cov)
