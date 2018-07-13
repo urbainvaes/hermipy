@@ -63,17 +63,17 @@ class CompQuad():
             result += series * self.qweights[i]
         return result
 
-    def varf(self, f_grid, degree, sparse=False, index_set="triangle"):
+    def varf(self, f_grid, degree, sparse=None, index_set="triangle"):
         result = 0
         for i, q in enumerate(self.quads):
             varf = q.varf(f_grid, degree, sparse=sparse, index_set=index_set)
             result += varf * self.qweights[i]
         return result
 
-    def varfd(self, function, degree, directions, sparse=False,
+    def varfd(self, function, degree, directions, sparse=None,
               index_set="triangle"):
         return quad.Quad.varfd(self, function, degree, directions,
-                               sparse=False, index_set=index_set)
+                               sparse=sparse, index_set=index_set)
 
     def discretize_op(self, op, func, degree, order,
                       sparse=None, index_set="triangle"):

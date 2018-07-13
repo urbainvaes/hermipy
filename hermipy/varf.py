@@ -21,6 +21,7 @@ import hermipy.core as core
 import hermipy.lib as lib
 import hermipy.position as pos
 import hermipy.series as hs
+import hermipy.settings as rc
 import scipy.sparse as ss
 import numpy as np
 import numpy.linalg as la
@@ -33,7 +34,8 @@ very_small = 1e-10
 class Varf:
 
     @staticmethod
-    def tensorize(args, sparse=False):
+    def tensorize(args, sparse=None):
+        sparse = rc.settings['sparse'] if sparse is None else sparse
         assert len(args) > 1
         index_set = args[0].index_set
         mats = []
