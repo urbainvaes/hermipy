@@ -246,9 +246,11 @@ class Quad:
 
         assert len(func.args) <= self.position.dim
         sparse = rc.settings['sparse'] if sparse is None else sparse
-        mat_operator = 0.
+        mat_operator = self.varf(0, degree, sparse=sparse, index_set=index_set)
         splitop, mult = lib.split_operator(op, func, order)
         for m, coeff in zip(mult, splitop):
+            if coeff == 0:
+                continue
             d_vector = sum([[i]*m[i] for i in range(self.position.dim)], [])
             varf_part = self.varfd(coeff, degree, d_vector, sparse=sparse,
                                    index_set=index_set)
