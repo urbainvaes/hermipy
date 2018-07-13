@@ -177,9 +177,15 @@ class Quad:
     def integrate(self, f_grid, l2=False):
         if not isinstance(f_grid, np.ndarray):
             f_grid = self.discretize(f_grid)
+
         if l2:
             w_grid = self.discretize(self.position.weight())
+
+            # Potentially not robust!
+            # Zero the nans
+            w_grid = 1e-300*(w_grid == 0) + w_grid
             f_grid = f_grid / w_grid
+
         return core.integrate(f_grid, self.nodes, self.weights)
 
     # Norm 1 or 2, in weighted or not
@@ -258,6 +264,7 @@ class Quad:
                                    index_set=index_set)
             mat_operator = varf_part + mat_operator
         return mat_operator
+
     # Only works with ints
     def project(self, directions):
         """Project the quadrature.
