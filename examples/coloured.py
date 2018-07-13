@@ -19,18 +19,13 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 
-#  TODO: Error with project (urbain, Fri 27 Apr 2018 05:23:07 PM BST)
-
 # IMPORT MODULES {{{
-import multiprocessing
-
+import ipdb
 import argparse
 import sympy as sym
-# import sympy.plotting as splot
 import importlib
 import numpy as np
 import numpy.linalg as la
-import scipy.sparse.linalg as las
 
 import hermipy
 import hermipy.stats
@@ -89,7 +84,7 @@ elif 'plots' not in config.misc:
 
 if args.cache:
     config.misc['cache'] = args.cache
-elif 'plots' not in config.misc:
+elif 'cache' not in config.misc:
     config.misc['cache'] = False
 
 if args.verbose:
@@ -101,7 +96,6 @@ elif 'verbose' not in config.misc:
 def vprint(*args, **kwargs):
     if config.misc['verbose']:
         print(*args, **kwargs)
-
 
 # Set library option
 hermipy.settings.update(config.misc)
@@ -255,18 +249,11 @@ def compute_quads():
             config.num['n_points_num'], dim=2,
             mean=[μx, 0], cov=[[σx, 0], [0, σy]])
 
-    # Calculate limits of resolution
-    # band_width = np.sqrt(2) * np.sqrt(2*degree + 1)
-    # x_min = μx - band_width * np.sqrt(σx)
-    # x_max = μx + band_width * np.sqrt(σx)
-    # y_min = 0 - band_width * np.sqrt(σy)
-    # y_max = 0 + band_width * np.sqrt(σy)
-
     # For visualization
     nv = 200
-    # bounds_x, bounds_y = band_width*np.sqrt('σx'), band_width*np.sqrt(cov_y)
-    # bounds_x, bounds_y = 5*np.sqrt('σx'), 5*np.sqrt(cov_y)
-    bounds_x, bounds_y = 3, 3
+    band_width = np.sqrt(2) * np.sqrt(2*degree + 1)
+    bounds_x = band_width*np.sqrt(float(σx))
+    bounds_y = band_width*np.sqrt(float(σy))
     quad_visu = hermipy.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y])
     return quad_num, quad_visu
 
@@ -289,25 +276,6 @@ eig_vals, eig_vecs = r_mat.eigs(k=4, which='LR')
 eig_vals = list(reversed(eig_vals))
 eig_vecs.reverse()
 
-# if config.misc['verbose']:
-#     hermite.stats.print_stats()
-
-# if args.mass:
-#     print(compute_moment1(float(args.mass)))
-#     matrix = r_mat + float(args.mass) * m_mat
-#     eig_vals, eig_vecs = cache(las.eigs)(matrix, k=1, which='LR')
-#     ground_state = np.real(eig_vecs.T[0])
-#     ground_state = ground_state * np.sign(ground_state[0])
-#     ground_series = quad_num.series(ground_state)
-#     ground_state_eval = quad_num.eval(ground_series)
-#     factor_eval = quad_num.discretize(factor)
-#     ground_state_eval = ground_state_eval * factor_eval
-#     norm = quad_num.integrate(ground_state_eval, l2=True)
-#     ground_state_eval = ground_state_eval / norm
-#     fig, ax = plt.subplots(1, 1)
-#     cont = quad_visu.plot(ground_series, degree, factor, ax)
-#     plt.colorbar(cont, ax=ax)
-#     plt.show()
 
 def plot():
 
@@ -398,7 +366,7 @@ def plot():
     plot_comparison_with_asym()
 
 
-plot()
+# plot()
 
 
 def bifurcation(factor_x, m_init):
@@ -463,6 +431,7 @@ def convergence():
 
     def get_ground_state(eig_vec):
         ground_series = eig_vec * np.sign(eig_vec.coeffs[0])
+        # quad_visu.plot(ground_series, factor=factor)
         ground_state_eval = quad_num.eval(ground_series)
         ground_state_eval = ground_state_eval * factor_eval
         norm = quad_num.integrate(ground_state_eval, l2=True)
@@ -482,7 +451,7 @@ def convergence():
     v0 = None
     degrees = []
     errors = []
-    for d in range(5, degree):
+    for d in range(10, degree):
         print("-- Solving for degree = " + str(d))
         npolys = core.iterator_size(2, d)
         sub_varf = r_mat.subdegree(d)
@@ -554,5 +523,4 @@ ax.plot(betas, conv1, 'k.')
 ax.plot(betas, conv2, 'k.')
 plt.show()
 
-import ipdb;
-ipdb.set_trace()
+import ipdb; ipdb.set_trace()
