@@ -235,7 +235,7 @@ class Quad:
         eigval, _ = la.eig(self.position.cov)
         for d in directions:
             mat = core.varfd(self.position.dim, degree, d, mat,
-                             sparse=sparse, index_set=index_set)
+                             index_set=index_set)
             mat = mat/np.sqrt(eigval[d])
         return hv.Varf(mat, self.position, index_set=index_set)
 
