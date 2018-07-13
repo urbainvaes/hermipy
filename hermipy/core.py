@@ -179,7 +179,7 @@ def varf(degree, fgrid, nodes, weights, sparse=False, index_set="triangle"):
 @cache()
 @debug()
 @log_stats()
-def varfd(dim, degree, direction, var, sparse=True, index_set="triangle"):
+def varfd(dim, degree, direction, var, index_set="triangle"):
     if type(var) is np.ndarray:
         var = hm.to_boost_mat(var)
     elif type(var) is ss.csr_matrix:
