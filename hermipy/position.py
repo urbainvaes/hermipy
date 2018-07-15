@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import hermipy.function as func
 import numpy as np
 import numpy.linalg as la
 import sympy as sym
@@ -105,7 +106,7 @@ class Position:
         return result
 
     def weight(self):
-        var = [sym.symbols('v' + str(d), real=True) for d in self.dirs]
+        var = [func.Function.xyz[d] for d in self.dirs]
         inv_cov = la.inv(self.cov)
         potential = 0.5 * inv_cov.dot(var - self.mean).dot(var - self.mean)
         normalization = 1/(np.sqrt((2*np.pi)**self.dim * la.det(self.cov)))

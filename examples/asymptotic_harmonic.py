@@ -68,7 +68,7 @@ def iL0(term):
     solution = la.solve(op.matrix[1:, 1:], t_rhs.coeffs[1:])
     solution = np.array([0, *solution])
     sol_series = series.Series(solution, t_rhs.position, significant=14)
-    symbolic = sol_series.to_function().as_format('xyz')
+    symbolic = sol_series.to_function().as_xyz()
     symbolic = func.Function.sanitize(symbolic, max_denom=1e8)
 
     print("--> Solving cell problem with rhs: " + str(term))
@@ -97,8 +97,8 @@ for i in range(nterms):
     split = func.Function(rhs.doit().expand(), dim=3, allow_sym=True).split()
 
     for term in split:
-        x_part = term[-1] * term[0].as_format('xyz')
-        yz_part = term[1].as_format('xyz') * term[2].as_format('xyz')
+        x_part = term[-1] * term[0].as_xyz()
+        yz_part = term[1].as_xyz() * term[2].as_xyz()
         t_rhs = quad_num.transform(yz_part, degree)
         centered[i] += round(t_rhs.coeffs[0], 10) * x_part
         u[i] += x_part * iL0(yz_part)
@@ -192,9 +192,9 @@ for i in range(n_proj):
     split = func.Function(u[i].expand(), dim=3, allow_sym=True).split()
     for term in split:
         xz_part = term[-1] \
-            * term[0].as_format('xyz') \
-            * term[2].as_format('xyz')
-        integ = quady.integrate(term[1].as_format('xyz'))
+            * term[0].as_xyz() \
+            * term[2].as_xyz()
+        integ = quady.integrate(term[1].as_xyz())
         proj_xz[i] += integ * xz_part
         proj_xz[i] = func.Function.sanitize(proj_xz[i])
 # }}}
@@ -207,8 +207,8 @@ solution_x = 0
 split = func.Function(solution.expand(), dim=3, allow_sym=True).split()
 
 for term in split:
-    x_part = term[-1] * term[0].as_format('xyz')
-    yz_part = term[1].as_format('xyz') * term[2].as_format('xyz')
+    x_part = term[-1] * term[0].as_xyz()
+    yz_part = term[1].as_xyz() * term[2].as_xyz()
     solution_x += x_part * quad_num.integrate(yz_part)
 
 solution_x = func.Function.sanitize(solution_x)\

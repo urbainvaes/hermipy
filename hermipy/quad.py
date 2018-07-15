@@ -110,12 +110,9 @@ class Quad:
 
     def tensorize_at(arg_num):
         def tensorize_arg(func):
-            def wrapper(*args, **kwargs):
-
-                do_tensorize = rc.settings['tensorize']
-                if 'tensorize' in kwargs:
-                    do_tensorize = kwargs['tensorize']
-                    del kwargs['tensorize']
+            def wrapper(*args, do_tensorize=None, **kwargs):
+                do_tensorize = rc.settings['tensorize'] if \
+                               do_tensorize is None else do_tensorize
                 if not do_tensorize:
                     return func(*args, **kwargs)
 
@@ -168,8 +165,7 @@ class Quad:
     def discretize(self, f):
         if not isinstance(f, symfunc.Function):
             f = symfunc.Function(f, dirs=self.position.dirs)
-        f = f.as_string(format='array', toC=True)
-        function = core.discretize(f, self.nodes,
+        function = core.discretize(f.ccode(), self.nodes,
                                    self.position.mean, self.position.factor)
         return function
 
