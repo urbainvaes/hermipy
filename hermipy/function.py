@@ -102,9 +102,8 @@ class Function():
     def ccode(self):
         function = sym.ccode(self.sym_func)
         for i in range(self.dim):
-            if self.dirs[i] is not i:
-                function = re.sub(r'\bx{}'.format(self.dirs[i]),
-                                  'v[{}]'.format(i), function)
+            function = re.sub(r'\bx{}'.format(self.dirs[i]),
+                              'v[{}]'.format(i), function)
         return function
 
     def split(self):

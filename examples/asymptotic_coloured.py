@@ -67,7 +67,7 @@ def iL0(term):
     solution = la.solve(op.matrix[1:, 1:], t_rhs.coeffs[1:])
     solution = np.array([0, *solution])
     sol_series = series.Series(solution, t_rhs.position, significant=14)
-    symbolic = sol_series.to_function().as_format('xyz')
+    symbolic = sol_series.to_function().as_xyz()
     symbolic = func.Function.sanitize(symbolic, max_denom=1e8)
 
     print("--> Solving cell problem with rhs: " + str(term))
@@ -96,8 +96,8 @@ for i in range(nterms):
     split = func.Function(rhs.doit().expand(), dim=2, allow_sym=True).split()
 
     for term in split:
-        x_part = term[-1] * term[0].as_format('xyz')
-        y_part = term[1].as_format('xyz')
+        x_part = term[-1] * term[0].as_xyz()
+        y_part = term[1].as_xyz()
         t_rhs = quad_num.transform(y_part, degree)
         centered[i] += round(t_rhs.coeffs[0], 10) * x_part
         u[i] += x_part * iL0(y_part)
@@ -167,8 +167,8 @@ solution_x = 0
 split = func.Function(solution.expand(), dim=2, allow_sym=True).split()
 
 for term in split:
-    x_part = term[-1] * term[0].as_format('xyz')
-    y_part = term[1].as_format('xyz')
+    x_part = term[-1] * term[0].as_xyz()
+    y_part = term[1].as_xyz()
     solution_x += x_part * quad_num.integrate(y_part)
 
 print("x-projection of the solution: ")
