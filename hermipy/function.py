@@ -17,7 +17,6 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import sympy as sym
-from sympy.parsing.sympy_parser import parse_expr
 import re
 
 
@@ -27,137 +26,89 @@ class Function():
     xyz = list(sym.symbols('x y z v w', real=True))
 
     # subscript notation
-    v_sub = [sym.symbols('v{}'.format(i), real=True)
+    x_sub = [sym.symbols('x{}'.format(i), real=True)
              for i in range(len(xyz))]
-
-    # array notation
-    v_array = [sym.symbols('v[{}]'.format(i), real=True)
-               for i in range(len(xyz))]
 
     conv = {}
     for i in range(len(xyz)):
-        conv[str(xyz[i])] = v_array[i]
-        conv[str(v_sub[i])] = v_array[i]
-        conv[str(v_array[i])] = v_array[i]
+        conv[str(xyz[i])] = x_sub[i]
+        conv[str(x_sub[i])] = x_sub[i]
 
     def __init__(self, expr, dim=None, dirs=None, allow_sym=False):
 
         self.allow_sym = allow_sym
 
-        if isinstance(expr, int) or isinstance(expr, float):
-            expr = str(expr)
+        # So that symbols are recognized despite possibly different properties
+        expr = str(expr)
 
         if isinstance(expr, str):
-
-            # Parser does not work with array notation
-            for i in range(len(self.xyz)):
-                expr = re.sub(r'\bv\[{}\]'.format(i), str(self.v_sub[i]), expr)
-
-            expr = parse_expr(expr)
+            expr = sym.sympify(expr, locals=self.conv)
 
         assert isinstance(expr, tuple(sym.core.all_classes))
         for s in expr.free_symbols:
-
-            # Ensure the resulting function is over reals
-            if str(s) in self.conv:
-                expr = expr.subs(s, self.conv[str(s)])
-
-            elif not allow_sym:
+            if s not in self.x_sub and not allow_sym:
                 raise ValueError("Unrecognized variable: " + str(s))
 
         self.sym_func = expr
 
+        variables = expr.free_symbols.intersection(self.x_sub)
         if dirs is not None:
             self.dirs, self.dim = dirs, len(dirs)
             assert self.dirs == sorted(self.dirs)
             assert dim is None or dim == self.dim
+            assert variables.issubset({self.x_sub[d] for d in self.dirs})
         else:
-            if dim is not None:
-                self.dim = dim
-            else:
-                for i in range(len(self.v_array)):
-                    if self.v_array[- 1 - i] in expr.free_symbols:
-                        self.dim = len(self.v_array) - i
-                        break
-                else:
-                    self.dim = 0
+            # We do not minimize the number of dimensions
+            self.dim = max(self.x_sub.index(s) for s in variables) + 1
             self.dirs = list(range(self.dim))
-
-        if not allow_sym:
-            if len(expr.free_symbols) > self.dim:
-                raise ValueError("Too many free symbols: " + str(expr)
-                                 + ", dim: " + str(self.dim))
-
-            symbols = [self.v_array[d] for d in self.dirs]
-            for s in expr.free_symbols:
-                if s not in symbols:
-                    print("Unknown symbol!")
-                    import pdb
-                    pdb.set_trace()
 
     def __eq__(self, other):
         return self.dirs == other.dirs and \
             self.sym_func == other.sym_func
 
-    def __str__(self):
-        return str(self.sym_func)
-
     def __repr__(self):
-        variables = [self.v_array[d] for d in self.dirs]
-        return str(variables) + " --> " + str(self)
+        variables = [self.x_sub[d] for d in self.dirs]
+        return str(variables) + " --> " + str(self.sym_func)
+
 
     def __mul__(self, other):
-        if type(other) in (float, int):
-            new_sym_func = self.sym_func*other
-        elif type(other) is Function:
-            assert self.dirs == other.dirs
-            new_sym_func = self.sym_func * other.sym_func
-        else:
-            raise ValueError("Unsupported type: " + str(type(other)))
-        return Function(new_sym_func, dirs=self.dirs)
+        if type(other) is not Function:
+            other_func = Function(other, dirs=self.dirs, allow_sym=True)
+            return self.__mul__(other_func)
+        assert self.dirs == other.dirs
+        new_sym_func = self.sym_func * other.sym_func
+        allow_sym = self.allow_sym or other.allow_sym
+        return Function(new_sym_func, dirs=self.dirs, allow_sym=allow_sym)
 
     def __add__(self, other):
+        if type(other) is not Function:
+            other_func = Function(other, dirs=self.dirs, allow_sym=True)
+            return self.__add__(other_func)
         assert self.dirs == other.dirs
-        return Function(self.sym_func + other.sym_func,
-                        dirs=self.dirs)
+        new_sym_func = self.sym_func + other.sym_func
+        allow_sym = self.allow_sym or other.allow_sym
+        return Function(new_sym_func, dirs=self.dirs, allow_sym=allow_sym)
 
-    def as_format(self, format):
-        if format == 'array':
-            return self.sym_func
+    __str__ = __repr__
+    __rmul__ = __mul__
+    __radd__ = __add__
 
-        if format == 'xyz':
-            to = self.xyz
-        elif format == 'sub':
-            to = self.v_sub
-        else:
-            raise ValueError("Invalid format: " + format)
-
+    def as_xyz(self):
         result = self.sym_func
-        for i in range(len(self.xyz)):
-            result = result.subs(self.v_array[i], to[i])
-
+        for i in range(len(self.x_sub)):
+            result = result.subs(self.x_sub[i], self.xyz[i])
         return result
 
-    def as_string(self, format='array', toC=False):
-        if toC:
-            # Convert dirs[i] -> i, to ease discretization
-            function = sym.ccode(self.sym_func)
-            for i in range(self.dim):
-                if self.dirs[i] is not i:
-                    assert not re.search(r'\bv\[{}\]'.format(i), function)
-                    function = re.sub(r'\bv\[{}\]'.format(self.dirs[i]),
-                                      'v[{}]'.format(i), function)
-            return function
-        return sym.ccode(self.as_format(format))
-
-    def with_vars(self, variables):
-        sym_func = self.sym_func
-        for i, d in enumerate(self.dirs):
-            sym_func = sym_func.subs(self.v_array[d], variables[i])
-        return sym_func
+    def ccode(self):
+        function = sym.ccode(self.sym_func)
+        for i in range(self.dim):
+            if self.dirs[i] is not i:
+                function = re.sub(r'\bx{}'.format(self.dirs[i]),
+                                  'v[{}]'.format(i), function)
+        return function
 
     def split(self):
-        variables = [self.v_array[d] for d in self.dirs]
+        variables = [self.x_sub[d] for d in self.dirs]
         is_add = isinstance(self.sym_func, sym.add.Add)
         add_terms = self.sym_func.args if is_add else [self.sym_func]
         to_return = []
@@ -185,13 +136,6 @@ class Function():
                                 allow_sym=self.allow_sym)
                 result = [func, result[-1]]
             to_return.append(result)
-
-        # factorized = []
-        # for i, term in enumerate(to_return):
-        #     for j in range(i, len(to_return)):
-        #         other = to_return[j]
-        #         if len(term
-
         return to_return
 
     @staticmethod
