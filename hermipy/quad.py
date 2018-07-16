@@ -131,14 +131,15 @@ class Quad:
                     if len(add) == 2:
                         new_args = list(args).copy()
                         new_args[arg_num] = add[0]
-                        results.append(func(*new_args, **kwargs)*float(add[1]))
+                        func_add = func(*new_args, **kwargs)*float(add[1])
+                        results.append(func_add)
                         continue
 
                     func_dirs = []
-                    for d in range(quad.position.dim):
+                    for i, d in enumerate(quad.position.dirs):
                         new_args = list(args).copy()
                         new_args[0] = quad.project(d)
-                        new_args[arg_num] = add[d]
+                        new_args[arg_num] = add[i]
                         func_dir = func(*new_args, **kwargs)
                         func_dirs.append(func_dir)
                     if rc.settings['debug']:
@@ -273,16 +274,11 @@ class Quad:
             A `Quad` object.
 
         """
-        if type(directions) is int:
-            directions = [directions]
-        dim = len(directions)
-        nodes, weights = [], []
-        for i in range(dim):
-            d = directions[i]
-            assert d < self.position.dim
-            nodes.append(self.nodes[d])
-            weights.append(self.weights[d])
         pos = self.position.project(directions)
+        nodes, weights = [], []
+        for i, d in enumerate(pos.dirs):
+            nodes.append(self.nodes[self.position.dirs.index(d)])
+            weights.append(self.weights[self.position.dirs.index(d)])
         return Quad(nodes, weights, position=pos)
 
     def series(self, coeffs, norm=False, index_set="triangle"):
@@ -351,10 +347,10 @@ class Quad:
 
         n_nodes = []
         r_nodes = []
-        for i in range(self.position.dim):
-            direction = symfunc.Function.xyz[self.position.dirs[i]]
+        for i, d in enumerate(self.position.dirs):
+            direction = symfunc.Function.xyz[d]
             n_nodes.append(len(self.nodes[i]))
-            r_nodes.append(self.project(i).discretize(direction))
+            r_nodes.append(self.project(d).discretize(direction))
         solution = solution.reshape(*n_nodes).T
 
         if self.position.dim == 1:

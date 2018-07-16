@@ -116,18 +116,6 @@ def to_numpy(arg):
         return to_csr(arg)
 
 
-def to_numeric(var):
-
-    if isinstance(var, list):
-        return [to_numeric(v) for v in var]
-
-    var_letters = {'x': 0, 'y': 1, 'z': 2}
-    var_array = {'v[' + str(i) + ']': i for i in range(10)}
-    var_dict = {**var_letters, **var_array}
-    if var in var_dict:
-        return var_dict[var]
-    else:
-        return var
 # }}}
 # Wrapper functions {{{
 
@@ -227,7 +215,6 @@ def project(inp, dim, directions, index_set="triangle"):
     if type(directions) is int:
         directions = [directions]
     inp = to_cpp(inp)
-    directions = to_numeric(directions)
     directions_cpp = hm.int_vec()
     directions_cpp.extend(directions)
     return to_numpy(hm.project(inp, dim, directions_cpp, index_set))
