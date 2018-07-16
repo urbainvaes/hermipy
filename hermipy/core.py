@@ -181,30 +181,56 @@ def varfd(dim, degree, direction, var, index_set="triangle"):
 @log_stats()
 def tensorize(inp, dim=None, direction=None,
               sparse=False, index_set="triangle"):
-    # Scalar case
-    is_scalar = isinstance(inp[0], (float, int))
-    if is_scalar and dim is None and direction is None:
-        return np.prod(inp)
 
-    # Works only with dense arguments at the moment
-    if isinstance(inp[0], ss.csr_matrix):
-        inp = [np.array(m.todense()) for m in inp]
+    if type(inp) is dict:
 
-    # Convert to cpp array
-    inp = to_cpp_array(inp)
+        any_elem = list(inp.values())[0]
 
-    if dim is not None:
-        if direction is None:
-            raise ValueError("Direction must be defined!")
-        args = [inp, dim, direction, index_set]
-    else:
+        if isinstance(any_elem, (float, int)):
+            return np.prod([inp[k] for k in inp])
+
+        assert isinstance(any_elem, (np.ndarray, ss.csr_matrix))
+        dim = len(any_elem.shape)
+        assert dim is 1 or dim is 2
+
+        cpp_arrays = hm.double_mat() if dim is 1 else hm.double_cube()
+        cpp_dirs_mat = hm.int_mat()
+        for dirs, arg in inp.items():
+            cpp_dirs = hm.int_vec()
+            cpp_dirs.extend(list(dirs))
+            cpp_dirs_mat.append(cpp_dirs)
+
+            # Works only with dense arguments at the moment
+            if isinstance(arg, ss.csr_matrix):
+                arg = np.array(arg.todense())
+            arg = to_cpp_array(arg)
+            cpp_arrays.append(arg)
+        args = [cpp_arrays, cpp_dirs_mat, index_set]
+
+    elif type(inp) is list:
+        assert dim is None and direction is None
+        is_scalar = isinstance(inp[0], (float, int))
+        if is_scalar and dim is None and direction is None:
+            return np.prod(inp)
+        if isinstance(inp[0], ss.csr_matrix):
+            inp = [np.array(m.todense()) for m in inp]
+        inp = to_cpp_array(inp)
         args = [inp, index_set]
+
+    else:
+        assert dim is not None and direction is not None
+        if isinstance(inp, ss.csr_matrix):
+            inp = np.array(inp.todense())
+        inp = to_cpp_array(inp)
+        args = [inp, dim, direction, index_set]
+
     if sparse:
         tensorize_fun = hm.tensorize_sp
         convert_fun = to_csr
     else:
         tensorize_fun = hm.tensorize
         convert_fun = np.array
+
     return convert_fun(tensorize_fun(*args))
 
 

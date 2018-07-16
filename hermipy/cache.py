@@ -48,7 +48,7 @@ def gen_hash(extend=None):
             return hashlib.md5(argument).hexdigest()
         if isinstance(argument, tuple(sym.core.all_classes)):
             return the_hash(str(argument))
-        if isinstance(argument, (list, tuple)):
+        if isinstance(argument, (list, tuple, frozenset)):
             hashes = [the_hash(e) for e in argument]
             return the_hash('list' + '-'.join(hashes))
         if isinstance(argument, dict):
