@@ -36,16 +36,14 @@ class Varf:
     @staticmethod
     def tensorize(args, sparse=None):
         sparse = rc.settings['sparse'] if sparse is None else sparse
-        assert len(args) > 1
-        index_set = args[0].index_set
-        mats = []
+        assert len(args) > 1 and type(args[0]) is Varf
+        index_set, degree = args[0].index_set, args[0].degree
+        mats = {}
         for a in args:
             assert type(a) is Varf
-            assert a.index_set == index_set
-            if type(a.matrix) is ss.csr_matrix:
-                mats.append(a.matrix.todense().A)
-            else:
-                mats.append(a.matrix)
+            assert a.index_set == index_set and a.degree == degree
+            key = frozenset(a.position.dirs)
+            mats[key] = a.matrix
         tens_mat = core.tensorize(mats, sparse=sparse, index_set=index_set)
         tens_pos = pos.Position.tensorize([a.position for a in args])
         return Varf(tens_mat, tens_pos, index_set=index_set)
