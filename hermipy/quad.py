@@ -234,7 +234,8 @@ class Quad:
               sparse=None, index_set="triangle"):
         directions = filter(lambda d: d in self.position.dirs, directions)
         sparse = rc.settings['sparse'] if sparse is None else sparse
-        var = self.varf(function, degree, sparse=sparse, index_set=index_set)
+        var = self.varf(function, degree, sparse=sparse,
+                        index_set=index_set, tensorize=False)
         mat = var.matrix
         eigval, _ = la.eig(self.position.cov)
         for d in directions:

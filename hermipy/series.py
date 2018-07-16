@@ -34,7 +34,7 @@ class Series:
 
     @staticmethod
     def tensorize(args):
-        assert len(args) > 1 and type(args[0]) is Series
+        assert len(args) > 0 and type(args[0]) is Series
         index_set, degree = args[0].index_set, args[0].degree
         vecs = {}
         for a in args:

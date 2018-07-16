@@ -180,3 +180,20 @@ class TestTensorize(unittest.TestCase):
         varf_xyz = quad.varf(f, degree, tensorize=True)
         tensorized = hm.Varf.tensorize([varf_x, varf_yz])
         self.assertTrue(varf_xyz == tensorized)
+
+    def test_tensorize_varfs(self):
+        n_points, degree = 50, 10
+        x, y, z = hm.x, hm.y, hm.z
+        f = sym.cos(x*x + x + z + sym.sin(z))*y*y
+        quad = hm.Quad.gauss_hermite(n_points, dim=3)
+        varf1 = quad.varfd(f, degree, directions=[1, 2],
+                           tensorize=True, sparse=True)
+        varf2 = quad.varfd(f, degree, directions=[1, 2],
+                           tensorize=False, sparse=True)
+        varf3 = quad.varfd(f, degree, directions=[1, 2],
+                           tensorize=True, sparse=False)
+        varf4 = quad.varfd(f, degree, directions=[1, 2],
+                           tensorize=False, sparse=False)
+        self.assertTrue(varf1 == varf2)
+        self.assertTrue(varf1 == varf3)
+        self.assertTrue(varf1 == varf4)

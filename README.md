@@ -14,19 +14,13 @@ $ python -m unittest discover -v tests
 
 - Implement composite quadrature
 
-- Improve split to minimize number of terms
-
-- Use absolute and relative direction terminology?
-
-- Inconsistency sparse = False / None
-
-- Improve separability
-
 - Auto conversion from triangle, cube -> cross when appropriate?
 
 - Add support for Hermite Fourier
 
-- Option to factorize function
+- Improve split to minimize number of terms?
+
+- Improve data conversion
 
 # License
 
