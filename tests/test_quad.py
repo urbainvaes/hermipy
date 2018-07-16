@@ -16,9 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import hermipy.quad as hm
-import hermipy.settings as rc
-import hermipy.lib as lib
+import hermipy as hm
 
 import unittest
 import numpy as np
@@ -32,10 +30,8 @@ import tempfile
 import scipy.sparse as sp
 import scipy.sparse.linalg as las
 
-import ipdb
-
 settings = {'cache': False, 'cachedir': '/tmp/test_hermite'}
-rc.settings.update(settings)
+hm.settings.update(settings)
 
 
 class TestIntegrate(unittest.TestCase):
@@ -45,21 +41,21 @@ class TestIntegrate(unittest.TestCase):
         for i in deg:
             quad = hm.Quad.gauss_hermite(n_points=i, dim=1)
             self.assertAlmostEqual(quad.integrate('1'), 1)
-            self.assertAlmostEqual(quad.integrate('v[0]'), 0)
+            self.assertAlmostEqual(quad.integrate('x0'), 0)
 
     def test_normalization_dim(self):
         for i in range(1, 4):
             quad = hm.Quad.gauss_hermite(n_points=100, dim=i)
             self.assertAlmostEqual(quad.integrate('1'), 1)
-            self.assertAlmostEqual(quad.integrate('v[0]'), 0)
-            self.assertAlmostEqual(quad.integrate('v[0]*v[0]'), 1)
+            self.assertAlmostEqual(quad.integrate('x0'), 0)
+            self.assertAlmostEqual(quad.integrate('x0*x0'), 1)
 
     def test_mean(self):
         dim = 3
         mean = np.random.random(dim)
         quad = hm.Quad.gauss_hermite(n_points=8, dim=dim, mean=mean)
         for i in range(dim):
-            fun = 'v[{}]'.format(i)
+            fun = 'x{}'.format(i)
             coord = quad.integrate(fun)
             self.assertAlmostEqual(coord, mean[i])
 
@@ -70,7 +66,7 @@ class TestIntegrate(unittest.TestCase):
         quad = hm.Quad.gauss_hermite(n_points=8, dim=dim, cov=cov)
         for i in range(len(cov)):
             for j in range(len(cov)):
-                fun = 'v[{}]*v[{}]'.format(i, j)
+                fun = 'x{}*x{}'.format(i, j)
                 cov_ij = quad.integrate(fun)
                 self.assertAlmostEqual(cov_ij, cov[i][j])
 
@@ -81,10 +77,10 @@ class TestIntegrate(unittest.TestCase):
         cov = np.matmul(rand_mat.T, rand_mat)
         quad = hm.Quad.gauss_hermite(n_points=8, dim=dim, mean=mean, cov=cov)
         for i in range(len(cov)):
-            mean_i = quad.integrate('v[{}]'.format(i))
+            mean_i = quad.integrate('x{}'.format(i))
             self.assertAlmostEqual(mean_i, mean[i])
             for j in range(len(cov)):
-                fun = '(v[{}]-{})*(v[{}]-{})'.format(i, mean[i], j, mean[j])
+                fun = '(x{}-{})*(x{}-{})'.format(i, mean[i], j, mean[j])
                 cov_ij = quad.integrate(fun)
                 self.assertAlmostEqual(cov_ij, cov[i][j])
 
@@ -204,12 +200,12 @@ class TestCache(unittest.TestCase):
         self.quad = hm.Quad.gauss_hermite(n_points, dim=dim)
         self.function = x*x*sym.cos(x) + sym.exp(y)*x + sym.sqrt(2) + 2
         self.cachedir = tempfile.TemporaryDirectory()
-        rc.settings['cachedir'] = self.cachedir.name
-        rc.settings['cache'] = True
+        hm.settings['cachedir'] = self.cachedir.name
+        hm.settings['cache'] = True
 
     def tearDown(self):
         self.cachedir.cleanup()
-        rc.settings.update(settings)
+        hm.settings.update(settings)
 
     def test_varf(self):
         degree = 30
@@ -243,17 +239,17 @@ class TestTensorizeDecorator(unittest.TestCase):
         self.cov = np.diag(diag)
         self.quad = hm.Quad.gauss_hermite(100, dim=dim, cov=self.cov)
         self.quad_low = hm.Quad.gauss_hermite(6, dim=dim, cov=self.cov)
-        self.v = [sym.symbols('v' + str(i)) for i in range(dim)]
-        rc.settings['tensorize'] = True
-        rc.settings['trails'] = False
+        self.x = [sym.symbols('x' + str(i)) for i in range(dim)]
+        hm.settings['tensorize'] = True
+        hm.settings['trails'] = False
 
     def tearDown(self):
-        rc.settings.update(settings)
+        hm.settings.update(settings)
 
     def test_integrate(self):
         for i in range(len(self.cov)):
             for j in range(len(self.cov)):
-                fun = self.v[i]*self.v[j]
+                fun = self.x[i]*self.x[j]
                 cov_ij = self.quad.integrate(fun)
                 self.assertAlmostEqual(cov_ij, self.cov[i][j])
 
@@ -265,15 +261,15 @@ class TestTensorizeDecorator(unittest.TestCase):
 
     def test_sparse_varf_5d(self):
         degree = 10
-        function = 1. + self.v[0] + self.v[1] + self.v[1]*self.v[0] \
-            + self.v[2]**2 + self.v[3]**3 + self.v[4]
+        function = 1. + self.x[0] + self.x[1] + self.x[1]*self.x[0] \
+            + self.x[2]**2 + self.x[3]**3 + self.x[4]
         sp_var = self.quad.varf(function, degree, sparse=True).matrix
         self.assertTrue(sp_var.nnz < sp_var.shape[0] * sp_var.shape[1])
 
     def test_consistency(self):
         degree = 3
-        function = 1. + self.v[0] + self.v[1] + self.v[1]*self.v[0] \
-            + self.v[2]**2 + self.v[3]**3 + self.v[4]
+        function = 1. + self.x[0] + self.x[1] + self.x[1]*self.x[0] \
+            + self.x[2]**2 + self.x[3]**3 + self.x[4]
         var_1 = self.quad_low.varf(function, degree, tensorize=True).matrix
         var_2 = self.quad_low.varf(function, degree, tensorize=False).matrix
         self.assertAlmostEqual(la.norm(var_1 - var_2), 0.)
@@ -285,12 +281,12 @@ class TestSparseFunctions(unittest.TestCase):
         n_points = 100
         self.quad1 = hm.Quad.gauss_hermite(n_points)
         self.quad2 = hm.Quad.gauss_hermite(n_points, dim=2)
-        self.v = [sym.symbols('v' + str(i)) for i in range(2)]
-        rc.settings['tensorize'] = False
-        rc.settings['cache'] = False
+        self.x = [sym.symbols('x' + str(i)) for i in range(2)]
+        hm.settings['tensorize'] = False
+        hm.settings['cache'] = False
 
     def tearDown(self):
-        rc.settings.update(settings)
+        hm.settings.update(settings)
 
     def test_sparse_varf_simple(self):
         degree = 30
@@ -317,7 +313,7 @@ class TestSparseFunctions(unittest.TestCase):
 
     def test_sparse_varf_2d(self):
         degree = 50
-        function = 1. + self.v[0] + self.v[1] + self.v[1]*self.v[0]
+        function = 1. + self.x[0] + self.x[1] + self.x[1]*self.x[0]
         sp_var = self.quad2.varf(function, degree, sparse=True)
         var = self.quad2.varf(function, degree, sparse=False)
         self.assertAlmostEqual(la.norm(var.matrix - sp_var.matrix, 2), 0)

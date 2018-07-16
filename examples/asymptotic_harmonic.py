@@ -94,7 +94,7 @@ for i in range(nterms):
     if i > 1:
         rhs += - L2.subs(f, u[i - 2])
 
-    split = func.Function(rhs.doit().expand(), dim=3, allow_sym=True).split()
+    split = func.Function(rhs.doit().expand(), dim=3).split()
 
     for term in split:
         x_part = term[-1] * term[0].as_xyz()
@@ -185,11 +185,11 @@ assert centered[6].subs(unk[0], solution_0)\
 # Projection on x - z {{{
 quady = quad.Quad.gauss_hermite(nquad, dirs=[1], mean=[0], cov=[[σy]])
 solution, proj_xz = u[0] + ε*u[1] + ε**2*u[2] + ε**3*u[3] + ε**4*u[4], 0
-split = func.Function(solution.expand(), dim=3, allow_sym=True).split()
+split = func.Function(solution.expand(), dim=3).split()
 n_proj = 5
 proj_xz = [0]*n_proj
 for i in range(n_proj):
-    split = func.Function(u[i].expand(), dim=3, allow_sym=True).split()
+    split = func.Function(u[i].expand(), dim=3).split()
     for term in split:
         xz_part = term[-1] \
             * term[0].as_xyz() \
@@ -204,7 +204,7 @@ print("Solution: ")
 sym.pprint(func.Function.sanitize(solution).factor())
 
 solution_x = 0
-split = func.Function(solution.expand(), dim=3, allow_sym=True).split()
+split = func.Function(solution.expand(), dim=3).split()
 
 for term in split:
     x_part = term[-1] * term[0].as_xyz()

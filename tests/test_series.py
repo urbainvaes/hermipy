@@ -16,10 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import hermipy.quad as hm
-import hermipy.settings as rc
-import hermipy.series as series
-import hermipy.position as position
+import hermipy as hm
 import unittest
 import numpy as np
 import numpy.linalg as la
@@ -37,14 +34,14 @@ class TestSeries(unittest.TestCase):
             'debug': False,
             }
 
-        rc.settings.update(settings)
+        hm.settings.update(settings)
 
     def test_inner_positions(self):
         m1, m2 = [1, 2], [3, 4, 5]
         c1, c2 = np.diag([1, 2]), np.diag([3, 4, 5])
-        p1 = position.Position(mean=m1, cov=c1, dirs=[0, 1])
-        p2 = position.Position(mean=m2, cov=c2, dirs=[1, 3, 4])
-        result = position.Position.inner(p1, p2)
+        p1 = hm.Position(mean=m1, cov=c1, dirs=[0, 1])
+        p2 = hm.Position(mean=m2, cov=c2, dirs=[1, 3, 4])
+        result = hm.Position.inner(p1, p2)
         self.assertTrue(result.dirs == [0, 3, 4])
         self.assertAlmostEqual(la.norm(result.mean - [1, 4, 5]), 0)
         self.assertAlmostEqual(la.norm(result.cov - np.diag([1, 4, 5])), 0)
@@ -57,7 +54,7 @@ class TestSeries(unittest.TestCase):
         quad_y = hm.Quad.gauss_hermite(n_points, dim=1, dirs=[1])
         series_xy = quad_xy.transform(fx, degree, index_set=index_set)
         series_y = quad_y.transform(fy, degree, index_set=index_set)
-        inner = series.Series.inner(series_xy, series_y)
+        inner = hm.Series.inner(series_xy, series_y)
         self.assertTrue(series_xy.position.dirs == [0, 1])
         self.assertTrue(series_y.position.dirs == [1])
         self.assertTrue(inner.position.dirs == [0])
