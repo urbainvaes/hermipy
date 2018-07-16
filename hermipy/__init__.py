@@ -17,13 +17,20 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 # Classes in global namespace
+
 from hermipy.quad import *
 from hermipy.series import *
 from hermipy.varf import *
 from hermipy.function import *
+from hermipy.operator import *
+from hermipy.position import *
 
 # Functions in global namespace
 from hermipy.cache import cache
 
 # Settings of the library
 from hermipy.settings import *
+
+# For convenience
+x, y, z = Function.xyz[0:3]
+f = Operator.f
