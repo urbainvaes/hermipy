@@ -20,6 +20,7 @@ import hermipy.core as core
 import hermipy as hm
 
 import unittest
+import sympy as sym
 import numpy.linalg as la
 import scipy.sparse.linalg as las
 
@@ -156,17 +157,26 @@ class TestTensorize(unittest.TestCase):
         varf_xy = quad.varf(f, degree)
         self.assertTrue(varf_x * varf_y == varf_xy)
 
-    # def test_tenorize_matrix_2d_subspace(self):
-    #     n_points, degree = 50, 10
-    #     x, y, z = sym.symbols('x y z', real=True)
-    #     fx, fyz = sym.exp(x), sym.cos(x)*y*y*y*y
-    #     f = fx * fyz.subs(y, z).subs(x, y)
-    #     quad = hm.Quad.gauss_hermite(n_points, dim=3)
-    #     quad_x = quad.project([0])
-    #     quad_xy = quad.project([1, 2])
-    #     varf_x = quad_x.varf(fx, degree)
-    #     varf_yz = quad_xy.varf(fyz, degree)
-    #     varf_xyz = quad.varf(f, degree)
-    #     tensorized = core.tensorize([varf_x, varf_yz], [[0], [1, 2]])
-    #     # diff = (la.norm(varf_2d - projection, 2))
-    #     # self.assertAlmostEqual(diff, 0)
+    def test_tensorize_indices_yz(self):
+        n_points, degree = 50, 10
+        quad = hm.Quad.gauss_hermite(n_points, dim=3)
+        quad_yz = quad.project([1, 2])
+        y, z = hm.y, hm.z
+        fyz = sym.cos(y)*z*z*z*z
+        varf_yz = quad_yz.varf(fyz, degree)
+        varf_yz_t = quad_yz.varf(fyz, degree, tensorize=True)
+        self.assertTrue(varf_yz == varf_yz_t)
+
+    def test_tensorize_matrix_2d_subspace(self):
+        n_points, degree = 50, 10
+        x, y, z = hm.x, hm.y, hm.z
+        fx, fyz = sym.exp(x), sym.cos(y)*z*z*z*z
+        f = fx * fyz
+        quad = hm.Quad.gauss_hermite(n_points, dim=3)
+        quad_x = quad.project([0])
+        quad_yz = quad.project([1, 2])
+        varf_x = quad_x.varf(fx, degree)
+        varf_yz = quad_yz.varf(fyz, degree, tensorize=False)
+        varf_xyz = quad.varf(f, degree, tensorize=True)
+        tensorized = hm.Varf.tensorize([varf_x, varf_yz])
+        self.assertTrue(varf_xyz == tensorized)
