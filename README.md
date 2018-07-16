@@ -8,6 +8,8 @@ $ python -m unittest discover -v tests
 
 # Todo
 
+- Make asymptotic into tests
+
 - Improve documentation
 
 - Implement composite quadrature
@@ -27,6 +29,8 @@ $ python -m unittest discover -v tests
 - Add support for Hermite Fourier
 
 - Two passes in tensorize in 1d
+
+- Option to factorize function
 
 # License
 

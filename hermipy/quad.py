@@ -110,9 +110,9 @@ class Quad:
 
     def tensorize_at(arg_num):
         def tensorize_arg(func):
-            def wrapper(*args, do_tensorize=None, **kwargs):
+            def wrapper(*args, tensorize=None, **kwargs):
                 do_tensorize = rc.settings['tensorize'] if \
-                               do_tensorize is None else do_tensorize
+                               tensorize is None else tensorize
                 if not do_tensorize:
                     return func(*args, **kwargs)
 
