@@ -24,11 +24,7 @@ $ python -m unittest discover -v tests
 
 - Auto conversion from triangle, cube -> cross when appropriate?
 
-- Do varfd before tensorization
-
 - Add support for Hermite Fourier
-
-- Two passes in tensorize in 1d
 
 - Option to factorize function
 
