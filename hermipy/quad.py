@@ -127,31 +127,28 @@ class Quad:
                     function = symfunc.Function(function,
                                                 dirs=quad.position.dirs)
 
-                for add in function.split():
-                    if len(add) == 2:
+                for add in function.split(legacy=False):
+                    multiplicator = add[frozenset()]
+                    del add[frozenset()]
+                    func_dirs = {}
+                    for dirs, term in add.items():
                         new_args = list(args).copy()
-                        new_args[arg_num] = add[0]
-                        func_add = func(*new_args, **kwargs)*float(add[1])
-                        results.append(func_add)
-                        continue
+                        new_args[0] = quad.project(list(dirs))
+                        new_args[arg_num] = term
+                        func_dirs[dirs] = func(*new_args, **kwargs)
 
-                    func_dirs = []
-                    for i, d in enumerate(quad.position.dirs):
-                        new_args = list(args).copy()
-                        new_args[0] = quad.project(d)
-                        new_args[arg_num] = add[i]
-                        func_dir = func(*new_args, **kwargs)
-                        func_dirs.append(func_dir)
                     if rc.settings['debug']:
                         print("Tensorizing results")
+
                     kwargs_func = {'sparse': kwargs['sparse']} \
                         if 'sparse' in kwargs else {}
-                    t = type(func_dirs[0])
-                    tens_fun = t.tensorize if t is hv.Varf or t is hs.Series \
-                        else core.tensorize
-                    tensorized = tens_fun(func_dirs, **kwargs_func)
-                    results.append(tensorized*float(add[-1]))
-
+                    t = type(list(func_dirs.values())[0])
+                    if t is hv.Varf or t is hs.Series:
+                        values = list(func_dirs.values())
+                        tensorized = t.tensorize(values, **kwargs_func)
+                    else:
+                        tensorized = core.tensorize(func_dirs, **kwargs_func)
+                    results.append(tensorized*float(multiplicator.sym))
                 return sum(results[1:], results[0])
             return wrapper
         return tensorize_arg
