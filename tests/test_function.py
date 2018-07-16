@@ -44,20 +44,20 @@ class TestFunction(unittest.TestCase):
         function_str1 = 'x0*cos(x1) + exp(2*x2)'
         function_str2 = 'x*cos(y) + exp(2*z)'
         function = func.Function(function_str1)
-        self.assertTrue(str(function.sym_func) == function_str1)
+        self.assertTrue(str(function.sym) == function_str1)
         self.assertTrue(str(function.as_xyz()) == function_str2)
 
     def test_auto_dim(self):
         newf = func.Function
         f1, f2, f3 = newf('x'), newf('x*y'), newf('x*y*z')
-        self.assertTrue(f1.dim == 1 and f2.dim == 2 and f3.dim == 3)
-
+        self.assertTrue(len(f1.dirs) == 1 and len(f2.dirs) == 2
+                        and len(f3.dirs) == 3)
 
     def test_simple_split(self):
         newf = func.Function
         f = func.Function('x*y**2 + 5*exp(z)*y + 3*log(x*z)')
         split = f.split()
-        self.assertTrue(f.dim == 3)
+        self.assertTrue(len(f.dirs) == 3)
         self.assertTrue(len(split) == 3)
         for i in range(3):
             if split[i][-1] == 1:

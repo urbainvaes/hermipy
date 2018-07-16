@@ -93,7 +93,7 @@ for i in range(nterms):
     if i > 1:
         rhs += - L2.subs(f, u[i - 2])
 
-    split = func.Function(rhs.doit().expand(), dim=2, allow_sym=True).split()
+    split = func.Function(rhs.doit().expand(), dim=2).split()
 
     for term in split:
         x_part = term[-1] * term[0].as_xyz()
@@ -164,7 +164,7 @@ print("Solution: ")
 sym.pprint(func.Function.sanitize(solution).factor())
 
 solution_x = 0
-split = func.Function(solution.expand(), dim=2, allow_sym=True).split()
+split = func.Function(solution.expand(), dim=2).split()
 
 for term in split:
     x_part = term[-1] * term[0].as_xyz()

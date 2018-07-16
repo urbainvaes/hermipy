@@ -23,10 +23,9 @@ import numpy.linalg as la
 import scipy.sparse.linalg as las
 import matplotlib.pyplot as plt
 
+import hermipy as hm
 import hermipy.core as core
-import hermipy.quad as hm
 import hermipy.equations as eq
-import hermipy.settings as rc
 import hermipy.stats as stats
 import hermipy.cache as cache
 
@@ -55,7 +54,7 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
         self.n_points_num = 2*self.degree + 1
 
         # Reset default settings
-        rc.settings.update(self.settings)
+        hm.settings.update(self.settings)
 
     def sym_calc(self, Vp, m, s2):
 
@@ -194,11 +193,11 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
         self.assertTrue(error < 10)
 
     def test_gaussian_sparse(self):
-        rc.settings['sparse'] = True
+        hm.settings['sparse'] = True
         self.test_gaussian()
 
     def test_bistable_sparse(self):
-        rc.settings['sparse'] = True
+        hm.settings['sparse'] = True
         self.test_bistable()
 
 
@@ -223,7 +222,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         self.degree = 50
 
         # Set default settings
-        rc.settings.update(self.settings)
+        hm.settings.update(self.settings)
 
     def test_correctness_operator(self):
         params = self.eq.params()
@@ -400,29 +399,29 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         self.assertTrue(error < 3)
 
     def test_gaussian_sparse(self):
-        rc.settings['sparse'] = True
+        hm.settings['sparse'] = True
         self.test_gaussian()
 
     def test_gaussian_tensorize(self):
-        rc.settings['tensorize'] = True
+        hm.settings['tensorize'] = True
         self.test_gaussian()
 
     def test_gaussian_sparse_tensorize(self):
-        rc.settings['sparse'] = True
-        rc.settings['tensorize'] = True
+        hm.settings['sparse'] = True
+        hm.settings['tensorize'] = True
         self.test_gaussian()
 
     def test_bistable_sparse(self):
-        rc.settings['sparse'] = True
+        hm.settings['sparse'] = True
         self.test_bistable()
 
     def test_bistable_tensorize(self):
-        rc.settings['tensorize'] = True
+        hm.settings['tensorize'] = True
         self.test_bistable()
 
     def test_bistable_sparse_tensorize(self):
-        rc.settings['sparse'] = True
-        rc.settings['tensorize'] = True
+        hm.settings['sparse'] = True
+        hm.settings['tensorize'] = True
         self.test_bistable()
 
 
@@ -495,7 +494,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         s2x, s2y, s2z = r(1, 2), 1, 1
         params = {'β': 5, 'ε': 0.5, 'γ': 0, 'θ': 0, 'm': 0}
         args = [Vp, params, s2x, s2y, s2z, degree]
-        quad, _, backward, _, _, _, _ = self.sym_calc(*args)
+        quad, backward, _, _, _ = self.sym_calc(*args)
 
         varf_cross = quad.discretize_op(backward, self.f, degree, 2,
                                         sparse=sparse, index_set="cross")
@@ -504,22 +503,22 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         self.assertTrue(varf_trian.to_cross(degree) == varf_cross)
 
     def test_consistency_varf_dense(self):
-        rc.settings['tensorize'] = True
+        hm.settings['tensorize'] = True
         self.check_consistency_varf(sparse=False)
 
     def test_consistency_varf_sparse(self):
-        rc.settings['tensorize'] = True
+        hm.settings['tensorize'] = True
         self.check_consistency_varf(sparse=True)
 
     def solve(self, backward, quad, factors, degrees,
               index_set="triangle", fluxes=None):
 
         # Discretization of the operator
-        rc.settings['tensorize'] = True
-        rc.settings['cache'] = True
-        rc.settings['cachedir'] = '/tmp/test_fp_3d'
-        rc.settings['trails'] = True
-        rc.settings['debug'] = False
+        hm.settings['tensorize'] = True
+        hm.settings['cache'] = True
+        hm.settings['cachedir'] = '/tmp/test_fp_3d'
+        hm.settings['trails'] = True
+        hm.settings['debug'] = False
 
         args = [self.f, degrees[-1], 2]
         kwargs = {'sparse': True, 'index_set': index_set}
@@ -607,55 +606,55 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
         return solutions, quad.series(ground_state)
 
-    def test_bistable_cross(self):
+#     def test_bistable_cross(self):
 
-        r = sym.Rational
-        Vp, degree = self.x**4/4 - self.x**2/2, 80
-        s2x, s2y, s2z = r(1, 2), r(1, 1), r(1, 1)
-        params = {'β': r(1, 1), 'ε': r(1, 1), 'γ': 0, 'θ': r(2), 'm': 0}
-        args = [Vp, params, s2x, s2y, s2z, degree]
-        quad, forward, backward, factor, fx, fy, fz = self.sym_calc(*args)
+#         r = sym.Rational
+#         Vp, degree = self.x**4/4 - self.x**2/2, 80
+#         s2x, s2y, s2z = r(1, 2), r(1, 1), r(1, 1)
+#         params = {'β': r(1, 1), 'ε': r(1, 1), 'γ': 0, 'θ': r(2), 'm': 0}
+#         args = [Vp, params, s2x, s2y, s2z, degree]
+#         quad, forward, backward, factor, fx, fy, fz = self.sym_calc(*args)
 
-        # Numerical solutions
-        degrees = list(range(50, degree + 1, 5))
-        solutions, finest = self.solve(backward, quad, [fx, fy, fz], degrees,
-                                       index_set="cross")
+#         # Numerical solutions
+#         degrees = list(range(50, degree + 1, 5))
+#         solutions, finest = self.solve(backward, quad, [fx, fy, fz], degrees,
+#                                        index_set="cross")
 
-    def test_bistable(self):
+#     def test_bistable(self):
 
-        r = sym.Rational
-        Vp, degree = self.x**4/4 - self.x**2/2, 40
-        s2x, s2y, s2z = r(1, 8), r(1, 1), r(1, 1)
-        params = {'β': r(1), 'ε': r(1, 2), 'γ': 0, 'θ': .5, 'm': .0}
-        args = [Vp, params, s2x, s2y, s2z, degree]
-        quad, backward, fluxes, factor, factors = self.sym_calc(*args)
+#         r = sym.Rational
+#         Vp, degree = self.x**4/4 - self.x**2/2, 40
+#         s2x, s2y, s2z = r(1, 8), r(1, 1), r(1, 1)
+#         params = {'β': r(1), 'ε': r(1, 2), 'γ': 0, 'θ': .5, 'm': .0}
+#         args = [Vp, params, s2x, s2y, s2z, degree]
+#         quad, backward, fluxes, factor, factors = self.sym_calc(*args)
 
-        # Numerical solutions
-        degrees = list(range(20, degree + 1, 5))
-        solutions, finest = self.solve(backward, quad, factors, degrees,
-                                       index_set="triangle", fluxes=fluxes)
-        finest_eval = solutions[-1]
+#         # Numerical solutions
+#         degrees = list(range(20, degree + 1, 5))
+#         solutions, finest = self.solve(backward, quad, factors, degrees,
+#                                        index_set="triangle", fluxes=fluxes)
+#         finest_eval = solutions[-1]
 
-        # Plot of the finest solution
-        fig, ax = plt.subplots(1, 1)
-        quad.plot(finest, factor, ax=ax)
-        plt.show()
+#         # Plot of the finest solution
+#         fig, ax = plt.subplots(1, 1)
+#         quad.plot(finest, factor, ax=ax)
+#         plt.show()
 
-        # Associated errors
-        errors, degrees = [], degrees[0:-1]
-        for sol in solutions[0:-1]:
-            error = quad.norm(sol - finest_eval, l2=True)
-            errors.append(error)
-            print(error)
+#         # Associated errors
+#         errors, degrees = [], degrees[0:-1]
+#         for sol in solutions[0:-1]:
+#             error = quad.norm(sol - finest_eval, l2=True)
+#             errors.append(error)
+#             print(error)
 
-        log_errors = np.log(errors)
-        poly_approx = np.polyfit(degrees, log_errors, 1)
-        errors_approx = np.exp(np.polyval(poly_approx, degrees))
-        error = la.norm(log_errors - np.log(errors_approx), 2)
+#         log_errors = np.log(errors)
+#         poly_approx = np.polyfit(degrees, log_errors, 1)
+#         errors_approx = np.exp(np.polyval(poly_approx, degrees))
+#         error = la.norm(log_errors - np.log(errors_approx), 2)
 
-        plt.semilogy(degrees, errors, 'k.')
-        plt.semilogy(degrees, errors_approx)
-        plt.show()
+#         plt.semilogy(degrees, errors, 'k.')
+#         plt.semilogy(degrees, errors_approx)
+#         plt.show()
 
-        self.assertTrue(errors[-1] < 1e-3)
-        self.assertTrue(error < 1)
+#         self.assertTrue(errors[-1] < 1e-3)
+#         self.assertTrue(error < 1)
