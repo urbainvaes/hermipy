@@ -28,14 +28,20 @@ class Position:
 
     @staticmethod
     def tensorize(args):
-        dim, mean, cov = 0, [], []
+        dirs, mean_dic, cov_dic = [], {}, {}
         for a in args:
             assert type(a) is Position
             assert a.is_diag
-            dim += a.dim
-            mean.extend(a.mean)
-            cov.extend(np.diag(a.cov))
-        return Position(dim=dim, mean=mean, cov=np.diag(cov))
+            dirs += a.dirs
+            for i, d in enumerate(a.dirs):
+                mean_dic[d] = a.mean[i]
+                cov_dic[d] = a.cov[i][i]
+        dirs, dim = sorted(dirs), len(dirs)
+        mean, cov = np.zeros((dim,)), np.zeros((dim, dim))
+        for i, d in enumerate(dirs):
+            mean[i] = mean_dic[d]
+            cov[i][i] = cov_dic[d]
+        return Position(dirs=dirs, mean=mean, cov=cov)
 
     @staticmethod
     def inner(p1, p2):
@@ -90,7 +96,7 @@ class Position:
         self.is_diag = la.norm(self.cov - diag_cov, 2) < 1e-10
 
     def __eq__(self, other):
-        return self.dim == other.dim \
+        return self.dirs == other.dirs \
             and la.norm(self.mean - other.mean, 2) < self.very_small \
             and la.norm(self.cov - other.cov, 2) < self.very_small
 
