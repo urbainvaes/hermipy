@@ -34,13 +34,14 @@ class Series:
 
     @staticmethod
     def tensorize(args):
-        assert len(args) > 1
-        index_set = args[0].index_set
-        vecs = []
+        assert len(args) > 1 and type(args[0]) is Series
+        index_set, degree = args[0].index_set, args[0].degree
+        vecs = {}
         for a in args:
             assert type(a) is Series
-            assert a.index_set == index_set
-            vecs.append(a.coeffs)
+            assert a.index_set == index_set and a.degree == degree
+            key = frozenset(a.position.dirs)
+            vecs[key] = a.coeffs
         tens_vec = core.tensorize(vecs, index_set=index_set)
         tens_pos = pos.Position.tensorize([a.position for a in args])
         return Series(tens_vec, tens_pos, index_set=index_set)
