@@ -120,10 +120,10 @@ class Series:
         return Series(result, inner_pos, index_set=self.index_set)
 
     def project(self, directions):
-        if type(directions) is int:
+        if type(directions) is not list:
             directions = [directions]
-        directions = core.to_numeric(directions)
-        p_coeffs = core.project(self.coeffs, self.position.dim, directions,
+        rel_dirs = [self.position.dirs.index(d) for d in directions]
+        p_coeffs = core.project(self.coeffs, self.position.dim, rel_dirs,
                                 index_set=self.index_set)
         p_pos = self.position.project(directions)
         return Series(p_coeffs, p_pos, index_set=self.index_set)

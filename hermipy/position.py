@@ -114,19 +114,17 @@ class Position:
 
     def weights(self):
         assert self.is_diag
-        return [self.project([i]).weight() for i in range(self.dim)]
+        return [self.project(d).weight() for d in self.dirs]
 
     def project(self, directions):
+        assert self.is_diag
         if type(directions) is int:
             directions = [directions]
-        assert self.is_diag
-        dirs = [-1]*len(directions)
-        dim = len(dirs)
+        assert directions == sorted(directions)
+        dirs, dim = directions, len(directions)
         mean, cov = np.zeros(dim), np.zeros((dim, dim))
-        for i in range(dim):
-            d = directions[i]
-            dirs[i] = self.dirs[d]
-            assert d < self.dim
-            mean[i] = self.mean[d]
-            cov[i][i] = self.cov[d][d]
+        rel_dirs = [self.dirs.index(d) for d in directions]
+        for rp, rs in enumerate(rel_dirs):
+            mean[rp] = self.mean[rs]
+            cov[rp][rp] = self.cov[rs][rs]
         return Position(dim=dim, mean=mean, cov=cov, dirs=dirs)

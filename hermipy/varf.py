@@ -109,8 +109,8 @@ class Varf:
     def project(self, directions):
         if type(directions) is int:
             directions = [directions]
-        directions = core.to_numeric(directions)
-        p_matrix = core.project(self.matrix, self.position.dim, directions,
+        rel_dirs = [self.dirs.index(d) for d in directions]
+        p_matrix = core.project(self.matrix, self.position.dim, rel_dirs,
                                 index_set=self.index_set)
         p_pos = self.position.project(directions)
         return Varf(p_matrix, p_pos, index_set=self.index_set)

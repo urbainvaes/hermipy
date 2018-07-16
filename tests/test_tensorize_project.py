@@ -59,7 +59,7 @@ class TestProject(unittest.TestCase):
         quad_3d = hm.Quad.gauss_hermite(n_points, dim=3)
         varf_2d = quad_2d.varf(function, degree).matrix
         varf_3d = quad_3d.varf(function, degree).matrix
-        projection = core.project(varf_3d, 3, ['x', 'y'])
+        projection = core.project(varf_3d, 3, [0, 1])
         diff = (la.norm(varf_2d - projection, 2))
         self.assertAlmostEqual(diff, 0)
 
@@ -71,7 +71,7 @@ class TestProject(unittest.TestCase):
         quad_3d = hm.Quad.gauss_hermite(n_points, dim=3)
         varf_2d = quad_2d.varf(function, degree, sparse=True).matrix
         varf_3d = quad_3d.varf(function, degree, sparse=True).matrix
-        projection = core.project(varf_3d, 3, ['x', 'y'])
+        projection = core.project(varf_3d, 3, [0, 1])
         diff = (las.norm(varf_2d - projection))
         self.assertAlmostEqual(diff, 0)
 

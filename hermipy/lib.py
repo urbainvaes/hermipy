@@ -38,21 +38,6 @@ def hermegauss_nd(n_points):
     return nodes_multidim, weights_multidim
 
 
-def natural_bissect(func, x1=0, x2=1000):
-    f1, f2 = func(x1), func(x2)
-    if f1 is 0:
-        return x1
-    elif f2 is 0:
-        return x2
-    assert f1*f2 < 0
-    x3 = (x1+x2)//2
-    f3 = func(x3)
-    replace_arg = 'x2' if f1*f3 <= 0 else 'x1'
-    new_args = {'x1': x1, 'x2': x2}
-    new_args[replace_arg] = x3
-    return natural_bissect(func, **new_args)
-
-
 def cross_in_triangle(dim, degree):
         list_cross = core.iterator_list_indices(dim, degree, index_set="cross")
         return [core.iterator_index(m) for m in list_cross]
