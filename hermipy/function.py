@@ -102,33 +102,52 @@ class Function():
                               'v[{}]'.format(i), function)
         return function
 
-    def split(self):
-        variables = [self.x_sub[d] for d in self.dirs]
+    def split(self, legacy=True):
+        dim = len(self.dirs)
         is_add = isinstance(self.sym, sympy.add.Add)
         add_terms = self.sym.args if is_add else [self.sym]
         to_return = []
         for term in add_terms:
             is_mul = isinstance(term, sympy.mul.Mul)
             mul_terms = term.args if is_mul else [term]
-            result = [sympy.Rational('1')] * (len(self.dirs) + 1)
-            tensorizable = True
+            result = {frozenset({d}): 1 for d in self.dirs}
+
+            # For constant multiplier
+            result[frozenset()] = 1
+
             for arg in mul_terms:
-                vars_arg = [v for v in variables if v in arg.free_symbols]
-                if len(vars_arg) is 0:
-                    result[-1] *= (arg)  # Store constant in last element
+                vars_arg = arg.free_symbols.intersection(self.x_sub)
+                key = frozenset(self.x_sub.index(v) for v in vars_arg)
+                keys_intersect, value = [], arg
+
+                if key in result:
+                    result[key] *= value
+                    continue
+
+                for existing_key in result:
+                    if existing_key.intersection(key) != frozenset():
+                        key = existing_key.union(key)
+                        value *= result[existing_key]
+                        keys_intersect.append(existing_key)
+
+                for k in keys_intersect:
+                    del result[k]
+
+                result[key] = value
+
+            if legacy:
+                tmp, multiplicator = [], result[frozenset()]
+                if len(result) == dim + 1:
+                    for d in self.dirs:
+                        tmp.append(Function(result[frozenset({d})], dirs=[d]))
                 else:
-                    if len(vars_arg) is 1:
-                        symbol = vars_arg[0]
-                        result[variables.index(symbol)] *= arg
-                    else:
-                        result[0] *= arg
-                        tensorizable = False
-            if tensorizable:
-                for i in range(len(self.dirs)):
-                    result[i] = Function(result[i], dirs=[self.dirs[i]])
+                    tmp.append(Function(term/multiplicator, dirs=self.dirs))
+                tmp.append(multiplicator)
+                result = tmp
             else:
-                func = Function(term/result[-1], dirs=self.dirs)
-                result = [func, result[-1]]
+                for dirs, arg in result.items():
+                    result[dirs] = Function(arg, dirs=list(dirs))
+
             to_return.append(result)
         return to_return
 
