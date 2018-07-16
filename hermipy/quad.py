@@ -230,18 +230,21 @@ class Quad:
                         sparse=sparse, index_set=index_set)
         return hv.Varf(var, self.position, index_set=index_set)
 
+    @tensorize_at(1)
     @stats.debug()
     @stats.log_stats()
     def varfd(self, function, degree, directions,
               sparse=None, index_set="triangle"):
+        directions = filter(lambda d: d in self.position.dirs, directions)
         sparse = rc.settings['sparse'] if sparse is None else sparse
         var = self.varf(function, degree, sparse=sparse, index_set=index_set)
         mat = var.matrix
         eigval, _ = la.eig(self.position.cov)
         for d in directions:
-            mat = core.varfd(self.position.dim, degree, d, mat,
-                             index_set=index_set)
-            mat = mat/np.sqrt(eigval[d])
+            rel_dir = self.position.dirs.index(d)
+            mat = core.varfd(self.position.dim, degree, rel_dir,
+                             mat, index_set=index_set)
+            mat = mat/np.sqrt(eigval[rel_dir])
         return hv.Varf(mat, self.position, index_set=index_set)
 
     @stats.debug()
@@ -256,7 +259,8 @@ class Quad:
         for m, coeff in zip(mult, splitop):
             if coeff == 0:
                 continue
-            d_vector = sum([[i]*m[i] for i in range(self.position.dim)], [])
+            enum_dirs = enumerate(self.position.dirs)
+            d_vector = sum([[d]*m[i] for i, d in enum_dirs], [])
             varf_part = self.varfd(coeff, degree, d_vector, sparse=sparse,
                                    index_set=index_set)
             mat_operator = varf_part + mat_operator
