@@ -23,7 +23,7 @@ import time
 
 stats = {}
 indent = 0
-threshold = 1e-3
+threshold = 0
 
 
 def debug(force=False):

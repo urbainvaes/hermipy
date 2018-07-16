@@ -36,7 +36,7 @@ class Varf:
     @staticmethod
     def tensorize(args, sparse=None):
         sparse = rc.settings['sparse'] if sparse is None else sparse
-        assert len(args) > 1 and type(args[0]) is Varf
+        assert len(args) > 0 and type(args[0]) is Varf
         index_set, degree = args[0].index_set, args[0].degree
         mats = {}
         for a in args:
