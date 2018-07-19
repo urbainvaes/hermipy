@@ -22,6 +22,10 @@ $ python -m unittest discover -v tests
 
 - Improve data conversion
 
+- Inherit sympy.function / sympy.operator instead?
+
+- Store factor somewhere?
+
 # License
 
 This program is free software: you can redistribute it and/or modify

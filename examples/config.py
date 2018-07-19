@@ -29,7 +29,7 @@ x, y, f = equation.x, equation.y, equation.f
 r = sym.Rational
 
 # Configuration of numerical method
-num['degree'] = 100  # degree of approximation
+num['degree'] = 60  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
 num['μx'] = r(1, 5)
 num['σx'] = r(1, 10)
@@ -37,7 +37,7 @@ num['λ'] = r(1, 2)
 
 # Scalar parameters of the equation
 eq['β'] = r(2)
-eq['ε'] = r(1)
+eq['ε'] = r(1, 16)
 eq['γ'] = r(0)
 eq['θ'] = r(0)
 
@@ -53,6 +53,6 @@ misc['cache'] = False
 misc['debug'] = False
 misc['parallel'] = False
 misc['tensorize'] = True
+misc['sparse'] = True
 misc['trails'] = True
-misc['plots'] = True
 misc['symbolic'] = 0  # Values 0, 1, 2

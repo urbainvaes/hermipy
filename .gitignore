@@ -3,6 +3,10 @@ hermite_cpp.so
 /doc/build/*
 /build/*
 
+# Test and output files
+/test*
+/*.eps
+
 # Cache files
 /.cache/*
 /examples/.cache/*

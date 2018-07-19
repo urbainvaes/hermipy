@@ -32,6 +32,9 @@ import hermipy.stats
 import hermipy.equations as eq
 import hermipy.core as core
 
+import matplotlib
+import matplotlib.pyplot as plt
+
 from sympy.printing import pprint
 
 sym.init_printing()
@@ -44,6 +47,12 @@ parser.add_argument('-tc', '--convergence', action='store_true',
                     help='Run convergence test')
 parser.add_argument('-tb', '--bifurcation', action='store_true',
                     help='Run bifurcation test')
+parser.add_argument('-p', '--plots', action='store_true',
+                    help='Enable plots')
+parser.add_argument('-v', '--verbose', action='store_true',
+                    help='Enable verbose output')
+parser.add_argument('--cache', action='store_true',
+                    help='Enable use of cache')
 
 parser.add_argument('-c', '--config', type=str, help='Configuration file')
 parser.add_argument('-b', '--beta', type=str, help='Value of β')
@@ -52,14 +61,7 @@ parser.add_argument('-e', '--epsilon', type=str, help='Value of ε')
 parser.add_argument('-g', '--gamma', type=str, help='Value of γ')
 parser.add_argument('-m', '--mass', type=str, help='Value of m')
 
-parser.add_argument('-p', '--plots', action='store_true',
-                    help='Enable plots')
-parser.add_argument('-v', '--verbose', action='store_true',
-                    help='Enable verbose output')
-parser.add_argument('--cache', action='store_true',
-                    help='Enable verbose output')
 args = parser.parse_args()
-
 
 if args.config:
     config = importlib.import_module(args.config)
@@ -74,6 +76,8 @@ if args.epsilon:
     config.eq['ε'] = sym.Rational(args.epsilon)
 if args.gamma:
     config.eq['γ'] = sym.Rational(args.gamma)
+if args.mass:
+    config.eq['m'] = sym.Rational(args.mass)
 if args.verbose:
     config.misc['verbose'] = args.verbose
 
@@ -97,12 +101,14 @@ def vprint(*args, **kwargs):
     if config.misc['verbose']:
         print(*args, **kwargs)
 
+
 # Set library option
 hermipy.settings.update(config.misc)
+vprint(hermipy.settings)
 
-if config.misc['plots']:
-    import matplotlib.pyplot as plt
-    # import examples.plot as plots
+matplotlib.rc('font', size=14)
+matplotlib.rc('font', family='serif')
+matplotlib.rc('text', usetex=True)
 
 # }}}
 # DATA AND PARAMETERS FOR NUMERICAL SIMULATION {{{
@@ -179,7 +185,9 @@ def forward_op(symbolic):
         elif symbolic == 0:
             value = params[k].eval()
         eq_params[k] = value
-    return eq.McKean_Vlasov.equation(eq_params)
+    forward = eq.McKean_Vlasov.equation(eq_params)
+    fluxes = eq.McKean_Vlasov.fluxes(eq_params)
+    return forward, fluxes
 
 
 def factors(symbolic, λ):
@@ -198,6 +206,8 @@ def factors(symbolic, λ):
         Vq = params['Vq'].eval()
     factor_x = sym.exp(-β*(λ*Vq + (1-λ)*Vp))
     factor_y = sym.exp(-Vy)
+    # factor_x = sym.exp(-Vq/2)
+    # factor_y = sym.exp(-Vy/2)
     factor = factor_x * factor_y
     return factor_x, factor_y, factor
 
@@ -216,13 +226,15 @@ params.update(eq_params())
 params.update({**vy(), **vq()})
 
 # Forward operator
-forward = forward_op(config.misc['symbolic'])
+forward, fluxes = forward_op(config.misc['symbolic'])
 
 # Mapped backward operator
 factor_x, factor_y, factor = factors(config.misc['symbolic'], config.num['λ'])
 backward = eq.map_operator(forward, f, factor)
+fluxes = [eq.map_operator(flux, f, factor) for flux in fluxes]
 
 forward, backward = evaluate([forward, backward])
+fluxes = evaluate(fluxes)
 factor_x, factor_y, factor = evaluate([factor_x, factor_y, factor])
 
 if config.misc['verbose']:
@@ -251,9 +263,12 @@ def compute_quads():
 
     # For visualization
     nv = 200
-    band_width = np.sqrt(2) * np.sqrt(2*degree + 1)
-    bounds_x = band_width*np.sqrt(float(σx))
-    bounds_y = band_width*np.sqrt(float(σy))
+    # band_width = np.sqrt(2) * np.sqrt(2*degree + 1)
+    # bounds_x = band_width*np.sqrt(float(σx))
+    # bounds_y = band_width*np.sqrt(float(σy))
+    bounds_x = 4
+    bounds_y = 4
+
     quad_visu = hermipy.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y])
     return quad_num, quad_visu
 
@@ -262,31 +277,52 @@ quad_num, quad_visu = compute_quads()
 
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
-
 vprint("Splitting operator in m-linear and m-independent parts")
 m_operator = backward.diff(params['m'].symbol)
 r_operator = (backward - params['m'].symbol*m_operator).cancel()
-
 vprint("Discretizing operators")
 m_mat = quad_num.discretize_op(m_operator, f, degree, 2)
 r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
+fd = [quad_num.discretize_op(flux, f, degree, 2) for flux in fluxes]
+total_mat = r_mat + m_mat
 
 vprint("Solving eigenvalue problem")
 eig_vals, eig_vecs = r_mat.eigs(k=4, which='LR')
-eig_vals = list(reversed(eig_vals))
-eig_vecs.reverse()
+
+# Make plots {{{
 
 
 def plot():
 
-    print("[plot]")
+    vprint("[plot]")
+
+    fig, ax = plt.subplots(1, 1)
+    ground_series = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])
+    cont = quad_visu.plot(ground_series, factor, ax=ax,
+                          vmin=0, extend='min', bounds=0)
+    for c in cont.collections:
+        c.set_edgecolor("face")
+    plt.colorbar(cont, ax=ax)
+    f0, f1 = fd[0](ground_series), fd[1](ground_series)
+    streamlines = quad_visu.streamlines(f0, f1, factor=factor, ax=ax)
+    for c in streamlines.collections:
+        plt.setp(c, linewidth=.5)
+    plt.savefig('solution.eps', bbox_inches='tight')
+    plt.show()
+    fig, ax = plt.subplots(1, 1)
+    scatter = ground_series.subdegree(10).plot(ax=ax)
+    plt.colorbar(scatter, ax=ax)
+    plt.savefig('coefficients.eps', bbox_inches='tight')
+    plt.show()
 
     def plot_eigenfunctions():
         fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
         axes = (ax11, ax12, ax21, ax22)
         for e_val, series, ax in zip(eig_vals, eig_vecs, axes):
             series = series * np.sign(series.coeffs[0])
-            cont = quad_visu.plot(series, factor, ax=ax, bounds=False)
+            kwargs = {} if abs(e_val) > 1e-5 else {'vmin': 0, 'extend': 'min'}
+            cont = quad_visu.plot(series, factor=factor,
+                                  ax=ax, bounds=False, **kwargs)
             ax.set_title("Eigenvalue: " + str(e_val))
             plt.colorbar(cont, ax=ax)
         plt.show()
@@ -311,8 +347,7 @@ def plot():
             hf = np.zeros(core.iterator_size(2, deg_max, index_set=index_set))
             hf[core.iterator_index(degrees, index_set="triangle")] = 1
             hf = quad_num.series(hf, quad_num.position)
-            factor = quad_num.position.weight()
-            return quad_visu.plot(hf, factor, ax, bounds=False)
+            return quad_visu.plot(hf, factor, ax=ax, bounds=False)
 
         fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
         plot_hf((degree, 0), quad_num, quad_visu, ax11)
@@ -366,7 +401,118 @@ def plot():
     plot_comparison_with_asym()
 
 
-# plot()
+if config.misc['plots']:
+    plot()
+# }}}
+# Test convergence {{{
+
+
+def convergence():
+    vprint("[convergence]")
+
+    def asymptotic():
+        Vp = params['θ'].value*(x - params['m'].value)**2/2
+        Vp, β, ε = Vp + params['Vp'].eval(), params['β'].value, params['ε'].value
+        rho_eta = 1/sym.sqrt(2*np.pi) * sym.exp(-y*y/2)
+        quadx = quad_num.project(0)
+        Z = quadx.integrate(sym.exp(-β*Vp), l2=True)
+        u0 = sym.exp(-β*Vp)/Z
+        u1 = y*sym.sqrt(β)*sym.exp(-β*Vp)*Vp.diff(x)/Z
+        C2 = quadx.integrate(
+                (Vp.diff(x)**2/2 - 1/β*Vp.diff(x, x))
+                * sym.exp(-β*Vp)/Z, l2=True)
+        u2 = (2*C2*β + y**2*β*Vp.diff(x)**2 - y**2*Vp.diff(x, x)
+              - 2*β*Vp.diff(x)**2 + 3*Vp.diff(x, x))*sym.exp(-β*Vp)/(2*Z)
+        u3 = u0.diff(x, x, x)/(6*float(β)**(3/2))*(-y**3 - 3*y) \
+            - y/np.sqrt(float(β))*(Vp.diff(x)*u0.diff(x)).diff(x) \
+            - y/np.sqrt(float(β))*u2.diff(x)
+        ua = (u0 + ε*u1 + ε**2*u2)*rho_eta
+        # ta = quad_num.transform(ua/factor, degree=degree)
+        quad_visu.plot(ua, factor=None)
+        assert abs(quad_num.integrate(ua, l2=True) - 1) < 1e-8
+        return quad_num.discretize(ua)
+    asym_num = asymptotic()
+
+    factor_eval = quad_num.discretize(factor)
+
+    def get_ground_state(eig_vec):
+        ground_series = eig_vec * np.sign(eig_vec.coeffs[0])
+        # quad_visu.plot(ground_series, factor=factor)
+        ground_state_eval = quad_num.eval(ground_series)
+        ground_state_eval = ground_state_eval * factor_eval
+        norm = quad_num.norm(ground_state_eval, n=1, l2=True)
+        ground_state_eval = ground_state_eval / norm
+        return ground_state_eval
+
+    vprint("-- Calculating exact solution")
+    if params['Vp'].value.diff(x, x, x) == 0 and params['θ'].value == 0:
+        solution = eq.solve_gaussian(forward, f, [x, y])
+        solution_eval = quad_num.discretize(solution)
+        norm_sol = quad_num.integrate(solution_eval, l2=True)
+        assert abs(norm_sol - 1) < 1e-6
+    else:
+        eig_vals, eig_vecs = r_mat.eigs(k=4, which='LR')
+        solution_eval = get_ground_state(eig_vecs[0])
+        norm_sol = quad_num.integrate(solution_eval, l2=True)
+        solution_eval = solution_eval / norm_sol
+
+    v0, degrees, errors, errors_a, mins, eig_ground = None, [], [], [], [], []
+    for d in range(10, degree):
+        print("-- Solving for degree = " + str(d))
+        npolys = core.iterator_size(2, d)
+        sub_varf = r_mat.subdegree(d)
+        # sub_mat = sub_mat
+        if v0 is not None:
+            actual_v0 = np.zeros(npolys)
+            for i in range(len(v0)):
+                actual_v0[i] = v0[i]
+            v0 = actual_v0
+        eig_vals, eig_vecs = sub_varf.eigs(v0=v0, k=1, which='LR')
+        v0 = eig_vecs[0].coeffs.copy(order='C')
+        ground_state_eval = get_ground_state(eig_vecs[0])
+        error = quad_num.norm(ground_state_eval - solution_eval, n=1, l2=True)
+        error_a = quad_num.norm(ground_state_eval - asym_num, n=1, l2=True)
+        degrees.append(d)
+        mins.append(np.min(ground_state_eval))
+        eig_ground.append(eig_vals[0])
+        errors.append(error)
+        errors_a.append(error_a)
+
+    fig, ax = plt.subplots(1, 1)
+    ground_series = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])
+    cont = quad_visu.plot(ground_series, factor, ax=ax,
+                          vmin=0, extend='min', bounds=False)
+    plt.colorbar(cont, ax=ax)
+    plt.show()
+
+    def plot_log(x, y, file, lin=True):
+        x, y = np.asarray(x), np.asarray(y)
+        fig, ax = plt.subplots(1, 1)
+        ax.semilogy(x, y, 'k.')
+        ax.set_yscale('log', basey=2)
+        cut_off = 70
+        x_poly = x[0:cut_off + 1] if len(x) > cut_off else x
+        y_poly = y[0:cut_off + 1] if len(y) > cut_off else y
+        coeffs = np.polyfit(x_poly, np.log10(y_poly), 1)
+        if lin:
+            ax.semilogy(x, 10**coeffs[1] * 10**(coeffs[0]*x), 'r-',
+                        label='$y = {:.2f} \\times 10^{{ {:.2f} \\, x}}$'.
+                              format(10**coeffs[1], coeffs[0]))
+        plt.legend(loc='upper right')
+        plt.savefig(file, bbox_inches='tight')
+        plt.show()
+
+    np.save('errors-epsilon-'+str(float(params['ε'].value)), errors_a)
+    # plot_log(degrees, errors, 'l1conv.eps')
+    # plot_log(degrees, [max(0, -m) for m in mins], 'min.eps')
+    # plot_log(degrees, np.abs(eig_ground), 'eig_val.eps')
+    plot_log(degrees, errors_a, 'l1asym.eps', lin=False)
+
+
+if args.convergence:
+    convergence()
+# }}}
+# Study bifurcations {{{
 
 
 def bifurcation(factor_x, m_init):
@@ -398,6 +544,9 @@ def bifurcation(factor_x, m_init):
             plt.show()
         return value
 
+    # streams = quad_visu.streamlines(flux_proj[0], flux_proj[1],
+    #                                 factor_visu, ax)
+
     # m_values = np.linspace(-2, 2, 41)
     # m_values = [0]
     m_converged = []
@@ -422,64 +571,6 @@ def bifurcation(factor_x, m_init):
     # ax.plot(m_values, images, label='R(m)')
     # ax.legend()
     # plt.show()
-
-
-def convergence():
-    vprint("[convergence]")
-
-    factor_eval = quad_num.discretize(factor)
-
-    def get_ground_state(eig_vec):
-        ground_series = eig_vec * np.sign(eig_vec.coeffs[0])
-        # quad_visu.plot(ground_series, factor=factor)
-        ground_state_eval = quad_num.eval(ground_series)
-        ground_state_eval = ground_state_eval * factor_eval
-        norm = quad_num.integrate(ground_state_eval, l2=True)
-        ground_state_eval = ground_state_eval / norm
-        return ground_state_eval
-
-    vprint("-- Calculating exact solution")
-    if params['Vp'].value.diff(x, x, x) == 0 and params['θ'].value == 0:
-        solution = eq.solve_gaussian(forward, f, [x, y])
-        solution_eval = quad_num.discretize(solution)
-    else:
-        eig_vals, eig_vecs = r_mat.eigs(k=1, which='LR')
-        solution_eval = get_ground_state(eig_vecs[0])
-    norm_sol = quad_num.integrate(solution_eval, l2=True)
-    assert abs(norm_sol - 1) < 1e-6
-
-    v0 = None
-    degrees = []
-    errors = []
-    for d in range(10, degree):
-        print("-- Solving for degree = " + str(d))
-        npolys = core.iterator_size(2, d)
-        sub_varf = r_mat.subdegree(d)
-        # sub_mat = sub_mat
-        if v0 is not None:
-            actual_v0 = np.zeros(npolys)
-            for i in range(len(v0)):
-                actual_v0[i] = v0[i]
-            v0 = actual_v0
-        eig_vals, eig_vecs = sub_varf.eigs(v0=v0, k=1, which='LR')
-        v0 = eig_vecs[0].coeffs.copy(order='C')
-        ground_state_eval = get_ground_state(eig_vecs[0])
-        error = la.norm(ground_state_eval - solution_eval, 2)
-        degrees.append(d)
-        errors.append(error)
-
-    fig, ax = plt.subplots(1, 1)
-    ground_series = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])
-    cont = quad_visu.plot(ground_series, factor, ax=ax)
-    plt.colorbar(cont, ax=ax)
-    plt.show()
-    fig, ax = plt.subplots(1, 1)
-    ax.semilogy(degrees, errors, 'k.')
-    plt.show()
-    # splot.contour(solution, (x, -1, 1), (y, -1, 1))
-
-
-convergence()
 
 factor_sym = factor
 delta_arc_length = 0.1
@@ -522,5 +613,7 @@ conv2 = [c[1] for c in conv]
 ax.plot(betas, conv1, 'k.')
 ax.plot(betas, conv2, 'k.')
 plt.show()
+# }}}
+# }}}
 
-import ipdb; ipdb.set_trace()
+ipdb.set_trace()
