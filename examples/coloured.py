@@ -26,6 +26,7 @@ import sympy as sym
 import importlib
 import numpy as np
 import numpy.linalg as la
+import scipy.sparse.linalg as las
 
 import hermipy
 import hermipy.stats
@@ -428,7 +429,7 @@ def convergence():
             - y/np.sqrt(float(β))*u2.diff(x)
         ua = (u0 + ε*u1 + ε**2*u2)*rho_eta
         # ta = quad_num.transform(ua/factor, degree=degree)
-        quad_visu.plot(ua, factor=None)
+        # quad_visu.plot(ua, factor=None)
         assert abs(quad_num.integrate(ua, l2=True) - 1) < 1e-8
         return quad_num.discretize(ua)
     asym_num = asymptotic()
@@ -457,7 +458,7 @@ def convergence():
         solution_eval = solution_eval / norm_sol
 
     v0, degrees, errors, errors_a, mins, eig_ground = None, [], [], [], [], []
-    for d in range(10, degree):
+    for d in range(20, degree):
         print("-- Solving for degree = " + str(d))
         npolys = core.iterator_size(2, d)
         sub_varf = r_mat.subdegree(d)
@@ -502,15 +503,46 @@ def convergence():
         plt.savefig(file, bbox_inches='tight')
         plt.show()
 
-    np.save('errors-epsilon-'+str(float(params['ε'].value)), errors_a)
-    # plot_log(degrees, errors, 'l1conv.eps')
-    # plot_log(degrees, [max(0, -m) for m in mins], 'min.eps')
-    # plot_log(degrees, np.abs(eig_ground), 'eig_val.eps')
+    # np.save('errors-epsilon-'+str(float(params['ε'].value)), errors_a)
+    plot_log(degrees, errors, 'l1conv.eps')
+    plot_log(degrees, [max(0, -m) for m in mins], 'min.eps')
+    plot_log(degrees, np.abs(eig_ground), 'eig_val.eps')
     plot_log(degrees, errors_a, 'l1asym.eps', lin=False)
 
 
 if args.convergence:
     convergence()
+# }}}
+# {{{ Time dependent solution
+
+plt.ion()
+fig, ax = plt.subplots(1, 1)
+
+u = quad_num.position.weight()
+t = quad_num.transform(u/factor, degree=degree)
+dt, Ns = 1e-1, int(1e4)
+x_eval = quad_num.discretize('x')
+f_eval = quad_num.discretize(factor)
+eye = quad_num.varf('1', degree=degree)
+for i in range(Ns):
+
+    # Evaluate solution
+    r_eval = quad_num.eval(t)*f_eval
+
+    # Normalization
+    integral = quad_num.integrate(r_eval, l2=True)
+    t, r_eval = t * (1/integral), r_eval * (1/integral)
+
+    ax.clear()
+    quad_visu.plot(t, factor=factor, ax=ax)
+    plt.draw()
+    plt.pause(.01)
+
+    mi = quad_num.integrate(r_eval*x_eval)
+    print("m: " + str(mi))
+    operator = r_mat + mi*m_mat
+    total_op = eye - dt*operator
+    t = total_op.solve(t)
 # }}}
 # Study bifurcations {{{
 
