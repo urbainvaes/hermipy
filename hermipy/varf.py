@@ -22,6 +22,7 @@ import hermipy.lib as lib
 import hermipy.position as pos
 import hermipy.series as hs
 import hermipy.settings as rc
+import hermipy.stats as stats
 import scipy.sparse as ss
 import numpy as np
 import numpy.linalg as la
@@ -116,7 +117,8 @@ class Varf:
     def subdegree(self, degree):
         assert degree <= self.degree
         n_polys = core.iterator_size(self.position.dim, degree)
-        matrix = self.matrix[0:n_polys, 0:n_polys].copy(order='C')
+        kwargs = {'order': 'C'} if not self.is_sparse else {}
+        matrix = self.matrix[0:n_polys, 0:n_polys].copy(**kwargs)
         return Varf(matrix, self.position, index_set=self.index_set)
 
     def multi_indices(self):
@@ -130,6 +132,7 @@ class Varf:
         matrix = self.matrix[np.ix_(inds_triangle, inds_triangle)]
         return Varf(matrix, self.position, index_set="cross")
 
+    @stats.log_stats()
     def eigs(self, **kwargs):
         eigs = cache.cache(quiet=True)(las.eigs)
         eig_vals, eig_vecs = eigs(self.matrix, **kwargs)

@@ -301,7 +301,7 @@ class Quad:
         return hs.Series(coeffs, self.position, norm=norm,
                          index_set=index_set)
 
-    def plot(self, arg, factor=None, ax=None, bounds=True):
+    def plot(self, arg, factor=None, ax=None, bounds=True, **kwargs):
         assert self.position.is_diag
 
         show_plt = ax is None
@@ -356,9 +356,9 @@ class Quad:
         solution = solution.reshape(*n_nodes).T
 
         if self.position.dim == 1:
-            plot = ax.plot(*r_nodes, solution)
+            plot = ax.plot(*r_nodes, solution, **kwargs)
         elif self.position.dim == 2:
-            plot = ax.contourf(*r_nodes, solution, 100)
+            plot = ax.contourf(*r_nodes, solution, 100, **kwargs)
 
         min, max = np.min(solution), np.max(solution)
         ax.set_title("Min: {:.3f}, Max: {:.3f}".format(min, max))

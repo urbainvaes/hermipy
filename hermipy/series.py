@@ -147,26 +147,36 @@ class Series:
             fig, ax = plt.subplots(1)
 
         m = self.multi_indices()
-        if self.position.dim == 1:
+        if self.position.dim is 1:
             mx = m[:, 0]
-            ax.bar(mx, self.coeffs)
-        elif self.position.dim == 2:
-            coeffs = self.coeffs / max(abs(self.coeffs))
-            coeffs = (abs(coeffs) > 1e-10) * coeffs
+            pl = ax.bar(mx, self.coeffs)
+        elif self.position.dim is 2:
+            coeffs = self.coeffs
+            # coeffs = self.coeffs / max(abs(self.coeffs))
+            # coeffs = (abs(coeffs) > 1e-10) * coeffs
             mx, my = m[:, 0], m[:, 1]
             # zoom = 1e3/max(mx)
             # positives = zoom * (coeffs > 0) * coeffs
             # negatives = zoom * (coeffs < 0) * coeffs * (-1)
             zeros = abs(coeffs) < 1e-12
             # ax.scatter(mx, my, s=positives, c='g', marker='o')
-            ax.scatter(mx, my, c=1-abs(coeffs), cmap='gray')
+            pl = ax.scatter(mx, my, c=abs(coeffs),
+                            cmap='ocean_r', s=1e2, edgecolor='k')
             ax.scatter(mx, my, s=zeros, c='r', marker='o')
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
             ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+            # for i, txt in enumerate(coeffs):
+            #     ax.annotate("{:.2f}".format(txt), (mx[i] + .1, my[i] + .1), size=8)
+
         ax.set_title("Coefficients of the Hermite expansion")
 
         if show_plt:
+            if self.position.dim is 2:
+                plt.colorbar(pl, ax=ax)
             plt.show()
+        else:
+            return pl
 
     def to_function(self):
         assert self.position.is_diag
