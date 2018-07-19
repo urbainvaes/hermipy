@@ -518,9 +518,9 @@ if args.convergence:
 plt.ion()
 fig, ax = plt.subplots(1, 1)
 
-u = quad_num.position.weight()
+u = (quad_num.position.weight()**2).subs(x, x - 1)
 t = quad_num.transform(u/factor, degree=degree)
-dt, Ns = 1e-1, int(1e4)
+dt, Ns = 5e-2, int(1e4)
 x_eval = quad_num.discretize('x')
 f_eval = quad_num.discretize(factor)
 eye = quad_num.varf('1', degree=degree)
@@ -534,7 +534,7 @@ for i in range(Ns):
     t, r_eval = t * (1/integral), r_eval * (1/integral)
 
     ax.clear()
-    quad_visu.plot(t, factor=factor, ax=ax)
+    contour = quad_visu.plot(t, factor=factor, ax=ax, vmin=0, extend='min')
     plt.draw()
     plt.pause(.01)
 
