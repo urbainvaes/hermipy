@@ -11,6 +11,7 @@ hermite_cpp.so
 /.cache/*
 /examples/.cache/*
 __pycache__
+__init__.pyc
 
 # Source files created automatically
 /doc/source/modules.rst
