@@ -301,7 +301,7 @@ class Quad:
         return hs.Series(coeffs, self.position, norm=norm,
                          index_set=index_set)
 
-    def plot(self, arg, factor=None, ax=None, bounds=True, **kwargs):
+    def plot(self, arg, factor=None, ax=None, bounds=False, **kwargs):
         assert self.position.is_diag
 
         show_plt = ax is None

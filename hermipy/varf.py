@@ -96,6 +96,10 @@ class Varf:
             raise TypeError("Invalid type: " + str(type(other)))
 
     __rmul__ = __mul__
+    __radd__ = __add__
+
+    def __sub__(self, other):
+        return self + (other*(-1))
 
     def __call__(self, series):
         assert self.position == series.position
@@ -131,6 +135,14 @@ class Varf:
         inds_triangle = lib.cross_in_triangle(self.position.dim, degree)
         matrix = self.matrix[np.ix_(inds_triangle, inds_triangle)]
         return Varf(matrix, self.position, index_set="cross")
+
+    def solve(self, series):
+        assert self.position == series.position
+        assert self.index_set == series.index_set
+        solve = cache.cache(quiet=True)(las.spsolve if self.is_sparse
+                                        else la.solve)
+        solution = solve(self.matrix, series.coeffs)
+        return hs.Series(solution, position=self.position)
 
     @stats.log_stats()
     def eigs(self, **kwargs):
