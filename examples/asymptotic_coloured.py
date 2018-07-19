@@ -57,7 +57,7 @@ op = quad_num.discretize_op(L0.subs(f, fy), fy, degree, 2, sparse=False)
 
 # }}}
 # Expansion of the solution {{{
-nterms = 5
+nterms = 7
 zeros = [sym.Integer(0)] * nterms
 u, centered, unk = zeros, zeros.copy(), zeros.copy()
 
