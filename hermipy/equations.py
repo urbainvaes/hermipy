@@ -23,7 +23,7 @@ sym.init_printing()
 
 
 def map_operator(operator, function, factor):
-    return (operator.subs(function, function*factor).doit()/factor).simplify()
+    return (operator.subs(function, function*factor).doit()/factor).expand()
 
 
 def solve_gaussian(operator, f, variables):
@@ -109,27 +109,29 @@ class McKean_Vlasov:
         for param in ['θ', 'm']:
             params[param] = sym.symbols(param, **options)
 
-        # Potential function
+        # Potential functions
         functions['Vp'] = sym.Function('Vp')(cls.x)
+        functions['Vy'] = sym.Function('Vy')(cls.y)
 
         return {**params, **functions}
 
     @classmethod
     def fluxes(cls, params):
 
+        # Shorthand notations
+        d, x, y, f = sym.diff, cls.x, cls.y, cls.f
+
         # Real parameters
         β, γ, ε, θ, m = (params[x] for x in ['β', 'γ', 'ε', 'θ', 'm'])
 
         # Functional parameter
         Vp = params['Vp']
-
-        # Shorthand notations
-        d, x, y, f = sym.diff, cls.x, cls.y, cls.f
+        Vy = params['Vy'] if 'Vy' in params else y*y/2
 
         # Fokker planck operator
         flux_x = - (d(Vp, x)*f + θ*(x-m)*f - (1-γ)*sym.sqrt(1/β)*y*f/ε
                     + γ**2/β * d(f, x))
-        flux_y = - (1/ε**2) * (f*y + d(f, y))
+        flux_y = - (1/ε**2) * (f*Vy.diff(y) + d(f, y))
         return [flux_x, flux_y]
 
     @classmethod
