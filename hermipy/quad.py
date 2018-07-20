@@ -168,11 +168,11 @@ class Quad:
         return function
 
     @tensorize_at(1)
-    def integrate(self, f_grid, l2=False):
+    def integrate(self, f_grid, flat=False):
         if not isinstance(f_grid, np.ndarray):
             f_grid = self.discretize(f_grid)
 
-        if l2:
+        if flat:
             w_grid = self.discretize(self.position.weight())
 
             # Potentially not robust!
@@ -183,11 +183,11 @@ class Quad:
         return core.integrate(f_grid, self.nodes, self.weights)
 
     # Norm 1 or 2, in weighted or not
-    def norm(self, function, n=2, l2=False):
+    def norm(self, function, n=2, flat=False):
         if n is 2:
-            return np.sqrt(self.integrate(function**2, l2=l2))
+            return np.sqrt(self.integrate(function**2, flat=flat))
         elif n is 1:
-            return self.integrate(abs(function), l2=l2)
+            return self.integrate(abs(function), flat=flat)
 
     def transform(self, f_grid, degree, norm=False,
                   index_set="triangle", significant=0):
@@ -315,6 +315,9 @@ class Quad:
         if type(arg) is symfunc.Function:
             assert factor is None
             solution = self.discretize(arg)
+
+        elif type(arg) is np.ndarray:
+            solution = arg
 
         elif type(arg) is hs.Series:
 

@@ -98,7 +98,7 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
             ground_state = np.real(eig_vecs.T[0])
             ground_state = ground_state * np.sign(ground_state[0])
             ground_state_eval = quad.eval(quad.series(ground_state))*factor
-            norm = quad.norm(ground_state_eval, n=1, l2=True)
+            norm = quad.norm(ground_state_eval, n=1, flat=True)
             ground_state_eval = ground_state_eval / norm
             solutions.append(ground_state_eval)
         return solutions
@@ -108,7 +108,7 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
         Vp, m, s2 = self.x*self.x/4, sym.Rational(1, 10), sym.Rational(1, 5)
         quad, forward, backward, factor = self.sym_calc(Vp, m, s2)
         solution = eq.solve_gaussian(forward, self.f, [self.x])
-        norm_sol = quad.integrate(solution, l2=True)
+        norm_sol = quad.integrate(solution, flat=True)
         self.assertTrue(abs(norm_sol - 1) < 1e-6)
 
     def test_gaussian(self):
@@ -127,7 +127,7 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
         # Associated errors
         errors = []
         for sol in solutions:
-            error = quad.norm(sol - solution_eval, l2=True)
+            error = quad.norm(sol - solution_eval, flat=True)
             errors.append(error)
 
         log_errors = np.log(errors)
@@ -151,10 +151,10 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
 
         sol_an = sym.exp(-self.β * Vp)
         sol_num = quad.discretize(sol_an)
-        norm_1_an = quad.norm(sol_an, n=1, l2=True)
-        norm_1_num = quad.norm(sol_num, n=1, l2=True)
-        norm_2_an = quad.norm(sol_an, n=2, l2=True)
-        norm_2_num = quad.norm(sol_num, n=2, l2=True)
+        norm_1_an = quad.norm(sol_an, n=1, flat=True)
+        norm_1_num = quad.norm(sol_num, n=1, flat=True)
+        norm_2_an = quad.norm(sol_an, n=2, flat=True)
+        norm_2_num = quad.norm(sol_num, n=2, flat=True)
         self.assertAlmostEqual(norm_1_an, norm_1_num)
         self.assertAlmostEqual(norm_2_an, norm_2_num)
 
@@ -167,7 +167,7 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
 
         # Exact Solution
         exact_sol = sym.exp(-self.β * Vp)
-        norm = quad.norm(exact_sol, n=1, l2=True)
+        norm = quad.norm(exact_sol, n=1, flat=True)
         exact_sol = exact_sol / norm
         solution_eval = quad.discretize(exact_sol)
 
@@ -177,7 +177,7 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
         # Associated errors
         errors = []
         for sol in solutions:
-            error = quad.norm(sol - solution_eval, l2=True)
+            error = quad.norm(sol - solution_eval, flat=True)
             errors.append(error)
 
         log_errors = np.log(errors)
@@ -300,7 +300,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
             eig_vec = np.real(eig_vecs.T[0])
             ground_state = eig_vec * np.sign(eig_vec[0])
             ground_state_eval = quad.eval(quad.series(ground_state))*factor
-            norm = quad.norm(ground_state_eval, n=1, l2=True)
+            norm = quad.norm(ground_state_eval, n=1, flat=True)
             ground_state_eval = ground_state_eval / norm
             solutions.append(ground_state_eval)
 
@@ -317,7 +317,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         Vp = self.x*self.x/4
         quad, forward, _, factor, _, _ = self.sym_calc(Vp, params, 0, 1, 1)
         solution = eq.solve_gaussian(forward, self.f, [self.x, self.y])
-        norm_sol = quad.norm(solution, n=1, l2=True)
+        norm_sol = quad.norm(solution, n=1, flat=True)
         self.assertTrue(abs(norm_sol - 1) < 1e-6)
 
     def test_gaussian(self):
@@ -344,7 +344,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         # Associated errors
         errors = []
         for sol in solutions:
-            error = quad.norm(sol - solution_eval, l2=True)
+            error = quad.norm(sol - solution_eval, flat=True)
             errors.append(error)
             # print(error)
 
@@ -382,7 +382,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         # Associated errors
         errors, degrees = [], degrees[0:-1]
         for sol in solutions[0:-1]:
-            error = quad.norm(sol - finest_eval, l2=True)
+            error = quad.norm(sol - finest_eval, flat=True)
             errors.append(error)
             # print(error)
 
@@ -567,7 +567,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
             ground_state_series = quad.series(ground_state,
                                               index_set=index_set)
             # ground_state_eval = quad.eval(ground_state_series)*factor
-            # norm = quad.norm(ground_state_eval, n=1, l2=True)
+            # norm = quad.norm(ground_state_eval, n=1, flat=True)
             # ground_state_eval = ground_state_eval / norm
             # solutions.append(ground_state_eval)
 
@@ -643,7 +643,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 #         # Associated errors
 #         errors, degrees = [], degrees[0:-1]
 #         for sol in solutions[0:-1]:
-#             error = quad.norm(sol - finest_eval, l2=True)
+#             error = quad.norm(sol - finest_eval, flat=True)
 #             errors.append(error)
 #             print(error)
 

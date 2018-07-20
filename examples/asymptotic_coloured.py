@@ -184,15 +184,15 @@ quadx = quad.Quad.gauss_hermite(100, dirs=[0], cov=[[1]])
 r, ε = sym.Rational, epsilon
 θn, mn, βn, εn = r(0), r(0, 5), r(1), r(1, 2)
 potential_n = potential.subs(((θ, θn), (m, mn), (β, βn), (ε, εn)))
-Z_n = quadx.integrate(sym.exp(-βn*potential_n), l2=True)
+Z_n = quadx.integrate(sym.exp(-βn*potential_n), flat=True)
 solution_0_n = sym.exp(-βn*potential_n)/Z_n
 solution_2_n = solution_2.subs(Vp, potential).doit()
 solution_2_n = solution_2_n.factor().subs(((θ, θn), (m, mn), (β, βn),
                                            (ε, εn), (Z, Z_n)))
-C2_n = quadx.integrate(sym.solve(solution_2_n, C2)[0] * solution_0_n, l2=True)
+C2_n = quadx.integrate(sym.solve(solution_2_n, C2)[0] * solution_0_n, flat=True)
 solution_4_n = solution_2_n.subs(C2, C2_n)
-assert abs(quadx.integrate(solution_0_n, l2=True) - 1) < 1e-8
-assert abs(quadx.integrate(solution_4_n, l2=True) - 0) < 1e-8
+assert abs(quadx.integrate(solution_0_n, flat=True) - 1) < 1e-8
+assert abs(quadx.integrate(solution_4_n, flat=True) - 0) < 1e-8
 
 rho_z = 1/sym.sqrt(2*sym.pi) * sym.exp(-y*y/2)
 
@@ -203,7 +203,7 @@ for i, p in enumerate(un):
     un[i] = un[i].subs(Vp, potential).doit()
     un[i] = un[i].factor().subs(((θ, θn), (m, mn), (β, βn),
                                  (ε, εn), (Z, Z_n), (C2, C2_n)))
-    assert abs(quad_gauss.integrate(un[i], l2=True) - i == 0) < 1e-8
+    assert abs(quad_gauss.integrate(un[i], flat=True) - i == 0) < 1e-8
 
 
 import matplotlib
