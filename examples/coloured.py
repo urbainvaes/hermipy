@@ -82,8 +82,11 @@ if args.gamma:
     config.eq['γ'] = sym.Rational(args.gamma)
 if args.mass:
     config.eq['m'] = sym.Rational(args.mass)
+
 if args.verbose:
     config.misc['verbose'] = args.verbose
+elif 'verbose' not in config.misc:
+    config.misc['verbose'] = False
 
 if args.plots:
     config.misc['plots'] = args.plots
@@ -128,16 +131,14 @@ params = {}
 
 class Parameter():
 
-    def __init__(self, symbol, value, params={}, type="main"):
+    def __init__(self, symbol, value, type="main"):
         self.symbol = symbol
         self.value = value
-        self.params = params
         self.type = type
 
     def __repr__(self):
         return "Symbol: " + str(self.symbol) + " - " \
-               + "Value: " + str(self.value) + " - " \
-               + "Parameters: " + str(self.params)
+               + "Value: " + str(self.value) + "."
 
     def eval(self):
         value = self.value
@@ -161,23 +162,32 @@ def eq_params():
     for symbol in extra_symbols:
         key = str(symbol)
         eq_params[key] = Parameter(symbol, config.eq[key], type='equation')
+    if 'Vy' in config.eq:
+        eq_params['Vy'] = Parameter(symbol, config.eq['Vy'], type='equation')
     return eq_params
 
 
 def vy():
-    Vy = Parameter(sym.Function('Vy')(y), y*y/2, type='equation')
-    return {'Vy': Vy}
+    r, symb = sym.Rational, sym.symbols
+    if 'Vy' in config.eq:
+        r, symb, β = sym.Rational, sym.symbols, params['β']
+        μy = Parameter(symb('μy', real=True), config.num['μy'])
+        σy = Parameter(symb('σy', real=True, positive=True), config.num['σy'])
+        Vqy = Parameter(sym.Function('Vqy')(y), r(1, 2) *
+                        (y - μy.symbol)*(y - μy.symbol)/(σy.symbol*β.symbol))
+        return {'μy': μy, 'σy': σy, 'Vqy': Vqy}
+    else:
+        Vy = Parameter(sym.Function('Vy')(y), y*y/2, type='equation')
+        return {'Vqy': Vy, 'Vy': Vy}
 
 
 def vq():
-    r = sym.Rational
-    symb = sym.symbols
-    β = params['β']
+    r, symb, β = sym.Rational, sym.symbols, params['β']
     μx = Parameter(symb('μx', real=True), config.num['μx'])
     σx = Parameter(symb('σx', real=True, positive=True), config.num['σx'])
-    Vq = Parameter(sym.Function('Vq')(x), r(1, 2) *
+    Vq = Parameter(sym.Function('Vqx')(x), r(1, 2) *
                    (x - μx.symbol)*(x - μx.symbol)/(σx.symbol*β.symbol))
-    return {'μx': μx, 'σx': σx, 'Vq': Vq}
+    return {'μx': μx, 'σx': σx, 'Vqx': Vq}
 
 
 # Forward operator
@@ -202,19 +212,16 @@ def forward_op(symbolic):
 def factors(symbolic, λ):
     β = params['β'].value if symbolic == 0 else params['β'].symbol
     if symbolic == 2:
-        Vy = params['Vy'].symbol
-        Vp = params['Vp'].symbol
-        Vq = params['Vq'].symbol
+        Vp, Vq = params['Vp'].symbol, params['Vqx'].symbol
+        Vy, Vqy = params['Vy'].symbol, params['Vqy'].symbol
     elif symbolic == 1:
-        Vy = params['Vy'].value
-        Vp = params['Vp'].value
-        Vq = params['Vq'].value
+        Vp, Vq = params['Vp'].value, params['Vqx'].value
+        Vy, Vqy = params['Vy'].value, params['Vqy'].value
     elif symbolic == 0:
-        Vy = params['Vy'].eval()
-        Vp = params['Vp'].eval()
-        Vq = params['Vq'].eval()
+        Vp, Vq = params['Vp'].eval(), params['Vqx'].eval()
+        Vy, Vqy = params['Vy'].eval(), params['Vqy'].eval()
     factor_x = sym.exp(-β*(λ*Vq + (1-λ)*Vp))
-    factor_y = sym.exp(-Vy)
+    factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
     # factor_x = sym.exp(-Vq/2)
     # factor_y = sym.exp(-Vy/2)
     factor = factor_x * factor_y
@@ -236,6 +243,7 @@ params.update({**vy(), **vq()})
 
 # Forward operator
 forward, fluxes = forward_op(config.misc['symbolic'])
+# import ipdb; ipdb.set_trace()
 
 # Mapped backward operator
 factor_x, factor_y, factor = factors(config.misc['symbolic'], config.num['λ'])
@@ -264,7 +272,7 @@ vprint("Defining quadratures")
 def compute_quads():
     μx = params['μx'].value
     σx = params['σx'].value
-    σy = 1
+    σy = .2
 
     quad_num = hermipy.Quad.gauss_hermite(
             config.num['n_points_num'], dim=2,
@@ -414,7 +422,6 @@ if config.misc['plots']:
     plot()
 # }}}
 # Test convergence {{{
-
 
 def convergence():
     vprint("[convergence]")
