@@ -48,6 +48,9 @@ parser.add_argument('-tc', '--convergence', action='store_true',
                     help='Run convergence test')
 parser.add_argument('-tb', '--bifurcation', action='store_true',
                     help='Run bifurcation test')
+parser.add_argument('-tt', '--time', action='store_true',
+                    help='Run time dependent test')
+
 parser.add_argument('-p', '--plots', action='store_true',
                     help='Enable plots')
 parser.add_argument('-v', '--verbose', action='store_true',
@@ -130,6 +133,11 @@ class Parameter():
         self.value = value
         self.params = params
         self.type = type
+
+    def __repr__(self):
+        return "Symbol: " + str(self.symbol) + " - " \
+               + "Value: " + str(self.value) + " - " \
+               + "Parameters: " + str(self.params)
 
     def eval(self):
         value = self.value
@@ -284,8 +292,8 @@ r_operator = (backward - params['m'].symbol*m_operator).cancel()
 vprint("Discretizing operators")
 m_mat = quad_num.discretize_op(m_operator, f, degree, 2)
 r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
-fd = [quad_num.discretize_op(flux, f, degree, 2) for flux in fluxes]
-total_mat = r_mat + m_mat
+if params['m'].value.free_symbols == set():
+    fd = [quad_num.discretize_op(flux, f, degree, 2) for flux in fluxes]
 
 vprint("Solving eigenvalue problem")
 eig_vals, eig_vecs = r_mat.eigs(k=4, which='LR')
@@ -413,15 +421,16 @@ def convergence():
 
     def asymptotic():
         Vp = params['θ'].value*(x - params['m'].value)**2/2
-        Vp, β, ε = Vp + params['Vp'].eval(), params['β'].value, params['ε'].value
+        Vp = Vp + params['Vp'].eval()
+        β, ε = params['β'].value, params['ε'].value
         rho_eta = 1/sym.sqrt(2*np.pi) * sym.exp(-y*y/2)
         quadx = quad_num.project(0)
-        Z = quadx.integrate(sym.exp(-β*Vp), l2=True)
+        Z = quadx.integrate(sym.exp(-β*Vp), flat=True)
         u0 = sym.exp(-β*Vp)/Z
         u1 = y*sym.sqrt(β)*sym.exp(-β*Vp)*Vp.diff(x)/Z
         C2 = quadx.integrate(
                 (Vp.diff(x)**2/2 - 1/β*Vp.diff(x, x))
-                * sym.exp(-β*Vp)/Z, l2=True)
+                * sym.exp(-β*Vp)/Z, flat=True)
         u2 = (2*C2*β + y**2*β*Vp.diff(x)**2 - y**2*Vp.diff(x, x)
               - 2*β*Vp.diff(x)**2 + 3*Vp.diff(x, x))*sym.exp(-β*Vp)/(2*Z)
         u3 = u0.diff(x, x, x)/(6*float(β)**(3/2))*(-y**3 - 3*y) \
@@ -430,7 +439,7 @@ def convergence():
         ua = (u0 + ε*u1 + ε**2*u2)*rho_eta
         # ta = quad_num.transform(ua/factor, degree=degree)
         # quad_visu.plot(ua, factor=None)
-        assert abs(quad_num.integrate(ua, l2=True) - 1) < 1e-8
+        assert abs(quad_num.integrate(ua, flat=True) - 1) < 1e-8
         return quad_num.discretize(ua)
     asym_num = asymptotic()
 
@@ -441,7 +450,7 @@ def convergence():
         # quad_visu.plot(ground_series, factor=factor)
         ground_state_eval = quad_num.eval(ground_series)
         ground_state_eval = ground_state_eval * factor_eval
-        norm = quad_num.norm(ground_state_eval, n=1, l2=True)
+        norm = quad_num.norm(ground_state_eval, n=1, flat=True)
         ground_state_eval = ground_state_eval / norm
         return ground_state_eval
 
@@ -449,12 +458,12 @@ def convergence():
     if params['Vp'].value.diff(x, x, x) == 0 and params['θ'].value == 0:
         solution = eq.solve_gaussian(forward, f, [x, y])
         solution_eval = quad_num.discretize(solution)
-        norm_sol = quad_num.integrate(solution_eval, l2=True)
+        norm_sol = quad_num.integrate(solution_eval, flat=True)
         assert abs(norm_sol - 1) < 1e-6
     else:
         eig_vals, eig_vecs = r_mat.eigs(k=4, which='LR')
         solution_eval = get_ground_state(eig_vecs[0])
-        norm_sol = quad_num.integrate(solution_eval, l2=True)
+        norm_sol = quad_num.integrate(solution_eval, flat=True)
         solution_eval = solution_eval / norm_sol
 
     v0, degrees, errors, errors_a, mins, eig_ground = None, [], [], [], [], []
@@ -471,8 +480,8 @@ def convergence():
         eig_vals, eig_vecs = sub_varf.eigs(v0=v0, k=1, which='LR')
         v0 = eig_vecs[0].coeffs.copy(order='C')
         ground_state_eval = get_ground_state(eig_vecs[0])
-        error = quad_num.norm(ground_state_eval - solution_eval, n=1, l2=True)
-        error_a = quad_num.norm(ground_state_eval - asym_num, n=1, l2=True)
+        error = quad_num.norm(ground_state_eval - solution_eval, n=1, flat=True)
+        error_a = quad_num.norm(ground_state_eval - asym_num, n=1, flat=True)
         degrees.append(d)
         mins.append(np.min(ground_state_eval))
         eig_ground.append(eig_vals[0])
@@ -515,34 +524,41 @@ if args.convergence:
 # }}}
 # {{{ Time dependent solution
 
-plt.ion()
-fig, ax = plt.subplots(1, 1)
 
-u = (quad_num.position.weight()**2).subs(x, x - 1)
-t = quad_num.transform(u/factor, degree=degree)
-dt, Ns = 5e-2, int(1e4)
-x_eval = quad_num.discretize('x')
-f_eval = quad_num.discretize(factor)
-eye = quad_num.varf('1', degree=degree)
-for i in range(Ns):
+def time_dependent():
+    # plt.ion()
+    fig, ax = plt.subplots(1, 1)
 
-    # Evaluate solution
-    r_eval = quad_num.eval(t)*f_eval
+    u = (quad_num.position.weight()**2).subs(x, x - 1)
+    t = quad_num.transform(u/factor, degree=degree)
+    dt, Ns = 5e-2, int(1e4)
+    x_eval = quad_num.discretize('x')
+    f_eval = quad_num.discretize(factor)
+    eye = quad_num.varf('1', degree=degree)
+    for i in range(Ns):
 
-    # Normalization
-    integral = quad_num.integrate(r_eval, l2=True)
-    t, r_eval = t * (1/integral), r_eval * (1/integral)
+        # Evaluate solution
+        r_eval = quad_num.eval(t)*f_eval
 
-    ax.clear()
-    contour = quad_visu.plot(t, factor=factor, ax=ax, vmin=0, extend='min')
-    plt.draw()
-    plt.pause(.01)
+        # Normalization
+        integral = quad_num.integrate(r_eval, flat=True)
+        t, r_eval = t * (1/integral), r_eval * (1/integral)
+        # quad_num.plot(r_eval, factor=1)
 
-    mi = quad_num.integrate(r_eval*x_eval)
-    print("m: " + str(mi))
-    operator = r_mat + mi*m_mat
-    total_op = eye - dt*operator
-    t = total_op.solve(t)
+        ax.clear()
+        quad_visu.plot(t, factor=factor, ax=ax, vmin=0, extend='min')
+        plt.draw()
+        plt.pause(.01)
+
+        mi = quad_num.integrate(r_eval*x_eval, flat=True)
+        print("m: " + str(mi))
+        operator = r_mat + mi*m_mat
+        total_op = eye - dt*operator
+        t = total_op.solve(t)
+
+
+if args.time:
+    time_dependent()
 # }}}
 # Study bifurcations {{{
 

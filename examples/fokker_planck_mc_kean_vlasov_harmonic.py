@@ -91,7 +91,7 @@ for d in degrees:
     eig_vec = np.real(eig_vecs.T[0])
     ground_state = eig_vec * np.sign(eig_vec[0])
     ground_state_eval = quad.eval(quad.series(ground_state))*factor
-    norm = quad.norm(ground_state_eval, n=1, l2=True)
+    norm = quad.norm(ground_state_eval, n=1, flat=True)
     ground_state_eval = ground_state_eval / norm
     solutions.append(ground_state_eval)
 
@@ -106,7 +106,7 @@ plt.show()
 # Associated errors
 errors, degrees = [], degrees[0:-1]
 for sol in solutions[0:-1]:
-    error = quad.norm(sol - finest_eval, l2=True)
+    error = quad.norm(sol - finest_eval, flat=True)
     errors.append(error)
     print(error)
 
