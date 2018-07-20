@@ -38,14 +38,18 @@ num['σy'] = r(1, 10)
 num['λ'] = r(1, 2)
 
 # Scalar parameters of the equation
-eq['β'] = r(8)
-eq['ε'] = r(1, 8)
+eq['β'] = r(1)
+eq['ε'] = r(1, 4)
 eq['γ'] = r(0)
 eq['θ'] = r(.5)
 
 # Functional parameters of the equation
 eq['Vp'] = x**4/4 - x**2/2
 eq['Vy'] = y**4/4 - y**2/2
+
+# Mean-zero
+# Z, m = 6.301119049538182, 0.8852269357209047
+# eq['Vy'] = (y+m)**4/4 - (y+m)**2/2 + (y+m)
 
 # Miscellaneous parameters
 misc['cache'] = True
