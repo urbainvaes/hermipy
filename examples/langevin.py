@@ -34,7 +34,7 @@ degree, nquad = 10, 20
 quad_num = quad.Quad.gauss_hermite(nquad, dim=2, mean=[0, 0],
                                    cov=[[σx, 0], [0, σy]])
 
-op = quad_num.discretize_op(backward, eq.Langevin.f, degree, 2,
+op = quad_num.discretize_op(backward, degree,
                             sparse=False, index_set="triangle")
 
 rhs = quad_num.transform('y', degree)

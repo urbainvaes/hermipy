@@ -87,7 +87,7 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
     def solve(self, backward, quad, factor, degrees):
 
         # Discretization of the operator
-        mat = quad.discretize_op(backward, self.f, self.degree, 2).matrix
+        mat = quad.discretize_op(backward, self.degree).matrix
 
         solutions = []
         for d in degrees:
@@ -281,7 +281,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
     def solve(self, backward, quad, factor, degrees):
 
         # Discretization of the operator
-        mat = quad.discretize_op(backward, self.f, degrees[-1], 2).matrix
+        mat = quad.discretize_op(backward, degrees[-1]).matrix
 
         solutions = []
 
@@ -496,9 +496,9 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         args = [Vp, params, s2x, s2y, s2z, degree]
         quad, backward, _, _, _ = self.sym_calc(*args)
 
-        varf_cross = quad.discretize_op(backward, self.f, degree, 2,
+        varf_cross = quad.discretize_op(backward, degree,
                                         sparse=sparse, index_set="cross")
-        varf_trian = quad.discretize_op(backward, self.f, degree + 2, 2,
+        varf_trian = quad.discretize_op(backward, degree + 2,
                                         sparse=sparse, index_set="triangle")
         self.assertTrue(varf_trian.to_cross(degree) == varf_cross)
 
@@ -520,10 +520,9 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
         hm.settings['trails'] = True
         hm.settings['debug'] = False
 
-        args = [self.f, degrees[-1], 2]
         kwargs = {'sparse': True, 'index_set': index_set}
-        var = quad.discretize_op(backward, *args, **kwargs)
-        fd = [quad.discretize_op(flux, *args, **kwargs) for flux in fluxes]
+        var = quad.discretize_op(backward, degrees[-1], **kwargs)
+        fd = [quad.discretize_op(flux, degrees[-1], **kwargs) for flux in fluxes]
         mat = var.matrix
 
         solutions = []

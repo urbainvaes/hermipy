@@ -73,7 +73,7 @@ factor = quad.discretize(factor)
 degrees = list(range(5, degree))
 
 # Discretization of the operator
-mat = quad.discretize_op(backward, f, degrees[-1], 2, sparse=True)
+mat = quad.discretize_op(backward, degrees[-1], sparse=True)
 
 solutions = []
 
