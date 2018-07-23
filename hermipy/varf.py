@@ -144,6 +144,45 @@ class Varf:
         solution = solve(self.matrix, series.coeffs)
         return hs.Series(solution, position=self.position)
 
+    def plot(self, ax=None, lines=True):
+        show_plt = ax is None
+
+        if show_plt:
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(1)
+
+        rows, cols, data = [], [], []
+        if self.is_sparse:
+            s = self.matrix.tocoo()
+            rows, cols, data = s.row, s.col, s.data
+        else:
+            for i in range(self.matrix.shape[0]):
+                for j in range(self.matrix.shape[1]):
+                    ij = self.matrix[i][j]
+                    if abs(ij) > 1e-9:
+                        rows.append(i), cols.append(j), data.append(ij)
+
+        pl = ax.scatter(rows, cols, c=data, cmap='ocean_r')
+        ax.set_xlim([0, self.matrix.shape[0]])
+        ax.set_ylim([0, self.matrix.shape[1]])
+
+        if lines:
+            degree = 0
+            for i, m in enumerate(self.multi_indices()):
+                if sum(m) > degree:
+                    degree = degree + 1
+                    ax.axvline(x=i, ymin=0, ymax=i)
+                    ax.axhline(y=i, xmin=0, xmax=i)
+
+        ax.invert_yaxis()
+
+        if show_plt:
+            plt.colorbar(pl, ax=ax)
+            plt.show()
+            plt.close()
+        else:
+            return pl
+
     @stats.log_stats()
     def eigs(self, **kwargs):
         eigs = cache.cache(quiet=True)(las.eigs)
