@@ -20,6 +20,7 @@ import hermipy.core as core
 import hermipy.lib as lib
 import hermipy.settings as rc
 import hermipy.function as symfunc
+import hermipy.operator as symop
 import hermipy.series as hs
 import hermipy.varf as hv
 import hermipy.position as pos
@@ -99,14 +100,6 @@ class Quad:
         return self.position == other.position \
             and la.norm(self.nodes - other.nodes) < very_small \
             and la.norm(self.weights - other.weights) < very_small
-
-    def hash_quad(argument):
-        if isinstance(argument, Quad):
-            return hash(argument)
-        raise ValueError("Argument type not supported")
-
-    def __hash__(self):
-        return self.hash
 
     def tensorize_at(arg_num):
         def tensorize_arg(func):
@@ -247,21 +240,24 @@ class Quad:
 
     @stats.debug()
     @stats.log_stats()
-    def discretize_op(self, op, func, degree, order,
-                      sparse=None, index_set="triangle"):
-
-        assert len(func.args) <= self.position.dim
+    def discretize_op(self, op, degree, sparse=None, index_set="triangle"):
+        if type(op) is not symop.Operator:
+            op = symop.Operator(op, dirs=self.position.dirs)
+        assert op.dirs == self.position.dirs
         sparse = rc.settings['sparse'] if sparse is None else sparse
-        mat_operator = self.varf(0, degree, sparse=sparse, index_set=index_set)
-        splitop, mult = lib.split_operator(op, func, order)
-        for m, coeff in zip(mult, splitop):
-            if coeff == 0:
-                continue
+        splitop = op.split()
+        if splitop == {}:
+            return self.varf(0, degree, sparse=sparse, index_set=index_set)
+        mat_operator = None
+        for m, coeff in splitop.items():
             enum_dirs = enumerate(self.position.dirs)
             d_vector = sum([[d]*m[i] for i, d in enum_dirs], [])
             varf_part = self.varfd(coeff, degree, d_vector, sparse=sparse,
                                    index_set=index_set)
-            mat_operator = varf_part + mat_operator
+            if mat_operator is None:
+                mat_operator = varf_part
+            else:
+                mat_operator = mat_operator + varf_part
         return mat_operator
 
     # Only works with ints

@@ -17,8 +17,6 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import sympy as sym
-# import sympy.printing as syp
-import pdb
 sym.init_printing()
 
 
@@ -124,9 +122,16 @@ class McKean_Vlasov:
         # Real parameters
         β, γ, ε, θ, m = (params[x] for x in ['β', 'γ', 'ε', 'θ', 'm'])
 
+        # For legacy
+        if 'Vy' not in params:
+            params['Vy'] = y*y/2
+
+        if params['Vy'].atoms(sym.function.AppliedUndef) != set():
+            params['Vy'] = y*y/2
+
         # Functional parameter
         Vp = params['Vp']
-        Vy = params['Vy'] if 'Vy' in params else y*y/2
+        Vy = params['Vy']
 
         # Fokker planck operator
         flux_x = - (d(Vp, x)*f + θ*(x-m)*f - (1-γ)*sym.sqrt(1/β)*y*f/ε

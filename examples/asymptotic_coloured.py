@@ -53,7 +53,7 @@ quad_num = quad.Quad.gauss_hermite(nquad, dirs=[1], mean=[0], cov=[[σy]])
 fy = sym.Function('fy')(y)
 
 # import ipdb; ipdb.set_trace()
-op = quad_num.discretize_op(L0.subs(f, fy), fy, degree, 2, sparse=False)
+op = quad_num.discretize_op(L0.subs(f, fy), degree, sparse=False)
 
 # }}}
 # Expansion of the solution {{{
