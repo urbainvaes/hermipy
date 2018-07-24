@@ -28,34 +28,40 @@ class Position:
 
     @staticmethod
     def tensorize(args):
-        dirs, mean_dic, cov_dic = [], {}, {}
+
+        # Check that directions appear at most twice
+        dirs = []
         for a in args:
             assert type(a) is Position
             assert a.is_diag
-            dirs += a.dirs
-            for i, d in enumerate(a.dirs):
-                mean_dic[d] = a.mean[i]
-                cov_dic[d] = a.cov[i][i]
-        dirs, dim = sorted(dirs), len(dirs)
-        mean, cov = np.zeros((dim,)), np.zeros((dim, dim))
-        for i, d in enumerate(dirs):
-            mean[i] = mean_dic[d]
-            cov[i][i] = cov_dic[d]
-        return Position(dirs=dirs, mean=mean, cov=cov)
+            for d in a.dirs:
+                assert dirs.count(d) <= 1
+                dirs.append(d)
 
-    @staticmethod
-    def inner(p1, p2):
-        assert p1.is_diag and p2.is_diag
-        diff1 = [d for d in p1.dirs if d not in p2.dirs]
-        diff2 = [d for d in p2.dirs if d not in p1.dirs]
-        dirs_result = sorted(diff1 + diff2)
-        dim, mean, cov = len(dirs_result), [], []
-        for d in dirs_result:
-            pos = p1 if d in p1.dirs else p2
-            index = pos.dirs.index(d)
-            mean.append(pos.mean[index])
-            cov.append(pos.cov[index][index])
-        return Position(dim=dim, mean=mean, cov=np.diag(cov), dirs=dirs_result)
+        def _tensorize(p1, p2):
+            diff1 = [d for d in p1.dirs if d not in p2.dirs]
+            diff2 = [d for d in p2.dirs if d not in p1.dirs]
+            dirs_result, mean, cov = sorted(diff1 + diff2), [], []
+
+            # Check removed directions match
+            for d in [d for d in p1.dirs if d in p2.dirs]:
+                i1, i2 = p1.dirs.index(d), p2.dirs.index(d)
+                assert p1.mean[i1] == p2.mean[i2]
+                assert p1.cov[i1][i1] == p2.cov[i2][i2]
+
+            # Tensorization
+            for d in dirs_result:
+                pos = p1 if d in p1.dirs else p2
+                index = pos.dirs.index(d)
+                mean.append(pos.mean[index])
+                cov.append(pos.cov[index][index])
+            return Position(dirs=dirs_result, mean=mean, cov=np.diag(cov))
+
+        result = args[0]
+        for a in args[1:]:
+            result = _tensorize(result, a)
+
+        return result
 
     def __init__(self, dim=None, mean=None, cov=None, dirs=None):
 
