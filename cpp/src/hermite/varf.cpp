@@ -192,6 +192,7 @@ T varf(
     auto function = varf<Triangle_iterator,T>;
     if (index_set == "triangle");
     else if (index_set == "cross") function = varf<Cross_iterator,T>;
+    else if (index_set == "cross_nc") function = varf<Cross_iterator_nc,T>;
     else if (index_set == "cube") function = varf<Cube_iterator,T>;
     else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
     return function(degree, input, nodes, weights);
@@ -214,6 +215,11 @@ T varfd(
     {
         m = std::unique_ptr<Cross_iterator>(
                 new Cross_iterator(dim, degree));
+    }
+    else if (index_set == "cross_nc")
+    {
+        m = std::unique_ptr<Cross_iterator_nc>(
+                new Cross_iterator_nc(dim, degree));
     }
     else if (index_set == "cube")
     {
@@ -272,6 +278,11 @@ mat varfd(
     {
         m2 = std::unique_ptr<Cross_iterator>(
                 new Cross_iterator(dim, degree));
+    }
+    else if (index_set == "cross_nc")
+    {
+        m2 = std::unique_ptr<Cross_iterator_nc>(
+                new Cross_iterator_nc(dim, degree));
     }
     else if (index_set == "cube")
     {

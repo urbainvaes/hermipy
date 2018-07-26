@@ -265,6 +265,7 @@ def iterator_get_degree(dim, n_polys, index_set="triangle"):
     cpp_func = {
             "triangle": hm.triangle_get_degree,
             "cross": hm.cross_get_degree,
+            "cross_nc": hm.cross_nc_get_degree,
             "cube": hm.cube_get_degree,
             }
     if index_set not in cpp_func:
@@ -299,6 +300,7 @@ def iterator_size(dim, degree, index_set="triangle"):
     cpp_func = {
             "triangle": hm.triangle_size,
             "cross": hm.cross_size,
+            "cross_nc": hm.cross_nc_size,
             "cube": hm.cube_size,
             }
     if index_set not in cpp_func:
@@ -313,6 +315,7 @@ def iterator_list_indices(dim, degree, index_set="triangle"):
     cpp_func = {
             "triangle": hm.triangle_list_indices,
             "cross": hm.cross_list_indices,
+            "cross_nc": hm.cross_nc_list_indices,
             "cube": hm.cube_list_indices,
             }
     if index_set not in cpp_func:
