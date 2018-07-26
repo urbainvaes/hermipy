@@ -18,11 +18,6 @@
 
 import numpy.polynomial.hermite_e as herm
 import numpy as np
-
-import sympy as sym
-import itertools
-import math
-
 import hermipy.core as core
 
 
@@ -41,31 +36,3 @@ def hermegauss_nd(n_points):
 def cross_in_triangle(dim, degree):
         list_cross = core.iterator_list_indices(dim, degree, index_set="cross")
         return [core.iterator_index(m) for m in list_cross]
-
-
-def split_operator(op, func, order):
-    variables, dim = func.args, len(func.args)
-    result, rem, order = [], op.expand(), 2
-    mult = list(m for m in itertools.product(range(order + 1),
-                repeat=dim) if sum(m) <= order)
-    for m in mult:
-        if rem == 0:
-            result.append(0)
-            continue
-        test, der = 1, func
-        for i, v in zip(m, variables):
-            test *= v**i/math.factorial(i)
-            der = sym.diff(der, v, i)
-        remargs = rem.args if isinstance(rem, sym.add.Add) else [rem]
-        term, rem = 0, 0
-        for arg in remargs:  # Convoluted to avoid rounding errors
-            termarg = arg.subs(func, test).doit()
-            if termarg == 0:
-                rem += arg
-            else:
-                term += termarg
-        if isinstance(term, tuple(sym.core.all_classes)):
-            term = sym.simplify(term)
-        result.append(term)
-    assert rem == 0
-    return result, mult
