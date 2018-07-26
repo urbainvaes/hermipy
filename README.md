@@ -8,6 +8,8 @@ $ python -m unittest discover -v tests
 
 # Todo
 
+- Implement Einstein convention tensorize/inner series
+
 - Make asymptotic into tests
 
 - Improve documentation

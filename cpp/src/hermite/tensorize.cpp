@@ -33,7 +33,8 @@
 
 using namespace std;
 
-namespace hermite {
+namespace hermite
+{
 
 // Auxiliary functions {{{
 void check_dims(const imat & dirs, u_int dim)

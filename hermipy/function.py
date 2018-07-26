@@ -34,11 +34,20 @@ class Function():
         conv[str(xyz[i])] = x_sub[i]
         conv[str(x_sub[i])] = x_sub[i]
 
+    @staticmethod
+    def tensorize(args):
+        dirs, sym = set(), sympy.Integer(1)
+        for a in args:
+            assert type(a) is Function
+            assert dirs.intersection(a.dirs) == set()
+            dirs, sym = dirs.union(a.dirs), sym*a.sym
+        return Function(sym, dirs=sorted(dirs))
+
     def __init__(self, expr, dirs=None, dim=None):
 
         if isinstance(expr, Function):
             self.sym = expr.sym
-            expr.dirs = expr.dirs
+            self.dirs = expr.dirs
             return
 
         if not isinstance(expr, tuple(sympy.core.all_classes)):
@@ -78,6 +87,13 @@ class Function():
         sym = self.sym * other.sym
         return Function(sym, dirs=self.dirs)
 
+    def __div__(self, other):
+        if type(other) is not Function:
+            other = Function(other, dirs=self.dirs)
+        assert self.dirs == other.dirs
+        sym = self.sym / other.sym
+        return Function(sym, dirs=self.dirs)
+
     def __add__(self, other):
         if type(other) is not Function:
             other = Function(other, dirs=self.dirs)
@@ -102,11 +118,28 @@ class Function():
                               'v[{}]'.format(i), function)
         return function
 
+    def project(self, dirs):
+        dirs = dirs if type(dirs) is list else [dirs]
+        split_fun = self.split(legacy=False)
+        assert len(split_fun) == 1
+
+        # Absorb constant in projection on lowest index
+        if self.dirs[0] in dirs:
+            result = split_fun[0][frozenset()].sym
+        else:
+            result = sympy.Integer(1)
+
+        for v, term in split_fun[0].items():
+            if v.issubset(dirs) and v != frozenset():
+                result *= term.sym
+        return Function(result, dirs=dirs)
+
     def split(self, legacy=True):
         dim = len(self.dirs)
         is_add = isinstance(self.sym, sympy.add.Add)
         add_terms = self.sym.args if is_add else [self.sym]
         to_return = []
+
         for term in add_terms:
             is_mul = isinstance(term, sympy.mul.Mul)
             mul_terms = term.args if is_mul else [term]
