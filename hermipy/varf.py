@@ -22,6 +22,7 @@ import hermipy.lib as lib
 import hermipy.position as pos
 import hermipy.series as hs
 import hermipy.settings as rc
+import hermipy.function as func
 import hermipy.stats as stats
 import scipy.sparse as ss
 import numpy as np
@@ -40,26 +41,29 @@ class Varf:
         assert len(args) > 0 and type(args[0]) is Varf
         index_set, degree = args[0].index_set, args[0].degree
         mats = {}
+        factor = 1
         for a in args:
             assert type(a) is Varf
             assert a.index_set == index_set and a.degree == degree
             key = frozenset(a.position.dirs)
             mats[key] = a.matrix
-        tens_mat = core.tensorize(mats, sparse=sparse, index_set=index_set)
-        tens_pos = pos.Position.tensorize([a.position for a in args])
-        return Varf(tens_mat, tens_pos, index_set=index_set)
+            factor *= a.factor.sym
+        matrix = core.tensorize(mats, sparse=sparse, index_set=index_set)
+        position = pos.Position.tensorize([a.position for a in args])
+        factor = func.Function(factor, dirs=position.dirs)
+        return Varf(matrix, position, factor=factor, index_set=index_set)
 
-    def __init__(self, matrix, position, index_set="triangle"):
-        self.matrix = matrix
+    def __init__(self, matrix, position, factor=1, index_set="triangle"):
         self.is_sparse = isinstance(matrix, ss.csr_matrix)
+        self.matrix = matrix
         self.position = position
         self.index_set = index_set
 
         dim, npolys = self.position.dim, self.matrix.shape[0]
         self.degree = core.iterator_get_degree(dim, npolys,
                                                index_set=index_set)
-
         assert len(self.multi_indices()) == self.matrix.shape[0]
+        self.factor = func.Function(factor, dirs=self.position.dirs)
 
     def __eq__(self, other):
         assert type(other) is Varf
@@ -86,7 +90,8 @@ class Varf:
 
         if isinstance(other, (int, float, np.float64)):
             new_matrix = self.matrix * other
-            return Varf(new_matrix, self.position, index_set=self.index_set)
+            return Varf(new_matrix, self.position,
+                        factor=self.factor, index_set=self.index_set)
 
         elif type(other) is Varf:
             assert self.index_set == other.index_set
@@ -144,6 +149,17 @@ class Varf:
         solution = solve(self.matrix, series.coeffs)
         return hs.Series(solution, position=self.position)
 
+    @stats.log_stats()
+    def eigs(self, **kwargs):
+        eigs = cache.cache(quiet=True)(las.eigs)
+        eig_vals, eig_vecs = eigs(self.matrix, **kwargs)
+        result = []
+        for v in eig_vecs.T:
+            coeffs = np.real(v)
+            series = hs.Series(coeffs, self.position, index_set=self.index_set)
+            result.append(series)
+        return eig_vals, result
+
     def plot(self, ax=None, lines=True):
         show_plt = ax is None
 
@@ -182,14 +198,3 @@ class Varf:
             plt.close()
         else:
             return pl
-
-    @stats.log_stats()
-    def eigs(self, **kwargs):
-        eigs = cache.cache(quiet=True)(las.eigs)
-        eig_vals, eig_vecs = eigs(self.matrix, **kwargs)
-        result = []
-        for v in eig_vecs.T:
-            coeffs = np.real(v)
-            series = hs.Series(coeffs, self.position, index_set=self.index_set)
-            result.append(series)
-        return eig_vals, result
