@@ -99,6 +99,15 @@ class Operator():
         sub, xyz = func.Function.x_sub, func.Function.xyz
         return self.sym.subs(((sub[i], xyz[i]) for i in range(len(sub))))
 
+    def map(self, factor):
+        if type(factor) is not func.Function:
+            factor = func.Function(factor, dirs=self.dirs)
+        assert factor.dirs == self.dirs
+        variables = [func.Function.x_sub[d] for d in self.dirs]
+        unknown = self.f(*variables)
+        sym = (self.sym.subs(unknown, unknown*factor).doit()/factor).expand()
+        return Operator(sym, dirs=self.dirs)
+
     def split(self):
         MAX_ORDER = 5
         variables = [func.Function.x_sub[d] for d in self.dirs]
