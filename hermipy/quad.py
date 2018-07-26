@@ -16,14 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import hermipy as hm
 import hermipy.core as core
 import hermipy.lib as lib
-import hermipy.settings as rc
-import hermipy.function as symfunc
-import hermipy.operator as symop
-import hermipy.series as hs
-import hermipy.varf as hv
-import hermipy.position as pos
 import hermipy.stats as stats
 
 import numpy as np
@@ -36,8 +31,23 @@ very_small = 1e-10
 
 class Quad:
 
-    def __init__(self, nodes, weights,
-                 mean=None, cov=None, dirs=None, position=None):
+    @staticmethod
+    def tensorize(args):
+        assert len(args) > 0 and type(args[0]) is Quad
+        position = hm.Position.tensorize([a.position for a in args])
+        nodes, weights = [0]*len(position.dirs), [0]*len(position.dirs)
+        factor = sym.Integer(1)
+        for a in args:
+            assert type(a) is Quad
+            factor *= a.factor.sym
+            for i, d in enumerate(a.position.dirs):
+                nodes[position.dirs.index(d)] = a.nodes[i]
+                weights[position.dirs.index(d)] = a.weights[i]
+        factor = hm.Function(factor, dirs=position.dirs)
+        return Quad(nodes, weights, position, factor)
+
+    def __init__(self, nodes, weights, position=None, factor=1,
+                 mean=None, cov=None, dirs=None):
 
         """Create a quadrature object
 
@@ -58,7 +68,11 @@ class Quad:
 
         dim = len(self.nodes)
         self.position = position if position is not None else \
-            pos.Position(dim=dim, mean=mean, cov=cov, dirs=dirs)
+            hm.Position(dim=dim, mean=mean, cov=cov, dirs=dirs)
+
+        # Factor used for hermite transform, discretize
+        self.factor = hm.Function(factor, dirs=self.position.dirs)
+        self.factor.sym = self.factor.sym.expand()
 
     @classmethod
     def gauss_hermite(cls, n_points, dim=None, dirs=None, **kwargs):
@@ -88,23 +102,20 @@ class Quad:
         return cls(nodes, weights, **kwargs)
 
     def __mul__(self, other):
-        assert self.position.is_diag and other.position.is_diag
-        nodes = [*self.nodes, *other.nodes]
-        weights = [*self.weights, *other.weights]
-        position = self.position * other.position
-        return Quad(nodes, weights, position=position)
+        return Quad.tensorize([self, other])
 
     def __eq__(self, other):
         assert type(other) is Quad
 
         return self.position == other.position \
+            and self.factor == other.factor \
             and la.norm(self.nodes - other.nodes) < very_small \
             and la.norm(self.weights - other.weights) < very_small
 
     def tensorize_at(arg_num):
         def tensorize_arg(func):
             def wrapper(*args, tensorize=None, **kwargs):
-                do_tensorize = rc.settings['tensorize'] if \
+                do_tensorize = hm.settings['tensorize'] if \
                                tensorize is None else tensorize
                 if not do_tensorize:
                     return func(*args, **kwargs)
@@ -116,8 +127,8 @@ class Quad:
                     return func(*args, **kwargs)
 
                 results = []
-                if not isinstance(function, symfunc.Function):
-                    function = symfunc.Function(function,
+                if not isinstance(function, hm.Function):
+                    function = hm.Function(function,
                                                 dirs=quad.position.dirs)
 
                 for add in function.split(legacy=False):
@@ -130,13 +141,13 @@ class Quad:
                         new_args[arg_num] = term
                         func_dirs[dirs] = func(*new_args, **kwargs)
 
-                    if rc.settings['debug']:
+                    if hm.settings['debug']:
                         print("Tensorizing results")
 
                     kwargs_func = {'sparse': kwargs['sparse']} \
                         if 'sparse' in kwargs else {}
                     t = type(list(func_dirs.values())[0])
-                    if t is hv.Varf or t is hs.Series:
+                    if t is hm.Varf or t is hm.Series:
                         values = list(func_dirs.values())
                         tensorized = t.tensorize(values, **kwargs_func)
                     else:
@@ -149,13 +160,13 @@ class Quad:
     def mapped_nodes(self):
         coords_nodes = []
         for i in range(self.position.dim):
-            coord = 'v[{}]'.format(i)
+            coord = 'x_{}'.format(i)
             coords_nodes.append(self.discretize(coord))
         return np.asarray(np.vstack(coords_nodes)).T
 
     def discretize(self, f):
-        if not isinstance(f, symfunc.Function):
-            f = symfunc.Function(f, dirs=self.position.dirs)
+        if not isinstance(f, hm.Function):
+            f = hm.Function(f, dirs=self.position.dirs)
         function = core.discretize(f.ccode(), self.nodes,
                                    self.position.mean, self.position.factor)
         return function
@@ -182,21 +193,29 @@ class Quad:
         elif n is 1:
             return self.integrate(abs(function), flat=flat)
 
-    def transform(self, f_grid, degree, norm=False,
-                  index_set="triangle", significant=0):
-        if not isinstance(f_grid, np.ndarray):
-            f_grid = self.discretize(f_grid)
-        coeffs = core.transform(degree, f_grid, self.nodes, self.weights,
+    def transform(self, function, degree, index_set="triangle", significant=0):
+
+        if not isinstance(function, np.ndarray):
+            function = hm.Function(function, dirs=self.position.dirs)
+            function = self.discretize(function)
+
+        factor = self.discretize(self.factor)
+        mapped = function / (1e-300*(factor == 0) + factor)
+
+        coeffs = core.transform(degree, mapped, self.nodes, self.weights,
                                 forward=True, index_set=index_set)
-        return hs.Series(coeffs, self.position, norm=norm,
-                         index_set=index_set, significant=significant)
+
+        return hm.Series(coeffs, self.position,
+                         factor=self.factor, index_set=index_set,
+                         significant=significant)
 
     def eval(self, series):
+
         if type(series) is np.ndarray:
-            series = hs.Series(series, self.position)
-        #  FIXME: Only orientation, not positions
-        # assert self.position == series.position
+            series = hm.Series(series, self.position, factor=self.factor)
+
         degree, coeffs = series.degree, series.coeffs
+
         inv = la.inv(series.position.factor)
         translation = inv.dot(self.position.mean - series.position.mean)
         factor = inv * self.position.factor
@@ -205,20 +224,27 @@ class Quad:
         mapped_nodes = self.nodes.copy()
         for i in range(len(self.nodes)):
             mapped_nodes[i] = self.nodes[i] * factor[i][i] + translation[i]
-        return core.transform(degree, coeffs, mapped_nodes,
-                              self.weights, forward=False,
-                              index_set=series.index_set)
+
+        result = core.transform(degree, coeffs, mapped_nodes,
+                                self.weights, forward=False,
+                                index_set=series.index_set)
+
+        if series.factor != hm.Function(1, dirs=self.position.dirs):
+            result*self.discretize(series.factor)
+
+        return result*self.discretize(series.factor)
 
     @tensorize_at(1)
     @stats.debug()
     @stats.log_stats()
     def varf(self, f_grid, degree, sparse=None, index_set="triangle"):
-        sparse = rc.settings['sparse'] if sparse is None else sparse
+        sparse = hm.settings['sparse'] if sparse is None else sparse
         if not isinstance(f_grid, np.ndarray):
             f_grid = self.discretize(f_grid)
         var = core.varf(degree, f_grid, self.nodes, self.weights,
                         sparse=sparse, index_set=index_set)
-        return hv.Varf(var, self.position, index_set=index_set)
+        return hm.Varf(var, self.position,
+                       factor=self.factor, index_set=index_set)
 
     @tensorize_at(1)
     @stats.debug()
@@ -226,7 +252,7 @@ class Quad:
     def varfd(self, function, degree, directions,
               sparse=None, index_set="triangle"):
         directions = filter(lambda d: d in self.position.dirs, directions)
-        sparse = rc.settings['sparse'] if sparse is None else sparse
+        sparse = hm.settings['sparse'] if sparse is None else sparse
         var = self.varf(function, degree, sparse=sparse,
                         index_set=index_set, tensorize=False)
         mat = var.matrix
@@ -236,29 +262,36 @@ class Quad:
             mat = core.varfd(self.position.dim, degree, rel_dir,
                              mat, index_set=index_set)
             mat = mat/np.sqrt(eigval[rel_dir])
-        return hv.Varf(mat, self.position, index_set=index_set)
+        return hm.Varf(mat, self.position,
+                       factor=self.factor, index_set=index_set)
 
     @stats.debug()
     @stats.log_stats()
-    def discretize_op(self, op, degree, sparse=None, index_set="triangle"):
-        if type(op) is not symop.Operator:
-            op = symop.Operator(op, dirs=self.position.dirs)
+    def discretize_op(self, op, degree,
+                      sparse=None, index_set="triangle"):
+
+        if type(op) is not hm.Operator:
+            op = hm.Operator(op, dirs=self.position.dirs)
+
+        if self.factor != hm.Function(1, dirs=self.position.dirs):
+            op = op.map(self.factor)
+
         assert op.dirs == self.position.dirs
-        sparse = rc.settings['sparse'] if sparse is None else sparse
         splitop = op.split()
+        sparse = hm.settings['sparse'] if sparse is None else sparse
+
         if splitop == {}:
             return self.varf(0, degree, sparse=sparse, index_set=index_set)
-        mat_operator = None
+
+        varf_operator = 0
         for m, coeff in splitop.items():
             enum_dirs = enumerate(self.position.dirs)
             d_vector = sum([[d]*m[i] for i, d in enum_dirs], [])
             varf_part = self.varfd(coeff, degree, d_vector, sparse=sparse,
                                    index_set=index_set)
-            if mat_operator is None:
-                mat_operator = varf_part
-            else:
-                mat_operator = mat_operator + varf_part
-        return mat_operator
+            varf_operator = varf_operator + varf_part
+
+        return varf_operator
 
     # Only works with ints
     def project(self, directions):
@@ -272,14 +305,15 @@ class Quad:
             A `Quad` object.
 
         """
-        pos = self.position.project(directions)
+        factor = self.factor.project(directions)
+        position = self.position.project(directions)
         nodes, weights = [], []
-        for i, d in enumerate(pos.dirs):
+        for i, d in enumerate(position.dirs):
             nodes.append(self.nodes[self.position.dirs.index(d)])
             weights.append(self.weights[self.position.dirs.index(d)])
-        return Quad(nodes, weights, position=pos)
+        return Quad(nodes, weights, position=position, factor=factor)
 
-    def series(self, coeffs, norm=False, index_set="triangle"):
+    def series(self, coeffs, index_set="triangle"):
         """Return a series from a vector of coefficients.
 
         Args:
@@ -294,8 +328,8 @@ class Quad:
             A `Series` object.
 
         """
-        return hs.Series(coeffs, self.position, norm=norm,
-                         index_set=index_set)
+        return hm.Series(coeffs, self.position,
+                         factor=self.factor, index_set=index_set)
 
     def plot(self, arg, factor=None, ax=None, bounds=False, **kwargs):
         assert self.position.is_diag
@@ -306,22 +340,22 @@ class Quad:
             fig, ax = plt.subplots(1)
 
         if isinstance(arg, tuple(sym.core.all_classes)):
-            arg = symfunc.Function(arg, dirs=self.position.dirs)
+            arg = hm.Function(arg, dirs=self.position.dirs)
 
-        if type(arg) is symfunc.Function:
+        if type(arg) is hm.Function:
             assert factor is None
             solution = self.discretize(arg)
 
         elif type(arg) is np.ndarray:
             solution = arg
 
-        elif type(arg) is hs.Series:
+        elif type(arg) is hm.Series:
 
             if factor is None:
-                factor = self.position.weight()
+                factor = self.factor
 
             if not isinstance(factor, np.ndarray):
-                factor = symfunc.Function(factor, dirs=self.position.dirs)
+                factor = hm.Function(factor, dirs=self.position.dirs)
                 factor = self.discretize(factor)
 
             series = arg
@@ -349,7 +383,7 @@ class Quad:
         n_nodes = []
         r_nodes = []
         for i, d in enumerate(self.position.dirs):
-            direction = symfunc.Function.xyz[d]
+            direction = hm.Function.xyz[d]
             n_nodes.append(len(self.nodes[i]))
             r_nodes.append(self.project(d).discretize(direction))
         solution = solution.reshape(*n_nodes).T
@@ -380,20 +414,20 @@ class Quad:
             fig, ax = plt.subplots(1)
 
         if isinstance(fx, tuple(sym.core.all_classes)):
-            fx = symfunc.Function(fx, dirs=self.position.dirs)
-            fy = symfunc.Function(fy, dirs=self.position.dirs)
+            fx = hm.Function(fx, dirs=self.position.dirs)
+            fy = hm.Function(fy, dirs=self.position.dirs)
 
-        if type(fx) is symfunc.Function:
+        if type(fx) is hm.Function:
             assert factor is None
             fx, fy = self.discretize(fx), self.discretize(fy)
 
-        elif type(fx) is hs.Series:
+        elif type(fx) is hm.Series:
 
             if factor is None:
-                factor = self.position.weight()
+                factor = self.factor
 
             if not isinstance(factor, np.ndarray):
-                factor = symfunc.Function(factor, dirs=self.position.dirs)
+                factor = hm.Function(factor, dirs=self.position.dirs)
                 factor = self.discretize(factor)
 
             sx, sy = self.eval(fx)*factor, self.eval(fy)*factor
@@ -404,7 +438,7 @@ class Quad:
         n_nodes = []
         r_nodes = []
         for i in range(self.position.dim):
-            direction = symfunc.Function.xyz[self.position.dirs[i]]
+            direction = hm.Function.xyz[self.position.dirs[i]]
             n_nodes.append(len(self.nodes[i]))
             r_nodes.append(self.project(i).discretize(direction))
         sx, sy = sx.reshape(*n_nodes).T, sy.reshape(*n_nodes).T
