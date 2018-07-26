@@ -95,6 +95,7 @@ void intern_function(string const & function_body)
     if(! test_exists.good()) {
          ofstream write_function;
          write_function.open(cpp_file);
+         write_function << "#define M_PI 3.14159265358979323846\n";
          write_function << "#include <vector>\n#include <cmath>\n";
          write_function << "extern \"C\" double toIntegrate(double *v) {\n";
          write_function << "    return " << function_body << ";\n}";

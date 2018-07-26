@@ -56,10 +56,10 @@ class CompQuad():
             result += q.integrate(f) * self.qweights[i]
         return result
 
-    def transform(self, f_grid, degree, norm=False, index_set="triangle"):
+    def transform(self, f_grid, degree, index_set="triangle"):
         result = 0
         for i, q in enumerate(self.quads):
-            series = q.transform(f_grid, degree, norm=norm, index_set=index_set)
+            series = q.transform(f_grid, degree, index_set=index_set)
             result += series * self.qweights[i]
         return result
 
