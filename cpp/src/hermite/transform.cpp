@@ -130,6 +130,7 @@ vec transform(
     auto function = transform<Triangle_iterator>;
     if (index_set == "triangle");
     else if (index_set == "cross") function = transform<Cross_iterator>;
+    else if (index_set == "cross_nc") function = transform<Cross_iterator_nc>;
     else if (index_set == "cube") function = transform<Cube_iterator>;
     else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
     return function(degree, input, nodes, weights, forward);

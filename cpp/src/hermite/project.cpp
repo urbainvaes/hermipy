@@ -62,6 +62,7 @@ vec project_vec_nd(const vec & input, u_int dim, const ivec & dirs, std::string 
     auto function = project<Triangle_iterator>;
     if (index_set == "triangle");
     else if (index_set == "cross") function = project<Cross_iterator>;
+    else if (index_set == "cross_nc") function = project<Cross_iterator_nc>;
     else if (index_set == "cube") function = project<Cube_iterator>;
     else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
     return function(input, dim, dirs);
@@ -112,6 +113,7 @@ M project_mat_nd(const M & input, u_int dim, const ivec & dirs, std::string inde
     auto function = project<Triangle_iterator,M>;
     if (index_set == "triangle");
     else if (index_set == "cross") function = project<Cross_iterator,M>;
+    else if (index_set == "cross_nc") function = project<Cross_iterator_nc,M>;
     else if (index_set == "cube") function = project<Cube_iterator,M>;
     else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
     return function(input, dim, dirs);

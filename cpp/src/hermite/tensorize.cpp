@@ -126,6 +126,7 @@ vec tensorize_vecs_dirs(const mat & inputs, const imat & dirs, std::string index
     auto function = tensorize<Triangle_iterator>;
     if (index_set == "triangle");
     else if (index_set == "cross") function = tensorize<Cross_iterator>;
+    else if (index_set == "cross_nc") function = tensorize<Cross_iterator_nc>;
     else if (index_set == "cube") function = tensorize<Cube_iterator>;
     else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
     return function(inputs, dirs);
@@ -345,23 +346,13 @@ T _tensorize_mats_axes(const vector<S> & inputs)
 template <typename T, typename S>
 T tensorize_mats_dirs(const vector<S> & inputs, const imat & dirs, std::string index_set)
 {
-    if (index_set == "cross")
-    {
-        return _tensorize_mats_dirs<Cross_iterator,T,S>(inputs, dirs);
-    }
-    else if (index_set == "triangle")
-    {
-        return _tensorize_mats_dirs<Triangle_iterator,T,S>(inputs, dirs);
-    }
-    else if (index_set == "cube")
-    {
-        return _tensorize_mats_dirs<Cube_iterator,T,S>(inputs, dirs);
-    }
-    else
-    {
-        std::cerr << "Invalid index set!" << std::endl;
-        exit(1);
-    }
+    auto function = _tensorize_mats_dirs<Triangle_iterator,T,S>;
+    if (index_set == "triangle");
+    else if (index_set == "cross") function = _tensorize_mats_dirs<Cross_iterator,T,S>;
+    else if (index_set == "cross_nc") function = _tensorize_mats_dirs<Cross_iterator_nc,T,S>;
+    else if (index_set == "cube") function = _tensorize_mats_dirs<Cube_iterator,T,S>;
+    else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
+    return function(inputs, dirs);
 }
 
 template <typename T, typename S>
@@ -370,6 +361,7 @@ T tensorize_mats_axes(const vector<S> & inputs, std::string index_set)
     auto function = _tensorize_mats_axes<Triangle_iterator,T,S>;
     if (index_set == "triangle");
     else if (index_set == "cross") function = _tensorize_mats_axes<Cross_iterator,T,S>;
+    else if (index_set == "cross_nc") function = _tensorize_mats_axes<Cross_iterator_nc,T,S>;
     else if (index_set == "cube") function = _tensorize_mats_axes<Cube_iterator,T,S>;
     else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
     return function(inputs);
@@ -387,12 +379,15 @@ T tensorize_mat_id(const S & input, u_int dim, u_int dir, std::string index_set)
 
 template mat _tensorize_mats_axes<Cube_iterator>(const std::vector<mat> & input);
 template mat _tensorize_mats_axes<Cross_iterator>(const std::vector<mat> & input);
+template mat _tensorize_mats_axes<Cross_iterator_nc>(const std::vector<mat> & input);
 template mat _tensorize_mats_axes<Triangle_iterator>(const std::vector<mat> & input);
 template spmat _tensorize_mats_axes<Cube_iterator>(const std::vector<mat> & input);
 template spmat _tensorize_mats_axes<Cross_iterator>(const std::vector<mat> & input);
+template spmat _tensorize_mats_axes<Cross_iterator_nc>(const std::vector<mat> & input);
 template spmat _tensorize_mats_axes<Triangle_iterator>(const std::vector<mat> & input);
 template boost_mat _tensorize_mats_axes<Cube_iterator>(const std::vector<mat> & input);
 template boost_mat _tensorize_mats_axes<Cross_iterator>(const std::vector<mat> & input);
+template boost_mat _tensorize_mats_axes<Cross_iterator_nc>(const std::vector<mat> & input);
 template boost_mat _tensorize_mats_axes<Triangle_iterator>(const std::vector<mat> & input);
 
 template mat tensorize_mats_dirs(const std::vector<mat> & inputs, const imat & dir, std::string index_sets);

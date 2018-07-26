@@ -37,6 +37,15 @@ int main()
             return 1;
     }
 
+    Cross_iterator_nc mh_nc(dim, degree);
+    for (mh_nc.reset(), i = 0; !mh_nc.isFull(); i++, mh_nc.increment())
+    {
+        u_int index = mh_nc.index(mh_nc.get());
+        cout << "i " << i << ", index(mh_nc): " << index << ", mh_nc: " << mh_nc.get() << endl;
+        if (i != index)
+            return 1;
+    }
+
     Triangle_iterator m(dim, degree);
     if (m.s_size(dim, degree) != m.size())
     {
