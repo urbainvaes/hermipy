@@ -296,6 +296,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
             sub_mat = (mat[0:npolys, 0:npolys])
             if type(sub_mat) is np.ndarray:
                 sub_mat = sub_mat.copy(order='C')
+            # import ipdb; ipdb.set_trace()
             eig_vals, eig_vecs = las.eigs(sub_mat, k=1, v0=v0, which='LR')
             eig_vec = np.real(eig_vecs.T[0])
             ground_state = eig_vec * np.sign(eig_vec[0])

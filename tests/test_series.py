@@ -37,11 +37,11 @@ class TestSeries(unittest.TestCase):
         hm.settings.update(settings)
 
     def test_inner_positions(self):
-        m1, m2 = [1, 2], [3, 4, 5]
-        c1, c2 = np.diag([1, 2]), np.diag([3, 4, 5])
+        m1, m2 = [1, 2], [2, 4, 5]
+        c1, c2 = np.diag([1, 2]), np.diag([2, 3, 4])
         p1 = hm.Position(mean=m1, cov=c1, dirs=[0, 1])
         p2 = hm.Position(mean=m2, cov=c2, dirs=[1, 3, 4])
-        result = hm.Position.inner(p1, p2)
+        result = hm.Position.tensorize([p1, p2])
         self.assertTrue(result.dirs == [0, 3, 4])
         self.assertAlmostEqual(la.norm(result.mean - [1, 4, 5]), 0)
         self.assertAlmostEqual(la.norm(result.cov - np.diag([1, 4, 5])), 0)
