@@ -99,7 +99,10 @@ class Position:
         self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
 
         diag_cov = np.diag(np.diag(self.cov))
-        self.is_diag = la.norm(self.cov - diag_cov, 2) < 1e-10
+
+        self.is_diag = True
+        if len(self.dirs) > 0 and la.norm(self.cov - diag_cov, 2) > 1e-10:
+            self.is_diag = False
 
     def __eq__(self, other):
         return self.dirs == other.dirs \
@@ -121,7 +124,7 @@ class Position:
         var = [func.Function.xyz[d] for d in self.dirs]
         inv_cov = la.inv(self.cov)
         potential = 0.5 * inv_cov.dot(var - self.mean).dot(var - self.mean)
-        normalization = 1/(np.sqrt((2*np.pi)**self.dim * la.det(self.cov)))
+        normalization = 1/(sym.sqrt((2*sym.pi)**self.dim * la.det(self.cov)))
         return normalization * sym.exp(-potential)
 
     def weights(self):

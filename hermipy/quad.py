@@ -121,15 +121,12 @@ class Quad:
                     return func(*args, **kwargs)
 
                 quad, function = args[0], args[arg_num]
-                if not quad.position.is_diag or \
-                        isinstance(function, np.ndarray) or \
-                        quad.position.dim is 1:
+                if not quad.position.is_diag or isinstance(function, np.ndarray):
                     return func(*args, **kwargs)
 
                 results = []
                 if not isinstance(function, hm.Function):
-                    function = hm.Function(function,
-                                                dirs=quad.position.dirs)
+                    function = hm.Function(function, dirs=quad.position.dirs)
 
                 for add in function.split(legacy=False):
                     multiplicator = add[frozenset()]
@@ -193,6 +190,9 @@ class Quad:
         elif n is 1:
             return self.integrate(abs(function), flat=flat)
 
+    @tensorize_at(1)
+    @stats.debug()
+    @stats.log_stats()
     def transform(self, function, degree, index_set="triangle", significant=0):
 
         if not isinstance(function, np.ndarray):
