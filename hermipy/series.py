@@ -20,6 +20,7 @@ import hermipy.core as core
 import hermipy.lib as lib
 import hermipy.position as pos
 import hermipy.function as func
+import hermipy.quad as quad
 
 import numpy as np
 import numpy.linalg as la
@@ -34,32 +35,52 @@ class Series:
 
     @staticmethod
     def tensorize(args):
-        assert len(args) > 0 and type(args[0]) is Series
-        index_set, degree = args[0].index_set, args[0].degree
-        vecs = {}
+
+        factor = 1
         for a in args:
             assert type(a) is Series
-            assert a.index_set == index_set and a.degree == degree
-            key = frozenset(a.position.dirs)
-            vecs[key] = a.coeffs
-        tens_vec = core.tensorize(vecs, index_set=index_set)
-        tens_pos = pos.Position.tensorize([a.position for a in args])
-        return Series(tens_vec, tens_pos, index_set=index_set)
+            if a.position.dim == 0:
+                m = a.coeffs[0]
+                args[0] = Series(args[0].coeffs*m, args[0].position,
+                                 index_set=args[0].index_set)
 
-    def __init__(self, coeffs, position, norm=False,
-                 index_set="triangle", significant=0):
-        self.coeffs = coeffs/la.norm(coeffs, 2) if norm else coeffs
+        def _tensorize(s1, s2):
+            assert s1.degree == s2.degree
+            assert s1.index_set == s2.index_set
+            d1, d2 = s1.position.dirs, s2.position.dirs
+            c1, c2 = s1.coeffs, s2.coeffs
+            result = core.inner(c1, c2, d1, d2, index_set=s1.index_set)
+            position = pos.Position.tensorize([s1.position, s2.position])
+            return Series(result, position, index_set=s1.index_set)
+
+        result = args[0]
+        for a in args[1:]:
+            result = _tensorize(result, a)
+
+        return result
+
+    def __init__(self, coeffs, position,
+                 index_set="triangle", factor=1, significant=0):
+
+        self.coeffs = coeffs
         self.position = position
         self.index_set = index_set
 
         dim, npolys = self.position.dim, len(self.coeffs)
-        self.degree = core.iterator_get_degree(dim, npolys,
-                                               index_set=index_set)
-        assert len(self.multi_indices()) == len(self.coeffs)
+
+        if position.dirs == []:
+            self.degree = 0
+        else:
+            self.degree = core.iterator_get_degree(dim, npolys,
+                                                   index_set=index_set)
+
+            assert len(self.multi_indices()) == len(self.coeffs)
 
         if significant is not 0:
             for i, c in enumerate(self.coeffs):
                 self.coeffs[i] = round(self.coeffs[i], significant)
+
+        self.factor = func.Function(factor, dirs=self.position.dirs)
 
     def __eq__(self, other):
         assert type(other) is Series
@@ -110,16 +131,6 @@ class Series:
             result += str(m) + ": " + str(c) + "\n"
         return result
 
-    def inner(self, other):
-        assert type(self) is Series and type(other) is Series
-        assert self.index_set == other.index_set
-        assert self.degree == other.degree
-        d1, d2 = self.position.dirs, other.position.dirs
-        result = core.inner(self.coeffs, other.coeffs, d1, d2,
-                            index_set=self.index_set)
-        inner_pos = pos.Position.inner(self.position, other.position)
-        return Series(result, inner_pos, index_set=self.index_set)
-
     def project(self, directions):
         if type(directions) is not list:
             directions = [directions]
@@ -136,6 +147,8 @@ class Series:
         return Series(coeffs, self.position, index_set=self.index_set)
 
     def multi_indices(self):
+        if self.position.dim == 0:
+            return [None]
         return core.iterator_list_indices(self.position.dim, self.degree,
                                           index_set=self.index_set)
 
@@ -167,7 +180,8 @@ class Series:
             ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
             # for i, txt in enumerate(coeffs):
-            #     ax.annotate("{:.2f}".format(txt), (mx[i] + .1, my[i] + .1), size=8)
+            #     ax.annotate("{:.2f}".format(txt), (mx[i] + .1, my[i] +
+            #     .1), size=8)
 
         ax.set_title("Coefficients of the Hermite expansion")
 
