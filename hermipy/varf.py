@@ -37,17 +37,25 @@ class Varf:
 
     @staticmethod
     def tensorize(args, sparse=None):
+
+        for a in args:
+            assert type(a) is Varf
+
+        if len(args) == 1:
+            return args[0]
+
         sparse = rc.settings['sparse'] if sparse is None else sparse
-        assert len(args) > 0 and type(args[0]) is Varf
         index_set, degree = args[0].index_set, args[0].degree
         mats = {}
         factor = 1
         for a in args:
             assert type(a) is Varf
-            assert a.index_set == index_set and a.degree == degree
+            assert a.index_set == index_set
+            assert a.degree == degree
             key = frozenset(a.position.dirs)
             mats[key] = a.matrix
             factor *= a.factor.sym
+
         matrix = core.tensorize(mats, sparse=sparse, index_set=index_set)
         position = pos.Position.tensorize([a.position for a in args])
         factor = func.Function(factor, dirs=position.dirs)
