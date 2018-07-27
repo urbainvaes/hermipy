@@ -40,7 +40,7 @@ vec inner(const vec & s1,
           const ivec & dirs2)
 {
     #ifdef DEBUG
-    std::cout << "Entering in inner()." << std::endl;
+    std::cout << "Entering inner()." << std::endl;
     #endif
 
     u_int dim1 = dirs1.size(),
@@ -93,6 +93,7 @@ vec inner(const vec & s1,
     #ifdef DEBUG
     std::cout << "Calculating degree with dim = " << dim1 << "," << dim2
         << " and n_polys = " << s1.size() << "," << s2.size() <<  std::endl;
+    std::cout << "Dim result, dim_inner = " << dim_result << "," << dim_inner << std::endl;
     #endif
 
     u_int degree = Iterator::s_get_degree(dim1, s1.size());
@@ -102,12 +103,65 @@ vec inner(const vec & s1,
     std::cout << "Initializing iterators" <<  std::endl;
     #endif
 
-    vec result(Iterator::s_size(dim_result, degree), 0.);
-
-    Iterator m_result(dim_result, degree);
-    Iterator m_inner(dim_inner, degree);
     Iterator it_m1(dim1, degree);
     Iterator it_m2(dim2, degree);
+
+    if (dim_inner == 0)
+    {
+        Iterator m_result(dim_result, degree);
+        vec result(Iterator::s_size(dim_result, degree), 0.);
+        for (i = 0; !m_result.isFull(); m_result.increment(), i++)
+        {
+            ivec m1(dim1),
+                 m2(dim2);
+
+            for (u_int k = 0; k < dim_result; k++)
+            {
+                if (in_dirs1[k])
+                    m1[free_ind[k]] = m_result[k];
+                else
+                    m2[free_ind[k]] = m_result[k];
+            }
+
+            int ind1 = it_m1.index(m1),
+                ind2 = it_m2.index(m2);
+
+            result[i] = s1[ind1] * s2[ind2];
+        }
+        return result;
+    }
+
+    if (dim_result == 0) 
+    {
+        Iterator m_inner(dim_inner, degree);
+        vec result(1, 0.);
+
+        ivec m1(dim1),
+             m2(dim2);
+
+        for (j = 0, m_inner.reset(); !m_inner.isFull(); m_inner.increment(), j++)
+        {
+            for (u_int k = 0; k < dim_inner; k++)
+            {
+                m1[inner_ind1[k]] = m_inner[k];
+                m2[inner_ind2[k]] = m_inner[k];
+            }
+
+            int ind1 = it_m1.index(m1),
+                ind2 = it_m2.index(m2);
+
+            result[0] += s1[ind1] * s2[ind2];
+        }
+        return result;
+    }
+
+    #ifdef DEBUG
+    std::cout << "Initializing iterators" <<  std::endl;
+    #endif
+
+    vec result(Iterator::s_size(dim_result, degree), 0.);
+    Iterator m_result(dim_result, degree);
+    Iterator m_inner(dim_inner, degree);
 
     #ifdef DEBUG
     std::cout << "--> Starting outer for loop" << std::endl;
