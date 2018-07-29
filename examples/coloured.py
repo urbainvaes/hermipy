@@ -345,32 +345,9 @@ def plot():
         plt.show()
 
     def plot_hermite_functions():
-
-        def plot_hf(degrees, quad_num, quad_visu, ax):
-            dim = len(degrees)
-            adim_width = [np.sqrt(2) * np.sqrt(2*d + 1) for d in degrees]
-            pos, bounds = quad_num.position, []
-            for i in range(dim):
-                width = adim_width[i] * np.sqrt(pos.cov[i][i])
-                bounds.append([pos.mean[i] - width, pos.mean[i] + width])
-            if dim >= 1:
-                ax.axvline(x=bounds[0][0])
-                ax.axvline(x=bounds[0][1])
-            if dim == 2:
-                ax.axhline(y=bounds[1][0])
-                ax.axhline(y=bounds[1][1])
-            deg_max = sum(degrees)
-            index_set = "triangle"
-            hf = np.zeros(core.iterator_size(2, deg_max, index_set=index_set))
-            hf[core.iterator_index(degrees, index_set="triangle")] = 1
-            hf = quad_num.series(hf, quad_num.position)
-            return quad_visu.plot(hf, factor, ax=ax, bounds=False)
-
-        fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
-        plot_hf((degree, 0), quad_num, quad_visu, ax11)
-        plot_hf((0, degree), quad_num, quad_visu, ax12)
-        plot_hf((degree // 2, degree // 2), quad_num, quad_visu, ax21)
-        plt.show()
+        quad_num.plot_hf([degree, 0])
+        quad_num.plot_hf([0, degree])
+        quad_num.plot_hf([degree // 2, degree // 2])
 
     def plot_ground_state():
         ground_state = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])

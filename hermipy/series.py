@@ -60,7 +60,7 @@ class Series:
         return result
 
     def __init__(self, coeffs, position,
-                 index_set="triangle", factor=1, significant=0):
+                 factor=1, index_set="triangle", significant=0):
 
         self.coeffs = coeffs
         self.position = position
