@@ -36,22 +36,34 @@ class Series:
     @staticmethod
     def tensorize(args):
 
-        factor = 1
-        for a in args:
-            assert type(a) is Series
-            if a.position.dim == 0:
-                m = a.coeffs[0]
-                args[0] = Series(args[0].coeffs*m, args[0].position,
-                                 index_set=args[0].index_set)
-
         def _tensorize(s1, s2):
+            assert type(s1) is Series
+            assert type(s2) is Series
+
+            if s1.position.dim == 0:
+                return Series(s1.coeffs[0]*s2.coeffs, s2.position,
+                              factor=s2.factor, index_set=s2.index_set)
+
+            if s2.position.dim == 0:
+                return Series(s2.coeffs[0]*s1.coeffs, s1.position,
+                              factor=s1.factor, index_set=s1.index_set)
+
+            # Inner product only makes sense in weighted space
+            common = set(s1.position.dirs).intersection(s2.position.dirs)
+            func1 = func.Function(1, dirs=list(common))
+            assert s1.factor.project(list(common)) == func1
+            assert s2.factor.project(list(common)) == func1
+
             assert s1.degree == s2.degree
             assert s1.index_set == s2.index_set
+            f1, f2 = s1.factor.sym, s2.factor.sym
             d1, d2 = s1.position.dirs, s2.position.dirs
             c1, c2 = s1.coeffs, s2.coeffs
             result = core.inner(c1, c2, d1, d2, index_set=s1.index_set)
             position = pos.Position.tensorize([s1.position, s2.position])
-            return Series(result, position, index_set=s1.index_set)
+            factor = func.Function(f1*f2, dirs=position.dirs)
+            return Series(result, position,
+                          factor=factor, index_set=s1.index_set)
 
         result = args[0]
         for a in args[1:]:
@@ -109,7 +121,8 @@ class Series:
 
         if isinstance(other, (int, float, np.float64)):
             new_coeffs = self.coeffs * other
-            return Series(new_coeffs, self.position, index_set=self.index_set)
+            return Series(new_coeffs, self.position,
+                          factor=self.factor, index_set=self.index_set)
 
         elif type(other) is Series:
             assert self.index_set == other.index_set
@@ -138,7 +151,9 @@ class Series:
         p_coeffs = core.project(self.coeffs, self.position.dim, rel_dirs,
                                 index_set=self.index_set)
         p_pos = self.position.project(directions)
-        return Series(p_coeffs, p_pos, index_set=self.index_set)
+        factor = self.factor.project(directions)
+        return Series(p_coeffs, p_pos, factor=factor,
+                      index_set=self.index_set)
 
     def subdegree(self, degree):
         assert degree <= self.degree

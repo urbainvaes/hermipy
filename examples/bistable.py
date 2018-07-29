@@ -18,6 +18,7 @@
 
 from hermipy.equations import McKean_Vlasov as equation
 import sympy as sym
+import hermipy
 
 # Configuration dicionaries
 misc, eq, num = {}, {}, {}
@@ -29,27 +30,37 @@ x, y, f = equation.x, equation.y, equation.f
 r = sym.Rational
 
 # Configuration of numerical method
-num['degree'] = 40  # degree of approximation
+num['degree'] = 50  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
-num['μx'] = r(1, 5)
-num['σx'] = r(1, 10)
+num['μx'] = r(0)
 num['μy'] = r(0)
-num['σy'] = r(1, 10)
+num['σx'] = r(1, 15)
+num['σy'] = r(1, 15)
 num['λ'] = r(1, 2)
 
 # Scalar parameters of the equation
 eq['β'] = r(1)
-eq['ε'] = r(1, 4)
+eq['ε'] = r(1/2)
 eq['γ'] = r(0)
 eq['θ'] = r(.5)
 
 # Functional parameters of the equation
 eq['Vp'] = x**4/4 - x**2/2
-eq['Vy'] = y**4/4 - y**2/2
+# eq['Vp'] = x**2/2
+# eq['Vp'] = x**4
 
 # Mean-zero
 # Z, m = 6.301119049538182, 0.8852269357209047
-# eq['Vy'] = (y+m)**4/4 - (y+m)**2/2 + (y+m)
+# eq['Vy'] = (y-m)**4/4 - (y-m)**2/2 + (y-m)
+# eq['Vy'] = y**4/4 - y**2/2
+eq['Vy'] = y**2/2
+
+# rx, ry, d = sym.exp(-eq['Vp']), sym.exp(-eq['Vy']), num['degree']
+# qy = hermipy.Quad.gauss_hermite(200, cov=[[.05]], dirs=[1])
+# assert abs(qy.integrate(y*sym.exp(-eq['Vy']), flat=True)) < 1e-10
+
+# qx.norm(qx.transform(rx, degree=d).eval(), qx.discretize(yx))
+# qy.plot(sym.exp(-eq['Vy']))
 
 # Miscellaneous parameters
 misc['cache'] = True
