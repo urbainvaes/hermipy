@@ -174,7 +174,7 @@ def vy():
         μy = Parameter(symb('μy', real=True), config.num['μy'])
         σy = Parameter(symb('σy', real=True, positive=True), config.num['σy'])
         Vqy = Parameter(sym.Function('Vqy')(y), r(1, 2) *
-                        (y - μy.symbol)*(y - μy.symbol)/(σy.symbol*β.symbol))
+                        (y - μy.symbol)*(y - μy.symbol)/(σy.symbol))
         return {'μy': μy, 'σy': σy, 'Vqy': Vqy}
     else:
         Vy = Parameter(sym.Function('Vy')(y), y*y/2, type='equation')
@@ -186,7 +186,7 @@ def vq():
     μx = Parameter(symb('μx', real=True), config.num['μx'])
     σx = Parameter(symb('σx', real=True, positive=True), config.num['σx'])
     Vq = Parameter(sym.Function('Vqx')(x), r(1, 2) *
-                   (x - μx.symbol)*(x - μx.symbol)/(σx.symbol*β.symbol))
+                   (x - μx.symbol)*(x - μx.symbol)/(σx.symbol))
     return {'μx': μx, 'σx': σx, 'Vqx': Vq}
 
 
@@ -220,10 +220,10 @@ def factors(symbolic, λ):
     elif symbolic == 0:
         Vp, Vq = params['Vp'].eval(), params['Vqx'].eval()
         Vy, Vqy = params['Vy'].eval(), params['Vqy'].eval()
-    factor_x = sym.exp(-β*(λ*Vq + (1-λ)*Vp))
+    factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
     factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
     # factor_x = sym.exp(-Vq/2)
-    # factor_y = sym.exp(-Vy/2)
+    # factor_y = sym.exp(-Vy)
     factor = factor_x * factor_y
     return factor_x, factor_y, factor
 
@@ -243,12 +243,10 @@ params.update({**vy(), **vq()})
 
 # Forward operator
 forward, fluxes = forward_op(config.misc['symbolic'])
-# import ipdb; ipdb.set_trace()
 
 # Mapped backward operator
 factor_x, factor_y, factor = factors(config.misc['symbolic'], config.num['λ'])
 backward = eq.map_operator(forward, f, factor)
-fluxes = [eq.map_operator(flux, f, factor) for flux in fluxes]
 
 forward, backward = evaluate([forward, backward])
 fluxes = evaluate(fluxes)
@@ -271,22 +269,25 @@ vprint("Defining quadratures")
 
 def compute_quads():
     μx = params['μx'].value
+    μy = params['μy'].value
     σx = params['σx'].value
-    σy = .2
+    σy = params['σy'].value
 
     quad_num = hermipy.Quad.gauss_hermite(
             config.num['n_points_num'], dim=2,
-            mean=[μx, 0], cov=[[σx, 0], [0, σy]])
+            mean=[μx, μy], cov=[[σx, 0], [0, σy]],
+            factor=factor)
 
     # For visualization
     nv = 200
     # band_width = np.sqrt(2) * np.sqrt(2*degree + 1)
     # bounds_x = band_width*np.sqrt(float(σx))
     # bounds_y = band_width*np.sqrt(float(σy))
-    bounds_x = 4
-    bounds_y = 4
+    bounds_x = 3
+    bounds_y = 3
 
-    quad_visu = hermipy.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y])
+    quad_visu = hermipy.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y],
+                                          factor=factor)
     return quad_num, quad_visu
 
 
@@ -295,13 +296,14 @@ quad_num, quad_visu = compute_quads()
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
 vprint("Splitting operator in m-linear and m-independent parts")
-m_operator = backward.diff(params['m'].symbol)
-r_operator = (backward - params['m'].symbol*m_operator).cancel()
+m_operator = forward.diff(params['m'].symbol)
+r_operator = (forward - params['m'].symbol*m_operator).cancel()
 vprint("Discretizing operators")
-m_mat = quad_num.discretize_op(m_operator, f, degree, 2)
-r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
+m_mat = quad_num.discretize_op(m_operator, degree)
+r_mat = quad_num.discretize_op(r_operator, degree)
+r_mat.plot()
 if params['m'].value.free_symbols == set():
-    fd = [quad_num.discretize_op(flux, f, degree, 2) for flux in fluxes]
+    fd = [quad_num.discretize_op(flux, degree) for flux in fluxes]
 
 vprint("Solving eigenvalue problem")
 eig_vals, eig_vecs = r_mat.eigs(k=4, which='LR')
@@ -315,13 +317,12 @@ def plot():
 
     fig, ax = plt.subplots(1, 1)
     ground_series = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])
-    cont = quad_visu.plot(ground_series, factor, ax=ax,
-                          vmin=0, extend='min', bounds=0)
+    cont = quad_visu.plot(ground_series, ax=ax, vmin=0, extend='min', bounds=True)
     for c in cont.collections:
         c.set_edgecolor("face")
     plt.colorbar(cont, ax=ax)
     f0, f1 = fd[0](ground_series), fd[1](ground_series)
-    streamlines = quad_visu.streamlines(f0, f1, factor=factor, ax=ax)
+    streamlines = quad_visu.streamlines(f0, f1, ax=ax)
     for c in streamlines.collections:
         plt.setp(c, linewidth=.5)
     plt.savefig('solution.eps', bbox_inches='tight')
@@ -360,11 +361,11 @@ def plot():
         quad_x = quad_visu.project(0)
         quad_y = quad_visu.project(1)
         fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2)
-        quad_x.plot(series_x, factors['x'], ax11)
+        quad_x.plot(series_x, ax=ax11)
         ax11.set_title("Marginal distribution in x direction")
         ax12.bar(degrees, series_x.coeffs)
         ax12.set_title("Hermite coefficients of x marginal")
-        quad_y.plot(series_y, factors['y'], ax21)
+        quad_y.plot(series_y, ax=ax21)
         ax21.set_title("Marginal distribution in y direction")
         ax22.bar(degrees, series_y.coeffs)
         ax22.set_title("Hermite coefficients of y marginal")
@@ -373,8 +374,8 @@ def plot():
     def plot_comparison_with_asym():
         fig, ax = plt.subplots(1, 1)
         as_sol = sym.exp(- params['β'].value * params['Vp'].eval())/factor_x
-        as_series = quad_num.project(0).transform(as_sol, degree, norm=True)
-        quad_visu.project(0).plot(as_series, factor_x, ax)
+        as_series = quad_num.project(0).transform(as_sol, degree)
+        quad_visu.project(0).plot(as_series, ax=ax)
         plt.show()
 
     def plot_discretization_error():
@@ -422,9 +423,10 @@ def convergence():
             - y/np.sqrt(float(β))*u2.diff(x)
         ua = (u0 + ε*u1 + ε**2*u2)*rho_eta
         # ta = quad_num.transform(ua/factor, degree=degree)
-        # quad_visu.plot(ua, factor=None)
-        assert abs(quad_num.integrate(ua, flat=True) - 1) < 1e-8
+        # quad_visu.plot(ua)
+        assert abs(quad_num.integrate(ua, flat=True) - 1) < 1e-6
         return quad_num.discretize(ua)
+
     asym_num = asymptotic()
 
     factor_eval = quad_num.discretize(factor)
@@ -433,7 +435,6 @@ def convergence():
         ground_series = eig_vec * np.sign(eig_vec.coeffs[0])
         # quad_visu.plot(ground_series, factor=factor)
         ground_state_eval = quad_num.eval(ground_series)
-        ground_state_eval = ground_state_eval * factor_eval
         norm = quad_num.norm(ground_state_eval, n=1, flat=True)
         ground_state_eval = ground_state_eval / norm
         return ground_state_eval
@@ -449,6 +450,7 @@ def convergence():
         solution_eval = get_ground_state(eig_vecs[0])
         norm_sol = quad_num.integrate(solution_eval, flat=True)
         solution_eval = solution_eval / norm_sol
+        t_solution_eval = quad_num.transform(solution_eval, degree=degree)
 
     v0, degrees, errors, errors_a, mins, eig_ground = None, [], [], [], [], []
     for d in range(20, degree):
@@ -464,6 +466,8 @@ def convergence():
         eig_vals, eig_vecs = sub_varf.eigs(v0=v0, k=1, which='LR')
         v0 = eig_vecs[0].coeffs.copy(order='C')
         ground_state_eval = get_ground_state(eig_vecs[0])
+        # error_consistency = 
+        # error_discretization = 
         error = quad_num.norm(ground_state_eval - solution_eval, n=1, flat=True)
         error_a = quad_num.norm(ground_state_eval - asym_num, n=1, flat=True)
         degrees.append(d)
@@ -621,8 +625,8 @@ while beta > 1:
     r_operator = (backward_b - params['m'].symbol*m_operator).cancel()
 
     # vprint("Discretizing operators")
-    m_mat = quad_num.discretize_op(m_operator, f, degree, 2)
-    r_mat = quad_num.discretize_op(r_operator, f, degree, 2)
+    m_mat = quad_num.discretize_op(m_operator, degree)
+    r_mat = quad_num.discretize_op(r_operator, degree)
     eig_vals, eig_vecs = r_mat.eigs(k=1, which='LR')
 
     bif = hermipy.cache()(bifurcation)

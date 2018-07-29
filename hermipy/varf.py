@@ -87,12 +87,14 @@ class Varf:
         elif type(other) is Varf:
             assert self.position == other.position
             assert self.index_set == other.index_set
+            assert self.factor == other.factor
             new_matrix = self.matrix + other.matrix
 
         else:
             raise TypeError("Invalid type!)")
 
-        return Varf(new_matrix, self.position, index_set=self.index_set)
+        return Varf(new_matrix, self.position,
+                    factor=self.factor, index_set=self.index_set)
 
     def __mul__(self, other):
 
@@ -129,14 +131,17 @@ class Varf:
         p_matrix = core.project(self.matrix, self.position.dim, rel_dirs,
                                 index_set=self.index_set)
         p_pos = self.position.project(directions)
-        return Varf(p_matrix, p_pos, index_set=self.index_set)
+        factor = self.factor.project(directions)
+        return Varf(p_matrix, p_pos,
+                    factor=factor, index_set=self.index_set)
 
     def subdegree(self, degree):
         assert degree <= self.degree
         n_polys = core.iterator_size(self.position.dim, degree)
         kwargs = {'order': 'C'} if not self.is_sparse else {}
         matrix = self.matrix[0:n_polys, 0:n_polys].copy(**kwargs)
-        return Varf(matrix, self.position, index_set=self.index_set)
+        return Varf(matrix, self.position,
+                    factor=self.factor, index_set=self.index_set)
 
     def multi_indices(self):
         return core.iterator_list_indices(self.position.dim, self.degree,
@@ -147,7 +152,8 @@ class Varf:
         assert degree + self.position.dim - 1 <= self.degree
         inds_triangle = lib.cross_in_triangle(self.position.dim, degree)
         matrix = self.matrix[np.ix_(inds_triangle, inds_triangle)]
-        return Varf(matrix, self.position, index_set="cross")
+        return Varf(matrix, self.position,
+                    factor=self.factor, index_set="cross")
 
     def solve(self, series):
         assert self.position == series.position
@@ -164,7 +170,8 @@ class Varf:
         result = []
         for v in eig_vecs.T:
             coeffs = np.real(v)
-            series = hs.Series(coeffs, self.position, index_set=self.index_set)
+            series = hs.Series(coeffs, self.position,
+                               factor=self.factor, index_set=self.index_set)
             result.append(series)
         return eig_vals, result
 
