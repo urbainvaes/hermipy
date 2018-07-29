@@ -319,9 +319,6 @@ class Quad:
         Args:
             coeffs: a numpy array of coefficients.
 
-            norm: whether or not to normalize the coefficients (using the
-                  little L² norm).
-
             index_set: the index set corresponding to the series.
 
         Returns:
@@ -330,6 +327,46 @@ class Quad:
         """
         return hm.Series(coeffs, self.position,
                          factor=self.factor, index_set=index_set)
+
+    def plot_hf(self, multi_index, ax=None, bounds=True, **kwargs):
+
+        assert len(multi_index) == self.position.dim
+        dim = len(multi_index)
+
+        show_plt = ax is None
+        if show_plt:
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(1)
+
+        deg_max, index_set = sum(multi_index), "triangle"
+        hf = np.zeros(core.iterator_size(dim, deg_max, index_set=index_set))
+        hf[core.iterator_index(multi_index, index_set="triangle")] = 1
+        hf = self.series(hf, index_set=index_set)
+        plot = self.plot(hf, ax=ax, bounds=False, **kwargs)
+
+        # For hermite functions
+        if bounds:
+            adim_width = [np.sqrt(2) * np.sqrt(2*d + 1) for d in multi_index]
+
+            pos, bounds = self.position, []
+            for i in range(dim):
+                width = adim_width[i] * np.sqrt(pos.cov[i][i])
+                bounds.append([pos.mean[i] - width, pos.mean[i] + width])
+
+            if dim >= 1:
+                ax.axvline(x=bounds[0][0])
+                ax.axvline(x=bounds[0][1])
+
+            if dim == 2:
+                ax.axhline(y=bounds[1][0])
+                ax.axhline(y=bounds[1][1])
+
+        if show_plt:
+            if self.position.dim == 2:
+                plt.colorbar(plot, ax=ax)
+            plt.show()
+        else:
+            return plot
 
     def plot(self, arg, factor=None, ax=None, bounds=False, **kwargs):
         assert self.position.is_diag

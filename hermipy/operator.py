@@ -105,7 +105,8 @@ class Operator():
         assert factor.dirs == self.dirs
         variables = [func.Function.x_sub[d] for d in self.dirs]
         unknown = self.f(*variables)
-        sym = (self.sym.subs(unknown, unknown*factor).doit()/factor).expand()
+        sym = self.sym.subs(unknown, (unknown*factor).sym)
+        sym = (sym.doit()/factor.sym).expand()
         return Operator(sym, dirs=self.dirs)
 
     def split(self):
