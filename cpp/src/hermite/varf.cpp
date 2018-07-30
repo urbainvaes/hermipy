@@ -37,6 +37,7 @@
 #include "hermite/io.hpp"
 #endif
 
+#define THRESHOLD 1e-12
 #define MIN(i,j) (i < j ? i : j)
 #define MAX(i,j) (i < j ? j : i)
 
@@ -117,11 +118,18 @@ T varf(
     // Polynomial of highest degree = 2*degree
     Iterator m(dim, 2*degree);
 
+    double norm = 0;
+    for (u_int i = 0; i < Hf.size(); i++)
+        norm += abs(Hf[i]) * abs(Hf[i]);
+
+    norm = sqrt(norm);
+    norm = MAX(norm, 1);
+
     #ifdef DEBUG
     u_int i, max_degree = 0;
     for (m.reset(), i = 0; i < Hf.size(); i++, m.increment())
     {
-        if (abs(Hf[i]) < 1e-12)
+        if (abs(Hf[i]) < THRESHOLD * norm)
         {
             continue;
         }
@@ -148,7 +156,7 @@ T varf(
     T result = matrix::construct<T>(n_polys, n_polys);
     for (u_int i = 0; i < Hf.size(); i++, m.increment())
     {
-        if (abs(Hf[i]) < 1e-12)
+        if (abs(Hf[i]) < THRESHOLD * norm)
         {
             continue;
         }
