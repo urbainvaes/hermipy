@@ -98,11 +98,6 @@ if args.cache:
 elif 'cache' not in config.misc:
     config.misc['cache'] = False
 
-if args.verbose:
-    config.misc['verbose'] = args.verbose
-elif 'verbose' not in config.misc:
-    config.misc['verbose'] = False
-
 
 def vprint(*args, **kwargs):
     if config.misc['verbose']:
@@ -296,14 +291,15 @@ quad_num, quad_visu = compute_quads()
 # }}}
 # SPECTRAL METHOD FOR STATIONARY EQUATION {{{
 vprint("Splitting operator in m-linear and m-independent parts")
+index_set = config.num['index_set']
 m_operator = forward.diff(params['m'].symbol)
 r_operator = (forward - params['m'].symbol*m_operator).cancel()
 vprint("Discretizing operators")
-m_mat = quad_num.discretize_op(m_operator, degree)
-r_mat = quad_num.discretize_op(r_operator, degree)
-r_mat.plot()
+m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
+r_mat = quad_num.discretize_op(r_operator, degree, index_set=index_set)
+# r_mat.plot()
 if params['m'].value.free_symbols == set():
-    fd = [quad_num.discretize_op(flux, degree) for flux in fluxes]
+    fd = [quad_num.discretize_op(flux, degree, index_set=index_set) for flux in fluxes]
 
 vprint("Solving eigenvalue problem")
 eig_vals, eig_vecs = r_mat.eigs(k=4, which='LR')
@@ -317,7 +313,8 @@ def plot():
 
     fig, ax = plt.subplots(1, 1)
     ground_series = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])
-    cont = quad_visu.plot(ground_series, ax=ax, vmin=0, extend='min', bounds=True)
+    cont = quad_visu.plot(ground_series, ax=ax, vmin=0,
+                          extend='min', bounds=True)
     for c in cont.collections:
         c.set_edgecolor("face")
     plt.colorbar(cont, ax=ax)
@@ -339,20 +336,19 @@ def plot():
         for e_val, series, ax in zip(eig_vals, eig_vecs, axes):
             series = series * np.sign(series.coeffs[0])
             kwargs = {} if abs(e_val) > 1e-5 else {'vmin': 0, 'extend': 'min'}
-            cont = quad_visu.plot(series, factor=factor,
-                                  ax=ax, bounds=False, **kwargs)
+            cont = quad_visu.plot(series, ax=ax, bounds=False, **kwargs)
             ax.set_title("Eigenvalue: " + str(e_val))
             plt.colorbar(cont, ax=ax)
         plt.show()
 
     def plot_hermite_functions():
+        quad_num.plot_hf([0, 0])
         quad_num.plot_hf([degree, 0])
         quad_num.plot_hf([0, degree])
         quad_num.plot_hf([degree // 2, degree // 2])
 
     def plot_ground_state():
         ground_state = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])
-        factors = {'x': factor_x, 'y': factor_y}
 
         # Plot the projections
         degrees = np.arange(degree + 1)
@@ -373,7 +369,7 @@ def plot():
 
     def plot_comparison_with_asym():
         fig, ax = plt.subplots(1, 1)
-        as_sol = sym.exp(- params['β'].value * params['Vp'].eval())/factor_x
+        as_sol = sym.exp(- params['β'].value * params['Vp'].eval())
         as_series = quad_num.project(0).transform(as_sol, degree)
         quad_visu.project(0).plot(as_series, ax=ax)
         plt.show()
@@ -518,23 +514,22 @@ def time_dependent():
     fig, ax = plt.subplots(1, 1)
 
     u = (quad_num.position.weight()**2).subs(x, x - 1)
-    t = quad_num.transform(u/factor, degree=degree)
+    t = quad_num.transform(u, degree=degree)
     dt, Ns = 5e-2, int(1e4)
     x_eval = quad_num.discretize('x')
-    f_eval = quad_num.discretize(factor)
     eye = quad_num.varf('1', degree=degree)
     for i in range(Ns):
 
+
         # Evaluate solution
-        r_eval = quad_num.eval(t)*f_eval
+        r_eval = quad_num.eval(t)
 
         # Normalization
         integral = quad_num.integrate(r_eval, flat=True)
         t, r_eval = t * (1/integral), r_eval * (1/integral)
-        # quad_num.plot(r_eval, factor=1)
 
         ax.clear()
-        quad_visu.plot(t, factor=factor, ax=ax, vmin=0, extend='min')
+        quad_visu.plot(t, ax=ax, vmin=0, extend='min')
         plt.draw()
         plt.pause(.01)
 
