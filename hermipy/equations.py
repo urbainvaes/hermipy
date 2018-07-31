@@ -16,7 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import hermipy.quad as quad
+import hermipy.series as series
 import sympy as sym
+import numpy as np
+import numpy.linalg as la
 sym.init_printing()
 
 
@@ -122,19 +126,24 @@ class McKean_Vlasov:
         # Real parameters
         β, γ, ε, θ, m = (params[x] for x in ['β', 'γ', 'ε', 'θ', 'm'])
 
-        # For legacy
-        if 'Vy' not in params:
-            params['Vy'] = y*y/2
-
-        if params['Vy'].atoms(sym.function.AppliedUndef) != set():
-            params['Vy'] = y*y/2
-
         # Functional parameter
-        Vp = params['Vp']
-        Vy = params['Vy']
+        Vp, Vy = params['Vp'], params['Vy']
+
+        # Effective diffusion
+        degree, n_points = 20, 100
+        fy = sym.Function('f')(y)
+        gen = Vy.diff(y)*fy.diff(y) - fy.diff(y, y)
+        qy = quad.Quad.gauss_hermite(n_points, dirs=[1])
+        L0 = qy.discretize_op(gen, degree, sparse=False, index_set="triangle")
+        rhs = qy.transform('y', degree)
+        solution = la.solve(L0.matrix[1:, 1:], rhs.coeffs[1:])
+        coeff_noise = sym.Rational(solution[0]).limit_denominator(1e8)
+        coeff_noise = sym.sqrt(2/β/coeff_noise)
+        print("Effective noise: " + str(float(coeff_noise)))
+        # coeff_noise = sym.sqrt(1/β)
 
         # Fokker planck operator
-        flux_x = - (d(Vp, x)*f + θ*(x-m)*f - (1-γ)*sym.sqrt(1/β)*y*f/ε
+        flux_x = - (d(Vp, x)*f + θ*(x-m)*f - (1-γ)*coeff_noise*y*f/ε
                     + γ**2/β * d(f, x))
         flux_y = - (1/ε**2) * (f*Vy.diff(y) + d(f, y))
         return [flux_x, flux_y]
@@ -250,3 +259,5 @@ class McKean_Vlasov_harmonic_noise:
 
         # Fokker planck operator
         return - fx.diff(x) - fy.diff(y) - fz.diff(z)
+
+# vim: foldmethod=indent
