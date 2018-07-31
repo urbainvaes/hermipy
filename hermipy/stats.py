@@ -59,13 +59,18 @@ def log_stats(force=False):
         @wraps(function)
         def wrapper(*args, **kwargs):
             global indent, threshold
+
+            indent_str = ''.join([" "]*indent) + str(indent) + " "
+            key = function.__name__ + '-' + function.__module__
+            if rc.settings['trails'] or force:
+                print(indent_str + "Entering " + key)
+
             indent += 1
             time_start = time.time()
             result = function(*args, **kwargs)
             time_end = time.time()
             indent -= 1
 
-            key = function.__name__ + '-' + function.__module__
             if key not in stats:
                 stats[key] = {'Calls': 0, 'Time': 0}
             stats[key]['Calls'] += 1
@@ -73,7 +78,7 @@ def log_stats(force=False):
             if rc.settings['trails'] or force:
                 delta_time = time_end - time_start
                 if delta_time > threshold:
-                    print(str(indent) + " Function " + key
+                    print(indent_str + "Function " + key
                           + ": " + str(delta_time))
             return result
         return wrapper

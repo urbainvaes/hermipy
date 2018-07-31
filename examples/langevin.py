@@ -44,5 +44,5 @@ solution = la.solve(op.matrix[1:, 1:], rhs.coeffs[1:])
 solution = np.array([0, *solution])
 sol_series = series.Series(solution, rhs.position, significant=10)
 
-symbolic = sol_series.to_function().as_string(format='xyz')
+symbolic = sol_series.to_function().as_xyz()
 print(symbolic)

@@ -28,6 +28,7 @@ import scipy.sparse as ss
 import numpy as np
 import numpy.linalg as la
 import scipy.sparse.linalg as las
+import matplotlib
 
 
 very_small = 1e-10
@@ -122,7 +123,7 @@ class Varf:
         assert type(series) is hs.Series
         coeffs = self.matrix.dot(series.coeffs)
         return hs.Series(coeffs, self.position,
-                         index_set=self.index_set)
+                         factor=self.factor, index_set=self.index_set)
 
     def project(self, directions):
         if type(directions) is int:
@@ -161,7 +162,8 @@ class Varf:
         solve = cache.cache(quiet=True)(las.spsolve if self.is_sparse
                                         else la.solve)
         solution = solve(self.matrix, series.coeffs)
-        return hs.Series(solution, position=self.position)
+        return hs.Series(solution, position=self.position,
+                         factor=self.factor, index_set=self.index_set)
 
     @stats.log_stats()
     def eigs(self, **kwargs):
@@ -191,9 +193,10 @@ class Varf:
                 for j in range(self.matrix.shape[1]):
                     ij = self.matrix[i][j]
                     if abs(ij) > 1e-9:
-                        rows.append(i), cols.append(j), data.append(ij)
+                        rows.append(i), cols.append(j), data.append(abs(ij))
 
-        pl = ax.scatter(rows, cols, c=data, cmap='ocean_r')
+        pl = ax.scatter(rows, cols, c=data, cmap='ocean_r',
+                        norm=matplotlib.colors.LogNorm())
         ax.set_xlim([0, self.matrix.shape[0]])
         ax.set_ylim([0, self.matrix.shape[1]])
 
