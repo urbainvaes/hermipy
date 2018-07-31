@@ -169,9 +169,10 @@ class Quad:
         return function
 
     @tensorize_at(1)
-    def integrate(self, f_grid, flat=False):
-        if not isinstance(f_grid, np.ndarray):
-            f_grid = self.discretize(f_grid)
+    def integrate(self, function, flat=False):
+
+        if not isinstance(function, np.ndarray):
+            function = self.discretize(function)
 
         if flat:
             w_grid = self.discretize(self.position.weight())
@@ -179,9 +180,9 @@ class Quad:
             # Potentially not robust!
             # Zero the nans
             w_grid = 1e-300*(w_grid == 0) + w_grid
-            f_grid = f_grid / w_grid
+            function = function / w_grid
 
-        return core.integrate(f_grid, self.nodes, self.weights)
+        return core.integrate(function, self.nodes, self.weights)
 
     # Norm 1 or 2, in weighted or not
     def norm(self, function, n=2, flat=False):
@@ -290,7 +291,6 @@ class Quad:
             varf_part = self.varfd(coeff, degree, d_vector, sparse=sparse,
                                    index_set=index_set)
             varf_operator = varf_operator + varf_part
-
         return varf_operator
 
     # Only works with ints
@@ -388,15 +388,15 @@ class Quad:
 
         elif type(arg) is hm.Series:
 
-            if factor is None:
-                factor = self.factor
+            series = arg
 
-            if not isinstance(factor, np.ndarray):
+            if factor is None:
+                solution = self.eval(series)
+
+            elif not isinstance(factor, np.ndarray):
                 factor = hm.Function(factor, dirs=self.position.dirs)
                 factor = self.discretize(factor)
-
-            series = arg
-            solution = self.eval(series)*factor
+                solution = self.eval(series)*factor
 
             if bounds:
 
@@ -507,3 +507,5 @@ class Quad:
         #                         color=magnitude, density=0.6, cmap='autumn')
 
         return plt.show() if show_plt else streams
+
+# vim: foldmethod=marker
