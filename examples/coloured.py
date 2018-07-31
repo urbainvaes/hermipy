@@ -217,8 +217,8 @@ def factors(symbolic, λ):
         Vy, Vqy = params['Vy'].eval(), params['Vqy'].eval()
     factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
     factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
-    # factor_x = sym.exp(-Vq/2)
-    # factor_y = sym.exp(-Vy)
+    factor_x = sym.exp(-Vq/2)
+    factor_y = sym.exp(-Vqy/2)
     factor = factor_x * factor_y
     return factor_x, factor_y, factor
 
@@ -302,7 +302,7 @@ if params['m'].value.free_symbols == set():
     fd = [quad_num.discretize_op(flux, degree, index_set=index_set) for flux in fluxes]
 
 vprint("Solving eigenvalue problem")
-eig_vals, eig_vecs = r_mat.eigs(k=4, which='LR')
+# eig_vals, eig_vecs = (m_mat + r_mat).eigs(k=4, which='LR')
 
 # Make plots {{{
 
@@ -374,17 +374,17 @@ def plot():
         quad_visu.project(0).plot(as_series, ax=ax)
         plt.show()
 
-    def plot_discretization_error():
-        fig, ax = plt.subplots(1, 2)
-        quad_visu_x = quad_visu.project(0)
-        as_sol = sym.exp(- params['β'].value * params['Vp'].eval())
-        as_series = quad_num.project(0).transform(as_sol/factor_x, degree)
-        norm_as = la.norm(as_series.coeffs, 2)
-        as_series.coeffs = as_series.coeffs / norm_as
-        quad_visu_x.plot(as_series, degree, factor_x, ax[0])
-        sol_x = quad_visu_x.discretize(as_sol)
-        ax[0].plot(quad_visu_x.discretize('x'), sol_x/norm_as)
-        plt.show()
+    # def plot_discretization_error():
+    #     fig, ax = plt.subplots(1, 2)
+    #     quad_visu_x = quad_visu.project(0)
+    #     as_sol = sym.exp(- params['β'].value * params['Vp'].eval())
+    #     as_series = quad_num.project(0).transform(as_sol/factor_x, degree)
+    #     norm_as = la.norm(as_series.coeffs, 2)
+    #     as_series.coeffs = as_series.coeffs / norm_as
+    #     quad_visu_x.plot(as_series, degree, factor_x, ax[0])
+    #     sol_x = quad_visu_x.discretize(as_sol)
+    #     ax[0].plot(quad_visu_x.discretize('x'), sol_x/norm_as)
+    #     plt.show()
 
     plot_eigenfunctions()
     plot_hermite_functions()
@@ -462,8 +462,8 @@ def convergence():
         eig_vals, eig_vecs = sub_varf.eigs(v0=v0, k=1, which='LR')
         v0 = eig_vecs[0].coeffs.copy(order='C')
         ground_state_eval = get_ground_state(eig_vecs[0])
-        # error_consistency = 
-        # error_discretization = 
+        # error_consistency =
+        # error_discretization =
         error = quad_num.norm(ground_state_eval - solution_eval, n=1, flat=True)
         error_a = quad_num.norm(ground_state_eval - asym_num, n=1, flat=True)
         degrees.append(d)
@@ -510,7 +510,7 @@ if args.convergence:
 
 
 def time_dependent():
-    # plt.ion()
+    plt.ion()
     fig, ax = plt.subplots(1, 1)
 
     u = (quad_num.position.weight()**2).subs(x, x - 1)
@@ -528,6 +528,7 @@ def time_dependent():
         integral = quad_num.integrate(r_eval, flat=True)
         t, r_eval = t * (1/integral), r_eval * (1/integral)
 
+        # if i % 10 == 0:
         ax.clear()
         quad_visu.plot(t, ax=ax, vmin=0, extend='min')
         plt.draw()

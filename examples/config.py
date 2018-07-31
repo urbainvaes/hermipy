@@ -29,13 +29,14 @@ x, y, f = equation.x, equation.y, equation.f
 r = sym.Rational
 
 # Configuration of numerical method
-num['degree'] = 70  # degree of approximation
+num['degree'] = 100  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
 num['μx'] = r(1, 5)
 num['σx'] = r(1, 10)
 num['μy'] = r(0)
 num['σy'] = r(1)
 num['λ'] = r(1, 2)
+num['index_set'] = 'triangle'
 
 # Scalar parameters of the equation
 eq['β'] = r(5)
