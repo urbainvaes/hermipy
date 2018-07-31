@@ -30,19 +30,20 @@ x, y, f = equation.x, equation.y, equation.f
 r = sym.Rational
 
 # Configuration of numerical method
-num['degree'] = 50  # degree of approximation
+num['degree'] = 40  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
 num['μx'] = r(0)
-num['μy'] = r(0)
-num['σx'] = r(1, 15)
-num['σy'] = r(1, 15)
+num['μy'] = r(0, 5)
+num['σx'] = r(1, 25)
+num['σy'] = r(1, 25)
 num['λ'] = r(1, 2)
+num['index_set'] = 'triangle'
 
 # Scalar parameters of the equation
-eq['β'] = r(1)
-eq['ε'] = r(1/2)
+eq['β'] = r(8)
+eq['ε'] = r(1, 2**6)
 eq['γ'] = r(0)
-eq['θ'] = r(.5)
+eq['θ'] = r(0)
 
 # Functional parameters of the equation
 eq['Vp'] = x**4/4 - x**2/2
@@ -50,10 +51,10 @@ eq['Vp'] = x**4/4 - x**2/2
 # eq['Vp'] = x**4
 
 # Mean-zero
-# Z, m = 6.301119049538182, 0.8852269357209047
-# eq['Vy'] = (y-m)**4/4 - (y-m)**2/2 + (y-m)
+Z, m = 6.301119049538182, 0.8852269357209047
+eq['Vy'] = (y-m)**4/4 - (y-m)**2/2 + (y-m)
 # eq['Vy'] = y**4/4 - y**2/2
-eq['Vy'] = y**2/2
+# eq['Vy'] = y**2/2
 
 # rx, ry, d = sym.exp(-eq['Vp']), sym.exp(-eq['Vy']), num['degree']
 # qy = hermipy.Quad.gauss_hermite(200, cov=[[.05]], dirs=[1])
@@ -65,8 +66,8 @@ eq['Vy'] = y**2/2
 # Miscellaneous parameters
 misc['cache'] = True
 misc['parallel'] = False
-misc['tensorize'] = False
-misc['trails'] = True
+misc['tensorize'] = True
+misc['trails'] = False
 misc['verbose'] = False
-misc['symbolic'] = 2  # Values 0, 1, 2
+misc['symbolic'] = 0  # Values 0, 1, 2
 misc['plots'] = False
