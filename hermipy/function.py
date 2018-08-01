@@ -57,7 +57,7 @@ class Function():
             if str(s) in self.conv:
                 expr = expr.subs(s, self.conv[str(s)])
 
-        self.sym = expr
+        self.sym = expr.expand()
         variables = expr.free_symbols.intersection(self.x_sub)
         if dirs is not None:
             self.dirs = dirs
@@ -87,7 +87,7 @@ class Function():
         sym = self.sym * other.sym
         return Function(sym, dirs=self.dirs)
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         if type(other) is not Function:
             other = Function(other, dirs=self.dirs)
         assert self.dirs == other.dirs

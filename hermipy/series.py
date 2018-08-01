@@ -49,14 +49,15 @@ class Series:
                               factor=s1.factor, index_set=s1.index_set)
 
             # Inner product only makes sense in weighted space
+            # Product in appropriate weighted space
             common = set(s1.position.dirs).intersection(s2.position.dirs)
-            func1 = func.Function(1, dirs=list(common))
-            assert s1.factor.project(list(common)) == func1
-            assert s2.factor.project(list(common)) == func1
+            f1 = s1.factor.project(list(common))
+            f2 = s2.factor.project(list(common))
+            assert f1 == f2
 
             assert s1.degree == s2.degree
             assert s1.index_set == s2.index_set
-            f1, f2 = s1.factor.sym, s2.factor.sym
+            f1, f2 = s1.factor.sym/f1.sym, s2.factor.sym/f2.sym
             d1, d2 = s1.position.dirs, s2.position.dirs
             c1, c2 = s1.coeffs, s2.coeffs
             result = core.inner(c1, c2, d1, d2, index_set=s1.index_set)

@@ -30,21 +30,23 @@ x, y, f = equation.x, equation.y, equation.f
 r = sym.Rational
 
 # Configuration of numerical method
-num['degree'] = 40  # degree of approximation
+num['degree'] = 50  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
 num['μx'] = r(0, 5)
-num['μy'] = r(0, 5)
-num['σx'] = r(1, 20)
-num['σy'] = r(1, 20)
+num['μy'] = r(1, 2)
+num['σx'] = r(1, 15)
+num['σy'] = r(1, 15)
 num['λ'] = r(1, 2)
 num['index_set'] = 'cube'
 
 # Scalar parameters of the equation
-eq['β'] = r(1, 2**2)
-eq['ε'] = r(1, 2**8)
+# eq['β'] = r(2**5, 2**2)
+# eq['ε'] = r(1, 2**4)
+eq['β'] = r(2**5, 2**2)
+eq['ε'] = r(2**2, 2**4)
 eq['γ'] = r(0)
-eq['θ'] = r(1)
-eq['m'] = r(0)
+eq['θ'] = r(0)
+# eq['m'] = r(0)
 
 # Functional parameters of the equation
 eq['Vp'] = x**4/4 - x**2/2
@@ -54,14 +56,26 @@ eq['Vp'] = x**4/4 - x**2/2
 
 # Mean-zero
 Z, m = 6.301119049538182, 0.8852269357209047
-# m = m + .05
+# m = m - .005
 eq['Vy'] = (y-m)**4/4 - (y-m)**2/2 + (y-m)
 # eq['Vy'] = y**4/4 - y**2/2
 # eq['Vy'] = y**2/2
 
+# Vy = y**4/4 - y**2/2 + y
 # rx, ry, d = sym.exp(-eq['Vp']), sym.exp(-eq['Vy']), num['degree']
-# qy = hermipy.Quad.gauss_hermite(200, cov=[[.05]], dirs=[1])
-# assert abs(qy.integrate(y*sym.exp(-eq['Vy']), flat=True)) < 1e-10
+# ny, μy, σy = num['n_points_num'], [num['μy']], [[num['σy']]]
+# qy = hermipy.Quad.gauss_hermite(ny, mean=μy, cov=σy, dirs=[1])
+# qy.factor.sym = sym.sqrt(qy.weight)
+
+# fy = sym.Function('f')(y)
+# index_set, degree = num['index_set'], num['degree']
+# gen = Vy.diff(y)*fy.diff(y) - fy.diff(y, y)
+# L0 = qy.discretize_op(gen, degree, index_set=index_set)
+# s = L0.eigs(k=1, which='LR')[0]
+
+# Z = qy.integrate(sym.exp(Vy), flat=True)
+# m1 = qy.integrate(y*sym.exp(Vy), flat=True)
+# assert abs(qy.integrate(y*sym.exp(Vy), flat=True)) < 1e-10
 
 # qx.norm(qx.transform(rx, degree=d).eval(), qx.discretize(yx))
 # qy.plot(sym.exp(-eq['Vy']))
