@@ -510,16 +510,22 @@ if args.convergence:
 
 
 def time_dependent():
+
+    qx = quad_num.project(0)
+    Vp = params['θ'].value*(x - params['m'].value)**2/2
+    Vp = Vp + params['Vp'].eval()
+    density = sym.exp(-params['β'].value*Vp)
+
     plt.ion()
-    fig, ax = plt.subplots(1, 1)
+    fig, (ax, ax2) = plt.subplots(1, 2)
 
-    u = (quad_num.position.weight()**2).subs(x, x - 1)
-    t = quad_num.transform(u, degree=degree)
-    dt, Ns = 5e-2, int(1e4)
+    translation = -.3
+    u = (quad_num.position.weight()**2).subs(x, x - translation)
+    t = quad_num.transform(u, degree=degree, index_set=index_set)
+    dt, Ns = 5e-3, int(1e4)
     x_eval = quad_num.discretize('x')
-    eye = quad_num.varf('1', degree=degree)
+    eye = quad_num.varf('1', degree=degree, index_set=index_set)
     for i in range(Ns):
-
 
         # Evaluate solution
         r_eval = quad_num.eval(t)
@@ -528,17 +534,38 @@ def time_dependent():
         integral = quad_num.integrate(r_eval, flat=True)
         t, r_eval = t * (1/integral), r_eval * (1/integral)
 
-        # if i % 10 == 0:
-        ax.clear()
-        quad_visu.plot(t, ax=ax, vmin=0, extend='min')
-        plt.draw()
-        plt.pause(.01)
-
         mi = quad_num.integrate(r_eval*x_eval, flat=True)
-        print("m: " + str(mi))
+        print("i: " + str(i) + ", m: " + str(mi))
+
+        if i % 10 == 0:
+            ax.clear()
+            # quad_visu.plot(t, ax=ax, vmin=0, extend='min', bounds=True)
+            quad_visu.plot(t, ax=ax, bounds=True)
+            plt.draw()
+            plt.pause(.01)
+
+            # mi = 1
+            ax2.clear()
+            qx.plot(density.subs(params['m'].symbol, mi), ax=ax2)
+
+        # import ipdb; ipdb.set_trace()
+
         operator = r_mat + mi*m_mat
-        total_op = eye - dt*operator
-        t = total_op.solve(t)
+
+        i_switch = 10
+
+        # Backward Euler
+        if i < i_switch:
+            # dt = 1e-3
+            total_op = eye - dt*operator
+            t = total_op.solve(t)
+
+        # Crank Nicholson
+        if i >= i_switch:
+            # dt = 1e-3
+            crank_left = eye - dt*operator*(1/2)
+            crank_right = eye + dt*operator*(1/2)
+            t = crank_left.solve(crank_right(t))
 
 
 if args.time:

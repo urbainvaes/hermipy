@@ -156,12 +156,14 @@ class Varf:
         return Varf(matrix, self.position,
                     factor=self.factor, index_set="cross")
 
-    def solve(self, series):
+    def solve(self, series, **kwargs):
         assert self.position == series.position
         assert self.index_set == series.index_set
         solve = cache.cache(quiet=True)(las.spsolve if self.is_sparse
                                         else la.solve)
-        solution = solve(self.matrix, series.coeffs)
+        # from scipy.sparse.linalg import gmres as gmres
+        # solve = cache.cache(quiet=True)(gmres)
+        solution = solve(self.matrix, series.coeffs, **kwargs)
         return hs.Series(solution, position=self.position,
                          factor=self.factor, index_set=self.index_set)
 
