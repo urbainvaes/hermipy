@@ -400,7 +400,8 @@ class Quad:
 
             if bounds:
 
-                bounds, adim_width = [], np.sqrt(2)*np.sqrt(2*series.degree+1)
+                degree_bounds = series.degree // 2
+                bounds, adim_width = [], np.sqrt(2)*np.sqrt(2*degree_bounds+1)
                 for i in range(series.position.dim):
                     mean = series.position.mean[i]
                     cov = series.position.cov[i][i]
