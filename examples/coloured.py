@@ -35,6 +35,7 @@ import hermipy.core as core
 
 import matplotlib
 import matplotlib.pyplot as plt
+import yaml
 
 from sympy.printing import pprint
 
@@ -516,16 +517,36 @@ def time_dependent():
     Vp = Vp + params['Vp'].eval()
     density = sym.exp(-params['β'].value*Vp)
 
-    plt.ion()
-    fig, (ax, ax2) = plt.subplots(1, 2)
+    # Calculate projections
+    qx, qy = quad_num.project(0), quad_num.project(1)
+    wx = qx.factor * qx.factor / qx.position.weight()
+    wy = qy.factor * qy.factor / qy.position.weight()
 
-    translation = -.3
+    # Integral and moment operators
+    Ix = qx.transform(wx, degree=degree, index_set=index_set)
+    Iy = qy.transform(wy, degree=degree, index_set=index_set)
+    mx1 = qx.transform(wx * x, degree=degree, index_set=index_set)
+    my1 = qy.transform(wy * y, degree=degree, index_set=index_set)
+
+    plt.ion()
+    fig, ax = plt.subplots(2, 2)
+
+    translation = .0
     u = (quad_num.position.weight()**2).subs(x, x - translation)
     t = quad_num.transform(u, degree=degree, index_set=index_set)
-    dt, Ns = 5e-3, int(1e4)
+    dt, Ns = 5e-2, int(1e4)
     x_eval = quad_num.discretize('x')
     eye = quad_num.varf('1', degree=degree, index_set=index_set)
+
+    data = {'dt': dt}
+    with open('parameters.yaml', 'w') as f:
+        yaml.dump(data, f)
+
     for i in range(Ns):
+
+        with open('parameters.yaml', 'r') as f:
+            data = yaml.load(f)
+            dt = data['dt']
 
         # Evaluate solution
         r_eval = quad_num.eval(t)
@@ -537,32 +558,42 @@ def time_dependent():
         mi = quad_num.integrate(r_eval*x_eval, flat=True)
         print("i: " + str(i) + ", m: " + str(mi))
 
-        if i % 10 == 0:
-            ax.clear()
-            # quad_visu.plot(t, ax=ax, vmin=0, extend='min', bounds=True)
-            quad_visu.plot(t, ax=ax, bounds=True)
-            plt.draw()
-            plt.pause(.01)
+        if i % 1 == 0:
+
+            ax[0][0].clear()
+            # quad_visu.plot(t, ax=ax[0][0], vmin=0, extend='min', bounds=True)
+            quad_visu.plot(t, ax=ax[0][0], bounds=True)
 
             # mi = 1
-            ax2.clear()
-            qx.plot(density.subs(params['m'].symbol, mi), ax=ax2)
+            ax[0][1].clear()
+            qx.plot(density.subs(params['m'].symbol, mi), ax=ax[0][1])
+
+            # Projections
+            proj_x, proj_y = Iy*t, Ix*t
+            mx, my = mx1*proj_x, my1*proj_y
+            ax[1][0].clear()
+            ax[1][1].clear()
+            quad_visu.project(0).plot(proj_x, ax=ax[1][0])
+            quad_visu.project(1).plot(proj_y, ax=ax[1][1])
+            ax[1][0].set_title("First moment: " + str(mx.coeffs[0]))
+            ax[1][1].set_title("First moment: " + str(my.coeffs[0]))
+
+            plt.draw()
+            plt.pause(.01)
 
         # import ipdb; ipdb.set_trace()
 
         operator = r_mat + mi*m_mat
 
-        i_switch = 10
+        i_switch = 100
 
         # Backward Euler
         if i < i_switch:
-            # dt = 1e-3
             total_op = eye - dt*operator
             t = total_op.solve(t)
 
-        # Crank Nicholson
+        # Crank-Nicholson
         if i >= i_switch:
-            # dt = 1e-3
             crank_left = eye - dt*operator*(1/2)
             crank_right = eye + dt*operator*(1/2)
             t = crank_left.solve(crank_right(t))
