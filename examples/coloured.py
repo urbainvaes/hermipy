@@ -35,7 +35,7 @@ import hermipy.core as core
 
 import matplotlib
 import matplotlib.pyplot as plt
-import yaml
+import json
 
 from sympy.printing import pprint
 
@@ -239,6 +239,7 @@ params.update({**vy(), **vq()})
 
 # Forward operator
 forward, fluxes = forward_op(config.misc['symbolic'])
+
 
 # Mapped backward operator
 factor_x, factor_y, factor = factors(config.misc['symbolic'], config.num['λ'])
@@ -531,21 +532,29 @@ def time_dependent():
     plt.ion()
     fig, ax = plt.subplots(2, 2)
 
-    translation = .0
-    u = (quad_num.position.weight()**2).subs(x, x - translation)
+    # import ipdb; ipdb.set_trace()
+
+    translation = -.1
+    # u = (quad_num.position.weight()**2).subs(x, x - translation)
+    # u = quad_num.factor.as_xyz().subs(x, x - translation)
+    u = density.subs(params['m'].symbol, 0) * sym.exp(-params['Vy'].eval())
+    u = u.subs(x, x - translation)
     t = quad_num.transform(u, degree=degree, index_set=index_set)
+    # import ipdb; ipdb.set_trace()
     dt, Ns = 5e-2, int(1e4)
     x_eval = quad_num.discretize('x')
     eye = quad_num.varf('1', degree=degree, index_set=index_set)
 
-    data = {'dt': dt}
-    with open('parameters.yaml', 'w') as f:
-        yaml.dump(data, f)
+    data = {'dt': dt, 'scheme': 'backward'}
+    with open('parameters.json', 'w') as f:
+        json.dump(data, f)
+
+    # import ipdb; ipdb.set_trace()
 
     for i in range(Ns):
 
-        with open('parameters.yaml', 'r') as f:
-            data = yaml.load(f)
+        with open('parameters.json', 'r') as f:
+            data = json.load(f)
             dt = data['dt']
 
         # Evaluate solution
@@ -581,19 +590,15 @@ def time_dependent():
             plt.draw()
             plt.pause(.01)
 
-        # import ipdb; ipdb.set_trace()
-
         operator = r_mat + mi*m_mat
 
-        i_switch = 100
-
         # Backward Euler
-        if i < i_switch:
+        if data['scheme'] == 'backward':
             total_op = eye - dt*operator
             t = total_op.solve(t)
 
         # Crank-Nicholson
-        if i >= i_switch:
+        if data['scheme'] == 'crank':
             crank_left = eye - dt*operator*(1/2)
             crank_right = eye + dt*operator*(1/2)
             t = crank_left.solve(crank_right(t))
