@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 # IMPORT MODULES {{{
 import ipdb
 import argparse
@@ -216,8 +215,8 @@ def factors(symbolic, λ):
     elif symbolic == 0:
         Vp, Vq = params['Vp'].eval(), params['Vqx'].eval()
         Vy, Vqy = params['Vy'].eval(), params['Vqy'].eval()
-    factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
-    factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
+    # factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
+    # factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
     factor_x = sym.exp(-Vq/2)
     factor_y = sym.exp(-Vqy/2)
     factor = factor_x * factor_y
@@ -296,9 +295,9 @@ vprint("Splitting operator in m-linear and m-independent parts")
 index_set = config.num['index_set']
 m_operator = forward.diff(params['m'].symbol)
 r_operator = (forward - params['m'].symbol*m_operator).cancel()
-vprint("Discretizing operators")
-m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
-r_mat = quad_num.discretize_op(r_operator, degree, index_set=index_set)
+# vprint("Discretizing operators")
+# m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
+# r_mat = quad_num.discretize_op(r_operator, degree, index_set=index_set)
 # r_mat.plot()
 if params['m'].value.free_symbols == set():
     fd = [quad_num.discretize_op(flux, degree, index_set=index_set) for flux in fluxes]
@@ -394,8 +393,8 @@ def plot():
     plot_comparison_with_asym()
 
 
-if config.misc['plots']:
-    plot()
+# if config.misc['plots']:
+#     plot()
 # }}}
 # Test convergence {{{
 
@@ -513,10 +512,11 @@ if args.convergence:
 
 def time_dependent():
 
-    qx = quad_num.project(0)
-    Vp = params['θ'].value*(x - params['m'].value)**2/2
-    Vp = Vp + params['Vp'].eval()
-    density = sym.exp(-params['β'].value*Vp)
+    m_operator = forward.diff(params['m'].symbol)
+    r_operator = (forward - params['m'].symbol*m_operator).cancel()
+    m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
+
+    β = 10
 
     # Calculate projections
     qx, qy = quad_num.project(0), quad_num.project(1)
@@ -529,79 +529,111 @@ def time_dependent():
     mx1 = qx.transform(wx * x, degree=degree, index_set=index_set)
     my1 = qy.transform(wy * y, degree=degree, index_set=index_set)
 
-    plt.ion()
-    fig, ax = plt.subplots(2, 2)
-
-    # import ipdb; ipdb.set_trace()
-
-    translation = -.1
+    # Initial condition
+    # translation = -.5
     # u = (quad_num.position.weight()**2).subs(x, x - translation)
     # u = quad_num.factor.as_xyz().subs(x, x - translation)
-    u = density.subs(params['m'].symbol, 0) * sym.exp(-params['Vy'].eval())
-    u = u.subs(x, x - translation)
+
+    m = -1
+    for i in range(20):
+        Vp = params['θ'].value*(x - m)**2/2
+        Vp = Vp + params['Vp'].eval()
+        u = sym.exp(-β*Vp)
+        integral = qx.integrate(u, flat=True)
+        u, x_eval = u / integral, qx.discretize('x')
+        m = qx.integrate(u*hermipy.x, flat=True)
+    m = round(m, 2)
+
+    u = u * sym.exp(-params['Vy'].eval())
     t = quad_num.transform(u, degree=degree, index_set=index_set)
-    # import ipdb; ipdb.set_trace()
-    dt, Ns = 5e-2, int(1e4)
+
+    if config.misc['plots']:
+        plt.ion()
+        fig, ax = plt.subplots(2, 2)
+
     x_eval = quad_num.discretize('x')
     eye = quad_num.varf('1', degree=degree, index_set=index_set)
+    dt, Ns, scheme = 1e-3, int(1e4), "backward"
 
-    data = {'dt': dt, 'scheme': 'backward'}
-    with open('parameters.json', 'w') as f:
-        json.dump(data, f)
+    while β > .1:
 
-    # import ipdb; ipdb.set_trace()
+        r_operator_this = r_operator.subs(params['β'].symbol, β)
+        r_mat = quad_num.discretize_op(r_operator_this, degree, index_set=index_set)
 
-    for i in range(Ns):
+        # data = {'dt': dt, 'scheme': 'backward'}
+        # with open('parameters.json', 'w') as f:
+        #     json.dump(data, f)
 
-        with open('parameters.json', 'r') as f:
-            data = json.load(f)
-            dt = data['dt']
+        difference = np.inf
+        for i in range(Ns):
 
-        # Evaluate solution
-        r_eval = quad_num.eval(t)
+            # with open('parameters.json', 'r') as f:
+            #     data = json.load(f)
+            #     dt = data['dt']
 
-        # Normalization
-        integral = quad_num.integrate(r_eval, flat=True)
-        t, r_eval = t * (1/integral), r_eval * (1/integral)
+            # Evaluate solution
+            r_eval = quad_num.eval(t)
 
-        mi = quad_num.integrate(r_eval*x_eval, flat=True)
-        print("i: " + str(i) + ", m: " + str(mi))
+            # Normalization
+            integral = quad_num.integrate(r_eval, flat=True)
+            t, r_eval = t * (1/integral), r_eval * (1/integral)
 
-        if i % 1 == 0:
+            mi = quad_num.integrate(r_eval*x_eval, flat=True)
+            # print("i: " + str(i) + ", m: " + str(mi))
 
-            ax[0][0].clear()
-            # quad_visu.plot(t, ax=ax[0][0], vmin=0, extend='min', bounds=True)
-            quad_visu.plot(t, ax=ax[0][0], bounds=True)
+            # proj_x = Iy*t
+            # ma = (mx1*Iy*t).coeffs[0]
+            print("β: " + str(β) + ", i: " + str(i), "dt: " + str(dt) + ", m: " + str(mi), ", Δ: " + str(difference))
 
-            # mi = 1
-            ax[0][1].clear()
-            qx.plot(density.subs(params['m'].symbol, mi), ax=ax[0][1])
+            if i % 10 == 0 and config.misc['plots']:
 
-            # Projections
-            proj_x, proj_y = Iy*t, Ix*t
-            mx, my = mx1*proj_x, my1*proj_y
-            ax[1][0].clear()
-            ax[1][1].clear()
-            quad_visu.project(0).plot(proj_x, ax=ax[1][0])
-            quad_visu.project(1).plot(proj_y, ax=ax[1][1])
-            ax[1][0].set_title("First moment: " + str(mx.coeffs[0]))
-            ax[1][1].set_title("First moment: " + str(my.coeffs[0]))
+                ax[0][0].clear()
+                # quad_visu.plot(t, ax=ax[0][0], vmin=0, extend='min', bounds=True)
+                quad_visu.plot(t, ax=ax[0][0], bounds=True)
 
-            plt.draw()
-            plt.pause(.01)
+                # mi = 1
+                # ax[0][1].clear()
+                # qx.plot(density.subs(params['m'].symbol, mi), ax=ax[0][1])
 
-        operator = r_mat + mi*m_mat
+                # Projections
+                proj_x, proj_y = Iy*t, Ix*t
+                mx, my = mx1*proj_x, my1*proj_y
+                ax[1][0].clear()
+                ax[1][1].clear()
+                quad_visu.project(0).plot(proj_x, ax=ax[1][0])
+                quad_visu.project(1).plot(proj_y, ax=ax[1][1])
+                ax[1][0].set_title("First moment: " + str(mx.coeffs[0]))
+                ax[1][1].set_title("First moment: " + str(my.coeffs[0]))
 
-        # Backward Euler
-        if data['scheme'] == 'backward':
-            total_op = eye - dt*operator
-            t = total_op.solve(t)
+                plt.draw()
+                plt.pause(.01)
 
-        # Crank-Nicholson
-        if data['scheme'] == 'crank':
-            crank_left = eye - dt*operator*(1/2)
-            crank_right = eye + dt*operator*(1/2)
-            t = crank_left.solve(crank_right(t))
+            operator = r_mat + mi*m_mat
+
+            # Backward Euler
+            if scheme == 'backward':
+                total_op = eye - dt*operator
+                new_t = total_op.solve(t)
+
+            # Crank-Nicholson
+            if scheme == 'crank':
+                crank_left = eye - dt*operator*(1/2)
+                crank_right = eye + dt*operator*(1/2)
+                new_t = crank_left.solve(crank_right(t))
+
+            difference = quad_num.norm(t - new_t, n=1)
+            t = new_t
+
+            # Time adaptation
+            threshold = .01
+            if difference < threshold and dt < 1:
+                dt = dt * 2.
+            elif difference > 2*threshold:
+                dt = dt / 2.
+
+            if difference/dt < 1e-3:
+                β = β - 1
+                break
 
 
 if args.time:
