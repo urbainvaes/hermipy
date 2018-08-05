@@ -186,6 +186,10 @@ class Quad:
 
     # Norm 1 or 2, in weighted or not
     def norm(self, function, n=2, flat=False):
+
+        if type(function) is hm.Series:
+            function = self.eval(function)
+
         if n is 2:
             return np.sqrt(self.integrate(function**2, flat=flat))
         elif n is 1:

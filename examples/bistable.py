@@ -30,22 +30,23 @@ x, y, f = equation.x, equation.y, equation.f
 r = sym.Rational
 
 # Configuration of numerical method
-num['degree'] = 80  # degree of approximation
+num['degree'] = 60  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
 num['μx'] = r(0, 5)
 num['μy'] = r(0, 2)
 num['σx'] = r(1, 20)
 num['σy'] = r(1, 20)
 num['λ'] = r(1, 2)
-num['index_set'] = 'cube'
+num['index_set'] = 'triangle'
 
 # Scalar parameters of the equation
 # eq['β'] = r(2**5, 2**2)
 # eq['ε'] = r(1, 2**4)
-eq['β'] = r(2**5, 2**2)
+# eq['β'] = r(2**6, 2**2)
+# eq['β'] = r(2)
 eq['ε'] = r(1, 10)
 eq['γ'] = r(0)
-eq['θ'] = r(.2)
+eq['θ'] = r(1)
 # eq['m'] = r(0)
 
 # Functional parameters of the equation

@@ -139,7 +139,7 @@ class McKean_Vlasov:
         solution = la.solve(L0.matrix[1:, 1:], rhs.coeffs[1:])
         coeff_noise = sym.Rational(solution[0]).limit_denominator(1e8)
         coeff_noise = sym.sqrt(2/β/coeff_noise)
-        print("Effective noise: " + str(float(coeff_noise)))
+        # print("Effective noise: " + str(float(coeff_noise)))
         # coeff_noise = sym.sqrt(1/β)
 
         # Fokker planck operator
