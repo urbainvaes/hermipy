@@ -30,21 +30,21 @@ x, y, f = equation.x, equation.y, equation.f
 r = sym.Rational
 
 # Configuration of numerical method
-num['degree'] = 60  # degree of approximation
+num['degree'] = 50  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
 num['μx'] = r(0, 5)
-num['μy'] = r(0, 2)
-num['σx'] = r(1, 20)
-num['σy'] = r(1, 20)
+num['μy'] = r(1, 4)
+num['σx'] = r(1, 10)
+num['σy'] = r(1, 10)
 num['λ'] = r(1, 2)
-num['index_set'] = 'triangle'
+num['index_set'] = 'cube'
 
 # Scalar parameters of the equation
 # eq['β'] = r(2**5, 2**2)
 # eq['ε'] = r(1, 2**4)
 # eq['β'] = r(2**6, 2**2)
 # eq['β'] = r(2)
-eq['ε'] = r(1, 10)
+eq['ε'] = r(1, 16)
 eq['γ'] = r(0)
 eq['θ'] = r(1)
 # eq['m'] = r(0)
@@ -58,23 +58,29 @@ eq['Vp'] = x**4/4 - x**2/2
 
 # Mean-zero
 Z, m = 6.301119049538182, 0.8852269357209047
-m = m - 1e-3
+# m = m + 1e-3
 m = r(m).limit_denominator(1e16)
+m = m + 3e-6
 eq['Vy'] = (y-m)**4/4 - (y-m)**2/2 + (y-m)
 # eq['Vy'] = y**4/4 - y**2/2
 # eq['Vy'] = y**2/2
 
-# Vy = y**4/4 - y**2/2 + y
-# rx, ry, d = sym.exp(-eq['Vp']), sym.exp(-eq['Vy']), num['degree']
-# ny, μy, σy = num['n_points_num'], [num['μy']], [[num['σy']]]
-# qy = hermipy.Quad.gauss_hermite(ny, mean=μy, cov=σy, dirs=[1])
-# qy.factor.sym = sym.sqrt(qy.weight)
+Vy = y**4/4 - y**2/2 + y
+ny, μy, σy = num['n_points_num'], [num['μy']], [[num['σy']]]
+qy = hermipy.Quad.gauss_hermite(ny, mean=μy, cov=σy, dirs=[1])
+factor = sym.sqrt(qy.position.weight() * sym.exp(-Vy))
+qy.factor = hermipy.Function(factor, dirs=[1])
+qy.plot(factor)
 
-# fy = sym.Function('f')(y)
-# index_set, degree = num['index_set'], num['degree']
-# gen = Vy.diff(y)*fy.diff(y) - fy.diff(y, y)
-# L0 = qy.discretize_op(gen, degree, index_set=index_set)
-# s = L0.eigs(k=1, which='LR')[0]
+fy = sym.Function('f')(y)
+index_set, degree = num['index_set'], num['degree']
+gen = (Vy.diff(y)*fy).diff(y) + fy.diff(y, y)
+L0 = qy.discretize_op(gen, degree=degree, index_set=index_set)
+l, [e] = L0.eigs(k=1, which='LR')
+vy = qy.varf('y', degree=degree, index_set=index_set)
+qy.plot(e)
+
+import ipdb; ipdb.set_trace()
 
 # Z = qy.integrate(sym.exp(Vy), flat=True)
 # m1 = qy.integrate(y*sym.exp(Vy), flat=True)
