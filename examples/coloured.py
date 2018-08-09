@@ -239,7 +239,6 @@ params.update({**vy(), **vq()})
 # Forward operator
 forward, fluxes = forward_op(config.misc['symbolic'])
 
-
 # Mapped backward operator
 factor_x, factor_y, factor = factors(config.misc['symbolic'], config.num['λ'])
 backward = eq.map_operator(forward, f, factor)
@@ -299,7 +298,7 @@ r_operator = (forward - params['m'].symbol*m_operator).cancel()
 # m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
 # r_mat = quad_num.discretize_op(r_operator, degree, index_set=index_set)
 # r_mat.plot()
-if params['m'].value.free_symbols == set():
+if params['m'].value.free_symbols == set() and params['β'].value.free_symbols == set():
     fd = [quad_num.discretize_op(flux, degree, index_set=index_set) for flux in fluxes]
 
 vprint("Solving eigenvalue problem")
@@ -516,7 +515,7 @@ def time_dependent():
     r_operator = (forward - params['m'].symbol*m_operator).cancel()
     m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
 
-    β = 10
+    β = 1
 
     # Calculate projections
     qx, qy = quad_num.project(0), quad_num.project(1)
@@ -545,7 +544,8 @@ def time_dependent():
     m = round(m, 2)
 
     u = u * sym.exp(-params['Vy'].eval())
-    t = quad_num.transform(u, degree=degree, index_set=index_set)
+    integral = quad_num.integrate(u, flat=True)
+    t = quad_num.transform(u/integral, degree=degree, index_set=index_set)
 
     if config.misc['plots']:
         plt.ion()
@@ -566,24 +566,6 @@ def time_dependent():
 
         difference = np.inf
         for i in range(Ns):
-
-            # with open('parameters.json', 'r') as f:
-            #     data = json.load(f)
-            #     dt = data['dt']
-
-            # Evaluate solution
-            r_eval = quad_num.eval(t)
-
-            # Normalization
-            integral = quad_num.integrate(r_eval, flat=True)
-            t, r_eval = t * (1/integral), r_eval * (1/integral)
-
-            mi = quad_num.integrate(r_eval*x_eval, flat=True)
-            # print("i: " + str(i) + ", m: " + str(mi))
-
-            # proj_x = Iy*t
-            # ma = (mx1*Iy*t).coeffs[0]
-            print("β: " + str(β) + ", i: " + str(i), "dt: " + str(dt) + ", m: " + str(mi), ", Δ: " + str(difference))
 
             if i % 10 == 0 and config.misc['plots']:
 
@@ -608,7 +590,10 @@ def time_dependent():
                 plt.draw()
                 plt.pause(.01)
 
-            operator = r_mat + mi*m_mat
+            print("β: " + str(β) + ", i: " + str(i), "dt: " + str(dt) +
+                  ", m: " + str(m), ", Δ: " + str(difference))
+
+            operator = r_mat + m*m_mat
 
             # Backward Euler
             if scheme == 'backward':
@@ -621,17 +606,24 @@ def time_dependent():
                 crank_right = eye + dt*operator*(1/2)
                 new_t = crank_left.solve(crank_right(t))
 
-            difference = quad_num.norm(t - new_t, n=1)
-            t = new_t
+            # Normalization
+            r_eval = quad_num.eval(new_t)
+            integral = quad_num.integrate(r_eval, flat=True)
+            new_t, r_eval = new_t * (1/integral), r_eval * (1/integral)
+            new_m = quad_num.integrate(r_eval*x_eval, flat=True)
+
+            difference = quad_num.norm(t - new_t, n=1) / dt
+            difference = difference + abs(new_m - m)/dt
+            t, m = new_t, new_m
 
             # Time adaptation
             threshold = .01
-            if difference < threshold and dt < 1:
+            if difference*dt < threshold and dt < .5:
                 dt = dt * 2.
             elif difference > 2*threshold:
                 dt = dt / 2.
 
-            if difference/dt < 1e-3:
+            if difference/dt < 1e-4:
                 β = β - 1
                 break
 
