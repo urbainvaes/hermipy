@@ -95,6 +95,9 @@ class Series:
 
         self.factor = func.Function(factor, dirs=self.position.dirs)
 
+        if not self.coeffs.flags['C_CONTIGUOUS']:
+            self.coeffs = self.coeffs.copy(order='C')
+
     def __eq__(self, other):
         assert type(other) is Series
         return self.position == other.position \
@@ -107,16 +110,17 @@ class Series:
 
         elif type(other) is Series:
             assert self.position == other.position
-
-            if self.index_set == other.index_set:
-                new_coeffs = self.coeffs + other.coeffs
+            assert self.index_set == other.index_set
+            assert self.factor == other.factor
+            new_coeffs = self.coeffs + other.coeffs
 
             #  TODO: Add support for addition of different degrees / index sets
 
         else:
             raise TypeError("Invalid type!)")
 
-        return Series(new_coeffs, self.position)
+        return Series(new_coeffs, self.position,
+                      factor=self.factor, index_set=self.index_set)
 
     def __mul__(self, other):
 
