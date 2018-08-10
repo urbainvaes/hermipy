@@ -562,7 +562,7 @@ def time_dependent():
 
     x_eval = quad_num.discretize('x')
     eye = quad_num.varf('1', degree=degree, index_set=index_set)
-    dt, Ns, scheme = 1e-3, int(1e4), "backward"
+    dt, Ns, scheme = 2**-9, int(1e4), "backward"
 
     while β > .1:
 
@@ -622,18 +622,23 @@ def time_dependent():
             new_t, r_eval = new_t * (1/integral), r_eval * (1/integral)
             new_m = quad_num.integrate(r_eval*x_eval, flat=True)
 
-            difference = quad_num.norm(t - new_t, n=1) / dt
+            difference = quad_num.norm(t - new_t, n=1)/dt
             difference = difference + abs(new_m - m)/dt
             t, m = new_t, new_m
 
             # Time adaptation
             threshold = .01
-            if difference*dt < threshold and dt < .5:
+            if difference*dt < threshold and dt < 2:
                 dt = dt * 2.
             elif difference*dt > 2*threshold:
                 dt = dt / 2.
 
             if difference/dt < 1e-5:
+                fig, [ax1, ax2] = plt.subplots(1, 2)
+                quad_visu.plot(t, bounds=False, ax=ax1, title="$\\rho(x, \\eta)$")
+                title = "$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$"
+                qx.plot(Iy*t, bounds=False, ax=ax2, title=title)
+                plt.savefig('solution-beta=' + str(β) + '.eps', bbox_inches='tight')
                 β = β - 1
                 break
 

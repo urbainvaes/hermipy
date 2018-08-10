@@ -30,12 +30,12 @@ x, y, f = equation.x, equation.y, equation.f
 r = sym.Rational
 
 # Configuration of numerical method
-num['degree'] = 50  # degree of approximation
+num['degree'] = 60  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
 num['μx'] = r(0, 5)
 num['μy'] = r(0, 4)
-num['σx'] = r(1, 10)
-num['σy'] = r(1, 10)
+num['σx'] = r(1, 20)
+num['σy'] = r(1, 15)
 num['λ'] = r(1, 2)
 num['index_set'] = 'cube'
 
