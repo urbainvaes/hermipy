@@ -216,9 +216,10 @@ def factors(symbolic, λ):
         Vp, Vq = params['Vp'].eval(), params['Vqx'].eval()
         Vy, Vqy = params['Vy'].eval(), params['Vqy'].eval()
     # factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
-    # factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
     factor_x = sym.exp(-Vq/2)
-    factor_y = sym.exp(-Vqy/2)
+    factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
+    # factor_x = sym.exp(-Vq/2)
+    # factor_y = sym.exp(-Vqy/2)
     factor = factor_x * factor_y
     return factor_x, factor_y, factor
 
@@ -508,6 +509,12 @@ if args.convergence:
 # }}}
 # {{{ Time dependent solution
 
+# Correction to the drift
+if 'drift_correction' in config.num:
+    drift = config.num['drift_correction']
+    scaling = sym.sqrt(2/params['β'].value)/params['ε'].value
+    forward = forward - scaling * drift * f.diff(x)
+
 
 def time_dependent():
 
@@ -515,7 +522,7 @@ def time_dependent():
     r_operator = (forward - params['m'].symbol*m_operator).cancel()
     m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
 
-    β = 1
+    β = 10
 
     # Calculate projections
     qx, qy = quad_num.project(0), quad_num.project(1)
@@ -527,6 +534,8 @@ def time_dependent():
     Iy = qy.transform(wy, degree=degree, index_set=index_set)
     mx1 = qx.transform(wx * x, degree=degree, index_set=index_set)
     my1 = qy.transform(wy * y, degree=degree, index_set=index_set)
+    qx = quad_visu.project(0)
+    qy = quad_visu.project(1)
 
     # Initial condition
     # translation = -.5
@@ -579,6 +588,7 @@ def time_dependent():
 
                 # Projections
                 proj_x, proj_y = Iy*t, Ix*t
+                # import ipdb; ipdb.set_trace()
                 mx, my = mx1*proj_x, my1*proj_y
                 ax[1][0].clear()
                 ax[1][1].clear()
@@ -620,12 +630,21 @@ def time_dependent():
             threshold = .01
             if difference*dt < threshold and dt < .5:
                 dt = dt * 2.
-            elif difference > 2*threshold:
+            elif difference*dt > 2*threshold:
                 dt = dt / 2.
 
-            if difference/dt < 1e-4:
+            if difference/dt < 1e-5:
                 β = β - 1
                 break
+
+    # fig, ax = plt.subplots(1)
+    # quad_visu.plot(t, bounds=False, ax=ax, title="$\\rho(x, \\eta)$")
+    # plt.savefig('solution_bad.eps', bbox_inches='tight')
+
+    # fig, ax = plt.subplots(1)
+    # title = "$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$"
+    # qx.plot(Iy*t, bounds=False, ax=ax, title=title)
+    # plt.savefig('solution_bad_projection.eps', bbox_inches='tight')
 
 
 if args.time:
@@ -634,104 +653,104 @@ if args.time:
 # Study bifurcations {{{
 
 
-def bifurcation(factor_x, m_init):
+# def bifurcation(factor_x, m_init):
 
-    def compute_m(series):
-        quad_x = quad_num.project(0)
-        series_x = series.project(0)
-        x_d = quad_x.discretize('x')
-        factor_d = quad_x.discretize(factor_x)
-        solution_d = quad_x.eval(series_x) * factor_d
-        weight_d = quad_x.discretize(quad_x.position.weight())
-        moment0 = quad_x.integrate(solution_d/weight_d)
-        moment1 = quad_x.integrate(solution_d/weight_d*x_d)
-        return moment1 / moment0
+#     def compute_m(series):
+#         quad_x = quad_num.project(0)
+#         series_x = series.project(0)
+#         x_d = quad_x.discretize('x')
+#         factor_d = quad_x.discretize(factor_x)
+#         solution_d = quad_x.eval(series_x) * factor_d
+#         weight_d = quad_x.discretize(quad_x.position.weight())
+#         moment0 = quad_x.integrate(solution_d/weight_d)
+#         moment1 = quad_x.integrate(solution_d/weight_d*x_d)
+#         return moment1 / moment0
 
-    def compute_moment1(m_val):
-        if config.misc['verbose']:
-            print("Solving the eigenvalue problem for m = " + str(m_val) + ".")
-        mat_operator = r_mat + m_mat * m_val
-        eig_vals, eig_vecs = mat_operator.eigs(k=1, which='LR')
-        ground_state = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])
-        value = compute_m(ground_state)
-        if config.misc['verbose']:
-            print(value)
-        if config.misc['plots']:
-            fig, ax = plt.subplots(1, 1)
-            cont = quad_visu.plot(ground_state, factor, ax)
-            plt.colorbar(cont, ax=ax)
-            plt.show()
-        return value
+#     def compute_moment1(m_val):
+#         if config.misc['verbose']:
+#             print("Solving the eigenvalue problem for m = " + str(m_val) + ".")
+#         mat_operator = r_mat + m_mat * m_val
+#         eig_vals, eig_vecs = mat_operator.eigs(k=1, which='LR')
+#         ground_state = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])
+#         value = compute_m(ground_state)
+#         if config.misc['verbose']:
+#             print(value)
+#         if config.misc['plots']:
+#             fig, ax = plt.subplots(1, 1)
+#             cont = quad_visu.plot(ground_state, factor, ax)
+#             plt.colorbar(cont, ax=ax)
+#             plt.show()
+#         return value
 
-    # streams = quad_visu.streamlines(flux_proj[0], flux_proj[1],
-    #                                 factor_visu, ax)
+#     # streams = quad_visu.streamlines(flux_proj[0], flux_proj[1],
+#     #                                 factor_visu, ax)
 
-    # m_values = np.linspace(-2, 2, 41)
-    # m_values = [0]
-    m_converged = []
+#     # m_values = np.linspace(-2, 2, 41)
+#     # m_values = [0]
+#     m_converged = []
 
-    # if config.misc['parallel']:
-    #     with multiprocessing.Pool() as p:
-    #         images = p.map(compute_moment1, m_values)
-    # else:
-    #     for m_val in m_values:
-    #         images.append(compute_moment1(m_val))
-    for m_it in m_init:
-        error = 1
-        while abs(error) > 1e-4:
-            m_new = compute_moment1(m_it)
-            error = m_new - m_it
-            m_it = m_new
-        m_converged.append(m_it)
-    return m_converged
+#     # if config.misc['parallel']:
+#     #     with multiprocessing.Pool() as p:
+#     #         images = p.map(compute_moment1, m_values)
+#     # else:
+#     #     for m_val in m_values:
+#     #         images.append(compute_moment1(m_val))
+#     for m_it in m_init:
+#         error = 1
+#         while abs(error) > 1e-4:
+#             m_new = compute_moment1(m_it)
+#             error = m_new - m_it
+#             m_it = m_new
+#         m_converged.append(m_it)
+#     return m_converged
 
-    # fig, ax = plt.subplots(1, 1)
-    # ax.plot(m_values, m_values, label='m')
-    # ax.plot(m_values, images, label='R(m)')
-    # ax.legend()
-    # plt.show()
+#     # fig, ax = plt.subplots(1, 1)
+#     # ax.plot(m_values, m_values, label='m')
+#     # ax.plot(m_values, images, label='R(m)')
+#     # ax.legend()
+#     # plt.show()
 
-factor_sym = factor
-delta_arc_length = 0.1
-beta = 10
-# beta_range = np.arange(10, 1, delta_beta)
-betas, conv, conv1, conv2 = [], [], [], []
-m_init = [-2, 2]
+# factor_sym = factor
+# delta_arc_length = 0.1
+# beta = 10
+# # beta_range = np.arange(10, 1, delta_beta)
+# betas, conv, conv1, conv2 = [], [], [], []
+# m_init = [-2, 2]
 
-while beta > 1:
-    betas.append(beta)
-    print("\n--> β = " + str(beta))
-    backward_b = backward.subs(params['β'].symbol, beta).simplify()
+# while beta > 1:
+#     betas.append(beta)
+#     print("\n--> β = " + str(beta))
+#     backward_b = backward.subs(params['β'].symbol, beta).simplify()
 
-    # vprint("Splitting operator in m-linear and m-independent parts")
-    m_operator = backward_b.diff(params['m'].symbol)
-    r_operator = (backward_b - params['m'].symbol*m_operator).cancel()
+#     # vprint("Splitting operator in m-linear and m-independent parts")
+#     m_operator = backward_b.diff(params['m'].symbol)
+#     r_operator = (backward_b - params['m'].symbol*m_operator).cancel()
 
-    # vprint("Discretizing operators")
-    m_mat = quad_num.discretize_op(m_operator, degree)
-    r_mat = quad_num.discretize_op(r_operator, degree)
-    eig_vals, eig_vecs = r_mat.eigs(k=1, which='LR')
+#     # vprint("Discretizing operators")
+#     m_mat = quad_num.discretize_op(m_operator, degree)
+#     r_mat = quad_num.discretize_op(r_operator, degree)
+#     eig_vals, eig_vecs = r_mat.eigs(k=1, which='LR')
 
-    bif = hermipy.cache()(bifurcation)
-    conv.append(bifurcation(factor_x.subs(params['β'].symbol, beta), m_init))
-    if len(conv) > 1:
-        for i in range(len(m_init)):
-            length = np.sqrt((betas[-1] - betas[-2])**2 + (conv[-1][i] - conv[-2][i])**2)
-            delta_beta = (betas[-1] - betas[-2]) * delta_arc_length / length
-            slope = (conv[-1][i] - conv[-2][i]) / (betas[-1] - betas[-2])
-            beta = betas[-1] + delta_beta
-            m_init[i] = conv[-1][i] + slope * delta_beta
-    else:
-        m_init = conv[-1]
-        beta = beta - delta_arc_length
-    # print(conv)
-    # print(m_init)
-fig, ax = plt.subplots(1, 1)
-conv1 = [c[0] for c in conv]
-conv2 = [c[1] for c in conv]
-ax.plot(betas, conv1, 'k.')
-ax.plot(betas, conv2, 'k.')
-plt.show()
+#     bif = hermipy.cache()(bifurcation)
+#     conv.append(bifurcation(factor_x.subs(params['β'].symbol, beta), m_init))
+#     if len(conv) > 1:
+#         for i in range(len(m_init)):
+#             length = np.sqrt((betas[-1] - betas[-2])**2 + (conv[-1][i] - conv[-2][i])**2)
+#             delta_beta = (betas[-1] - betas[-2]) * delta_arc_length / length
+#             slope = (conv[-1][i] - conv[-2][i]) / (betas[-1] - betas[-2])
+#             beta = betas[-1] + delta_beta
+#             m_init[i] = conv[-1][i] + slope * delta_beta
+#     else:
+#         m_init = conv[-1]
+#         beta = beta - delta_arc_length
+#     # print(conv)
+#     # print(m_init)
+# fig, ax = plt.subplots(1, 1)
+# conv1 = [c[0] for c in conv]
+# conv2 = [c[1] for c in conv]
+# ax.plot(betas, conv1, 'k.')
+# ax.plot(betas, conv2, 'k.')
+# plt.show()
 # }}}
 # }}}
 
