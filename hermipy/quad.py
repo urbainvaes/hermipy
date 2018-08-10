@@ -372,7 +372,9 @@ class Quad:
         else:
             return plot
 
-    def plot(self, arg, factor=None, ax=None, bounds=False, **kwargs):
+    def plot(self, arg, factor=None, ax=None,
+             bounds=False, title=None, **kwargs):
+
         assert self.position.is_diag
 
         show_plt = ax is None
@@ -434,9 +436,14 @@ class Quad:
             plot = ax.plot(*r_nodes, solution, **kwargs)
         elif self.position.dim == 2:
             plot = ax.contourf(*r_nodes, solution, 100, **kwargs)
+            for c in plot.collections:
+                c.set_edgecolor("face")
 
         min, max = np.min(solution), np.max(solution)
-        ax.set_title("Min: {:.3f}, Max: {:.3f}".format(min, max))
+
+        if title is None:
+            title = "Min: {:.3f}, Max: {:.3f}".format(min, max)
+        ax.set_title(title)
 
         if show_plt:
             if self.position.dim == 2:
