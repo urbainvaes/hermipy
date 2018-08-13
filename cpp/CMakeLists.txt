@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 project(Hermite)
 set (PROJECT_VERSION_MAJOR 0)
 set (PROJECT_VERSION_MINOR 2)
-set (CMAKE_VERBOSE_MAKEFILE OFF)
+set (CMAKE_VERBOSE_MAKEFILE ON)
 set (CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_RELEASE} -DDEBUG")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -Wall -Wextra -Wpedantic") # Necessary to repeat
 set (CMAKE_CXX_LINKER_FLAGS  "${CMAKE_CXX_LINKER_FLAGS} -Wl,--no-undefined")
@@ -18,7 +18,10 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 find_package(PythonLibs 3 REQUIRED)
 include_directories(SYSTEM ${PYTHON_INCLUDE_DIRS})
 
-# Find Boost
+# Link Boost statically
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+set (BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/boost/lib)
+
 # set (BOOST_INCLUDEDIR ~/.guix-profile/include)
 # set (BOOST_LIBRARYDIR ~/.guix-profile/lib)
 find_package(Boost COMPONENTS python3 numpy3 REQUIRED)

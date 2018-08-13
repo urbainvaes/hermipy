@@ -30,12 +30,12 @@ x, y, f = equation.x, equation.y, equation.f
 r = sym.Rational
 
 # Configuration of numerical method
-num['degree'] = 60  # degree of approximation
+num['degree'] = 80  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
 num['μx'] = r(0, 5)
 num['μy'] = r(0, 4)
 num['σx'] = r(1, 20)
-num['σy'] = r(1, 15)
+num['σy'] = r(1, 20)
 num['λ'] = r(1, 2)
 num['index_set'] = 'cube'
 
@@ -44,7 +44,7 @@ num['index_set'] = 'cube'
 # eq['ε'] = r(1, 2**4)
 # eq['β'] = r(2**6, 2**2)
 # eq['β'] = r(2)
-eq['ε'] = r(1, 10)
+eq['ε'] = r(1, 20)
 eq['γ'] = r(0)
 eq['θ'] = r(1)
 # eq['m'] = r(0)
@@ -83,7 +83,9 @@ l, [e] = L0.eigs(k=1, which='LR')
 # qy.plot(e)
 vy = qy.varf('y', degree=degree, index_set=index_set)
 coeff_noise = 1/sym.sqrt(sym.Rational(37243868, 52597017))
-num['drift_correction'] = - (vy(e)*e).coeffs[0] * coeff_noise
+
+drift = - r((vy(e)*e).coeffs[0]).limit_denominator(1e16) * coeff_noise
+num['drift_correction'] = drift
 
 
 # import matplotlib.pyplot as plt
