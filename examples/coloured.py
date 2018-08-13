@@ -19,7 +19,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 # IMPORT MODULES {{{
-import ipdb
+import pdb
 import argparse
 import math
 import sympy as sym
@@ -634,7 +634,7 @@ def time_dependent():
 
                 # Projections
                 proj_x, proj_y = Iy*t, Ix*t
-                # import ipdb; ipdb.set_trace()
+                # import pdb; pdb.set_trace()
                 mx, my = mx1*proj_x, my1*proj_y
                 ax[1][0].clear()
                 ax[1][1].clear()
@@ -827,4 +827,4 @@ if args.time:
 # }}}
 # }}}
 
-ipdb.set_trace()
+pdb.set_trace()
