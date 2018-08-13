@@ -21,6 +21,7 @@
 # IMPORT MODULES {{{
 import ipdb
 import argparse
+import math
 import sympy as sym
 import importlib
 import numpy as np
@@ -33,6 +34,7 @@ import hermipy.equations as eq
 import hermipy.core as core
 
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import json
 
@@ -101,9 +103,6 @@ if args.cache:
     config.misc['cache'] = args.cache
 elif 'cache' not in config.misc:
     config.misc['cache'] = False
-
-if not config.misc['plots']:
-    matplotlib.use('Agg')
 
 
 def vprint(*args, **kwargs):
@@ -523,13 +522,48 @@ if 'drift_correction' in config.num:
     forward = forward - scaling * drift * f.diff(x)
 
 
+def white_noise_bifurc():
+    βmin, βmax = 1, 15
+    qx = quad_num.project(0)
+    def branch(m0):
+        β, m, βs, ms = βmax, m0, [], []
+        Vx, θ = params['Vp'].eval(), params['θ'].value
+        while β > βmin:
+            Δ, threshold = 1, 1e-4
+            while abs(Δ) > threshold:
+                Vt = θ*(x - m)**2/2 + Vx
+                u = sym.exp(-β*Vt)
+                integral = qx.integrate(u, flat=True)
+                new_m = qx.integrate(u/integral*hermipy.x, flat=True)
+                Δ, m = new_m - m, new_m
+                print(β, m)
+            βs.append(β)
+            ms.append(m)
+            gmm, dsdβ, sstep = 20, 1, .1
+            if len(ms) > 1:
+                Δm, Δβ = ms[-1] - ms[-2], βs[-1] - βs[-2]
+                dsdβ = np.sqrt(gmm*Δm*Δm + Δβ*Δβ) / abs(Δβ)
+            β = β - sstep/dsdβ
+        return ms, βs
+    m_up, b_up = branch(1)
+    m_down, b_down = branch(-1)
+    np.save("ms-up-white-noise", np.asarray(m_up))
+    np.save("betas-up-white-noise.npy", np.asarray(b_up))
+    np.save("ms-down-white-noise", np.asarray(m_down))
+    np.save("betas-down-white-noise.npy", np.asarray(b_down))
+
+
+white_noise_bifurc()
+
+
 def time_dependent():
 
     m_operator = forward.diff(params['m'].symbol)
     r_operator = (forward - params['m'].symbol*m_operator).cancel()
     m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
 
-    β = 10
+    βmin, βmax = 1, 15
+    β = βmax
 
     # Calculate projections
     qx, qy = quad_num.project(0), quad_num.project(1)
@@ -549,13 +583,13 @@ def time_dependent():
     # u = (quad_num.position.weight()**2).subs(x, x - translation)
     # u = quad_num.factor.as_xyz().subs(x, x - translation)
 
-    m = -1
+    m = 1
     for i in range(20):
         Vp = params['θ'].value*(x - m)**2/2
         Vp = Vp + params['Vp'].eval()
         u = sym.exp(-β*Vp)
         integral = qx.integrate(u, flat=True)
-        u, x_eval = u / integral, qx.discretize('x')
+        u = u / integral
         m = qx.integrate(u*hermipy.x, flat=True)
     m = round(m, 2)
 
@@ -570,8 +604,9 @@ def time_dependent():
     x_eval = quad_num.discretize('x')
     eye = quad_num.varf('1', degree=degree, index_set=index_set)
     dt, Ns, scheme = 2**-9, int(1e4), "backward"
+    betas, ms = [], []
 
-    while β > .1:
+    while β > βmin:
 
         r_operator_this = r_operator.subs(params['β'].symbol, β)
         r_mat = quad_num.discretize_op(r_operator_this, degree, index_set=index_set)
@@ -579,6 +614,11 @@ def time_dependent():
         # data = {'dt': dt, 'scheme': 'backward'}
         # with open('parameters.json', 'w') as f:
         #     json.dump(data, f)
+
+        Vp = params['θ'].value*(x - m)**2/2
+        Vp = Vp + params['Vp'].eval()
+        density = sym.exp(-β*Vp)
+        density = density / qx.integrate(density, flat=True)
 
         difference = np.inf
         for i in range(Ns):
@@ -589,9 +629,8 @@ def time_dependent():
                 # quad_visu.plot(t, ax=ax[0][0], vmin=0, extend='min', bounds=True)
                 quad_visu.plot(t, ax=ax[0][0], bounds=True)
 
-                # mi = 1
-                # ax[0][1].clear()
-                # qx.plot(density.subs(params['m'].symbol, mi), ax=ax[0][1])
+                ax[0][1].clear()
+                qx.plot(density.subs(params['m'].symbol, m), ax=ax[0][1])
 
                 # Projections
                 proj_x, proj_y = Iy*t, Ix*t
@@ -634,27 +673,42 @@ def time_dependent():
             t, m = new_t, new_m
 
             # Time adaptation
-            threshold = .01
-            if difference*dt < threshold and dt < 2:
+            threshold, dt_max = .01, 64
+            if difference*dt < threshold and dt < dt_max:
                 dt = dt * 2.
             elif difference*dt > 2*threshold:
                 dt = dt / 2.
+                t, m = new_t, new_m
+            else:
+                t, m = new_t, new_m
 
-            if difference/dt < 1e-6:
-                # plt.ioff()
-                fig, ax = plt.subplots(1, 1)
-                quad_visu.plot(t, bounds=False, ax=ax, title="$\\rho(x, \\eta)$")
-                plt.savefig('solution-beta=' + str(β) + '.eps',
-                            bbox_inches='tight')
-                # plt.ion()
-                fig, ax = plt.subplots(1, 1)
-                title = "$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$"
-                qx.plot(Iy*t, bounds=False, ax=ax, title=title)
-                plt.savefig('solution-proj-beta=' + str(β) + '.eps',
-                            bbox_inches='tight')
-                plt.close()
-                β = β - 1
+            if difference < 1e-6:
+                betas.append(β)
+                ms.append(m)
+
+                gmm, dsdβ, sstep = 20, 1, .1
+                if len(ms) > 1:
+                    Δm, Δβ = ms[-1] - ms[-2], betas[-1] - betas[-2]
+                    dsdβ = np.sqrt(gmm*Δm*Δm + Δβ*Δβ) / abs(Δβ)
+                newβ = β - sstep/dsdβ
+
+                if math.floor(β) != math.floor(newβ):
+                    β = math.floor(β)
+                    fig, ax = plt.subplots(1, 1)
+                    quad_visu.plot(t, bounds=False, ax=ax, title="$\\rho(x, \\eta)$")
+                    plt.savefig('solution-beta=' + str(β) + '.eps',
+                                bbox_inches='tight')
+                    fig, ax = plt.subplots(1, 1)
+                    title = "$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$"
+                    qx.plot(Iy*t, bounds=False, ax=ax, title=title)
+                    plt.savefig('solution-proj-beta=' + str(β) + '.eps',
+                                bbox_inches='tight')
+                    plt.close()
+                β = newβ
                 break
+
+    np.save("betas-other-epsilon-up.npy", np.asarray(betas))
+    np.save("ms-other-epsilon-up.npy", np.asarray(ms))
 
     # fig, ax = plt.subplots(1)
     # quad_visu.plot(t, bounds=False, ax=ax, title="$\\rho(x, \\eta)$")
