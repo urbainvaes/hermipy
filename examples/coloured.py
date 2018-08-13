@@ -74,12 +74,16 @@ else:
 
 if args.beta:
     config.eq['β'] = sym.Rational(args.beta)
+
 if args.theta:
     config.eq['θ'] = sym.Rational(args.theta)
+
 if args.epsilon:
     config.eq['ε'] = sym.Rational(args.epsilon)
+
 if args.gamma:
     config.eq['γ'] = sym.Rational(args.gamma)
+
 if args.mass:
     config.eq['m'] = sym.Rational(args.mass)
 
@@ -97,6 +101,9 @@ if args.cache:
     config.misc['cache'] = args.cache
 elif 'cache' not in config.misc:
     config.misc['cache'] = False
+
+if not config.misc['plots']:
+    matplotlib.use('Agg')
 
 
 def vprint(*args, **kwargs):
@@ -633,12 +640,19 @@ def time_dependent():
             elif difference*dt > 2*threshold:
                 dt = dt / 2.
 
-            if difference/dt < 1e-5:
-                fig, [ax1, ax2] = plt.subplots(1, 2)
-                quad_visu.plot(t, bounds=False, ax=ax1, title="$\\rho(x, \\eta)$")
+            if difference/dt < 1e-6:
+                # plt.ioff()
+                fig, ax = plt.subplots(1, 1)
+                quad_visu.plot(t, bounds=False, ax=ax, title="$\\rho(x, \\eta)$")
+                plt.savefig('solution-beta=' + str(β) + '.eps',
+                            bbox_inches='tight')
+                # plt.ion()
+                fig, ax = plt.subplots(1, 1)
                 title = "$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$"
-                qx.plot(Iy*t, bounds=False, ax=ax2, title=title)
-                plt.savefig('solution-beta=' + str(β) + '.eps', bbox_inches='tight')
+                qx.plot(Iy*t, bounds=False, ax=ax, title=title)
+                plt.savefig('solution-proj-beta=' + str(β) + '.eps',
+                            bbox_inches='tight')
+                plt.close()
                 β = β - 1
                 break
 
