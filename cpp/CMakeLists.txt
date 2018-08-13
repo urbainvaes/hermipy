@@ -1,9 +1,9 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.5)
 
 project(Hermite)
 set (PROJECT_VERSION_MAJOR 0)
 set (PROJECT_VERSION_MINOR 2)
-set (CMAKE_VERBOSE_MAKEFILE ON)
+set (CMAKE_VERBOSE_MAKEFILE OFF)
 set (CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_RELEASE} -DDEBUG")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -Wall -Wextra -Wpedantic") # Necessary to repeat
 set (CMAKE_CXX_LINKER_FLAGS  "${CMAKE_CXX_LINKER_FLAGS} -Wl,--no-undefined")
@@ -11,7 +11,7 @@ set (CMAKE_CXX_STANDARD 14)
 
 # set (CMAKE_BUILD_TYPE release)
 # Use command-line argument instead:
-#   cmake -D CMAKE_BUILD_TYPE=debug .. 
+#   cmake -D CMAKE_BUILD_TYPE=debug ..
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 # Find Python
@@ -20,12 +20,12 @@ include_directories(SYSTEM ${PYTHON_INCLUDE_DIRS})
 
 # Link Boost statically
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-set (BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/boost/lib)
-
-# set (BOOST_INCLUDEDIR ~/.guix-profile/include)
-# set (BOOST_LIBRARYDIR ~/.guix-profile/lib)
-find_package(Boost COMPONENTS python3 numpy3 REQUIRED)
+if (NOT EXISTS /usr/include/boost/python/numpy)
+    set (BOOST_INCLUDEDIR /usr/local/lib/R/site-library/BH/include)
+    set (BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/boost/lib)
+endif (EXISTS /usr/include/boost/python/numpy)
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
+find_package(Boost COMPONENTS python3 numpy3 REQUIRED)
 
 # Find sources and add include directory of sources
 file(GLOB_RECURSE Sources "src/hermite/*.cpp")
@@ -57,16 +57,3 @@ foreach(scratchfile ${scratchfiles})
     add_executable(${name}.exe ${scratchfile})
     target_link_libraries (${name}.exe hermite_cpp)
 endforeach(scratchfile ${scratchfiles})
-
-# Generate documentation
-find_package(Doxygen)
-set(DOXYGEN_CALL_GRAPH YES)
-set(DOXYGEN_EXTRACT_ALL YES)
-set(DOXYGEN_GENERATE_HTML YES)
-set(DOXYGEN_GENERATE_LATEX YES)
-set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/doc)
-set(DOXYGEN_PROJECT_NAME ${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}-${PROJECT_VERSION_MINOR})
-set(DOXYGEN_RECURSIVE YES)
-set(DOXYGEN_USE_MATHJAX YES)
-set(DOXYGEN_USE_MDFILE_AS_MAINPAGE README.md)
-doxygen_add_docs("doc")
