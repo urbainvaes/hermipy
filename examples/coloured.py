@@ -33,6 +33,7 @@ import hermipy.equations as eq
 import hermipy.core as core
 
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import json
 
@@ -522,7 +523,8 @@ def time_dependent():
     r_operator = (forward - params['m'].symbol*m_operator).cancel()
     m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
 
-    β = 10
+    βmin, βmax = 1, 15
+    β = βmax
 
     # Calculate projections
     qx, qy = quad_num.project(0), quad_num.project(1)
@@ -542,7 +544,7 @@ def time_dependent():
     # u = (quad_num.position.weight()**2).subs(x, x - translation)
     # u = quad_num.factor.as_xyz().subs(x, x - translation)
 
-    m = -1
+    m = 1
     for i in range(20):
         Vp = params['θ'].value*(x - m)**2/2
         Vp = Vp + params['Vp'].eval()
@@ -563,8 +565,9 @@ def time_dependent():
     x_eval = quad_num.discretize('x')
     eye = quad_num.varf('1', degree=degree, index_set=index_set)
     dt, Ns, scheme = 2**-9, int(1e4), "backward"
+    betas, ms = [], []
 
-    while β > .1:
+    while β > βmin:
 
         r_operator_this = r_operator.subs(params['β'].symbol, β)
         r_mat = quad_num.discretize_op(r_operator_this, degree, index_set=index_set)
@@ -572,6 +575,11 @@ def time_dependent():
         # data = {'dt': dt, 'scheme': 'backward'}
         # with open('parameters.json', 'w') as f:
         #     json.dump(data, f)
+
+        Vp = params['θ'].value*(x - m)**2/2
+        Vp = Vp + params['Vp'].eval()
+        density = sym.exp(-β*Vp)
+        density = density / qx.integrate(density, flat=True)
 
         difference = np.inf
         for i in range(Ns):
@@ -582,9 +590,8 @@ def time_dependent():
                 # quad_visu.plot(t, ax=ax[0][0], vmin=0, extend='min', bounds=True)
                 quad_visu.plot(t, ax=ax[0][0], bounds=True)
 
-                # mi = 1
-                # ax[0][1].clear()
-                # qx.plot(density.subs(params['m'].symbol, mi), ax=ax[0][1])
+                ax[0][1].clear()
+                qx.plot(density.subs(params['m'].symbol, m), ax=ax[0][1])
 
                 # Projections
                 proj_x, proj_y = Iy*t, Ix*t
@@ -627,21 +634,37 @@ def time_dependent():
             t, m = new_t, new_m
 
             # Time adaptation
-            threshold = .01
-            if difference*dt < threshold and dt < 2:
+            threshold, dt_max = .01, 64
+            if difference*dt < threshold and dt < dt_max:
                 dt = dt * 2.
             elif difference*dt > 2*threshold:
                 dt = dt / 2.
+                t, m = new_t, new_m
+            else:
+                t, m = new_t, new_m
 
-            if difference/dt < 1e-5:
-                fig, [ax1, ax2] = plt.subplots(1, 2)
-                quad_visu.plot(t, bounds=False, ax=ax1, title="$\\rho(x, \\eta)$")
-                title = "$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$"
-                qx.plot(Iy*t, bounds=False, ax=ax2, title=title)
-                plt.savefig('solution-beta=' + str(β) + '.eps', bbox_inches='tight')
-                β = β - 1
+            if difference < 1e-6:
+                betas.append(β)
+                ms.append(m)
+
+                gmm, dsdβ, sstep = 20, 1, .1
+                if len(ms) > 1:
+                    Δm, Δβ = ms[-1] - ms[-2], betas[-1] - betas[-2]
+                    dsdβ = np.sqrt(gmm*Δm*Δm + Δβ*Δβ) / abs(Δβ)
+
+                # plt.ioff()
+                # fig, [ax1, ax2] = plt.subplots(1, 2)
+                # quad_visu.plot(t, bounds=False, ax=ax1, title="$\\rho(x, \\eta)$")
+                # title = "$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$"
+                # qx.plot(Iy*t, bounds=False, ax=ax2, title=title)
+                # qx.plot(density.subs(params['m'].symbol, m), ax=ax2)
+                # plt.savefig('solution-beta=' + str(β) + '.eps', bbox_inches='tight')
+                # plt.close()
+                β = β - sstep/dsdβ
                 break
 
+    np.save("betas-other-epsilon-up.npy", np.asarray(betas))
+    np.save("ms-other-epsilon-up.npy", np.asarray(ms))
     # fig, ax = plt.subplots(1)
     # quad_visu.plot(t, bounds=False, ax=ax, title="$\\rho(x, \\eta)$")
     # plt.savefig('solution_bad.eps', bbox_inches='tight')
