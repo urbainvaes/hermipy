@@ -130,16 +130,22 @@ class McKean_Vlasov:
         Vp, Vy = params['Vp'], params['Vy']
 
         # Effective diffusion
-        degree, n_points = 20, 100
+        degree, n_points, q = 100, 201, quad.Quad.gauss_hermite
         fy = sym.Function('f')(y)
         gen = Vy.diff(y)*fy.diff(y) - fy.diff(y, y)
-        qy = quad.Quad.gauss_hermite(n_points, dirs=[1])
+        σy, density = .2, sym.exp(-Vy)
+        gaussian = sym.exp(-y*y/(2*σy))/sym.sqrt(2*sym.pi*σy)
+        integral = q(n_points, dirs=[1]).integrate(density, flat=True)
+        factor = sym.sqrt(gaussian / (density / integral))
+        qy = q(n_points, dirs=[1], factor=factor, cov=[[σy]])
         L0 = qy.discretize_op(gen, degree, sparse=False, index_set="triangle")
         rhs = qy.transform('y', degree)
         solution = la.solve(L0.matrix[1:, 1:], rhs.coeffs[1:])
-        coeff_noise = sym.Rational(solution[0]).limit_denominator(1e8)
-        print("Effective noise: " + str(coeff_noise))
-        coeff_noise = sym.sqrt(2/β/coeff_noise)
+        coeff_noise = np.dot(solution, rhs.coeffs[1:])
+        coeff_noise = sym.Rational(coeff_noise).limit_denominator(1e8)
+        print("Effective noise: " + str(float(coeff_noise)))
+        coeff_noise = sym.sqrt(1/β/coeff_noise)
+        import ipdb; ipdb.set_trace()
         # coeff_noise = sym.sqrt(1/β)
 
         # Fokker planck operator
