@@ -28,23 +28,27 @@ betas_up = np.load("white-noise-betas-up.npy")
 betas_down = np.load("white-noise-betas-down.npy")
 ms_up = np.load("white-noise-ms-up.npy")
 ms_down = np.load("white-noise-ms-down.npy")
-ax.plot(betas_up, ms_up, 'k-', linewidth=.5)
-# ax.plot(betas_down, ms_down, 'k-', linewidth=.5)
+ax.plot(betas_up, ms_up, '0.6', linewidth=.5)
+ax.plot(betas_down, ms_down, '0.6', linewidth=.5,
+        label="White noise")
 
 betas_up = np.load("epsilon=1o20-betas-up.npy")
 betas_down = np.load("epsilon=1o20-betas-down.npy")
 ms_up = np.load("epsilon=1o20-ms-up.npy")
 ms_down = np.load("epsilon=1o20-ms-down.npy")
 ax.plot(betas_up, ms_up, 'b.', markersize=.5)
-# ax.plot(betas_down, ms_down, 'b.', markersize=.5)
+ax.plot(betas_down, ms_down, 'b.', markersize=.5,
+        label="$\\varepsilon = 1/20$")
 
 betas_up = np.load("epsilon=1o40-betas-up.npy")
 betas_down = np.load("epsilon=1o40-betas-down.npy")
 ms_up = np.load("epsilon=1o40-ms-up.npy")
 ms_down = np.load("epsilon=1o40-ms-down.npy")
 ax.plot(betas_up, ms_up, 'r.', markersize=.5)
-# ax.plot(betas_down, ms_down, 'r.', markersize=.5)
+ax.plot(betas_down, ms_down, 'r.', markersize=.5,
+        label="$\\varepsilon = 1/40$")
 
+ax.legend()
 plt.savefig('full_bifurcation.eps', bbox_inches='tight')
 
 plt.show()
