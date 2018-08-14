@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 matplotlib.rc('font', size=14)
@@ -16,28 +16,34 @@ ax.set_ylabel("$m$")
 # ms_zoom_up = np.load("ms-zoom-up.npy")[0:-remove_zoom]
 # ax.plot(betas_zoom_up, ms_zoom_up, 'g.', markersize=.5)
 
-# remove = 30
-# betas_up = np.load("betas-up.npy")[0:-remove]
-# betas_down = np.load("betas-down.npy")[0:-remove]
-# ms_up = np.load("ms-up.npy")[0:-remove]
-# ms_down = np.load("ms-down.npy")[0:-remove]
-# ax.plot(betas_up, ms_up, 'r.', markersize=.5)
+# ε = 1/10
+# betas_up = np.load("betas-up.npy")
+# betas_down = np.load("betas-down.npy")
+# ms_up = np.load("ms-up.npy")
+# ms_down = np.load("ms-down.npy")
+# ax.plot(betas_up, ms_up, 'g.', markersize=.5)
+# ax.plot(betas_down, ms_down, 'g.', markersize=.5)
+
+betas_up = np.load("white-noise-betas-up.npy")
+betas_down = np.load("white-noise-betas-down.npy")
+ms_up = np.load("white-noise-ms-up.npy")
+ms_down = np.load("white-noise-ms-down.npy")
+ax.plot(betas_up, ms_up, 'k-', linewidth=.5)
+# ax.plot(betas_down, ms_down, 'k-', linewidth=.5)
+
+betas_up = np.load("epsilon=1o20-betas-up.npy")
+betas_down = np.load("epsilon=1o20-betas-down.npy")
+ms_up = np.load("epsilon=1o20-ms-up.npy")
+ms_down = np.load("epsilon=1o20-ms-down.npy")
+ax.plot(betas_up, ms_up, 'b.', markersize=.5)
 # ax.plot(betas_down, ms_down, 'b.', markersize=.5)
 
-# ε = 1/20
-betas_up_small_epsilon = np.load("betas-other-epsilon-up.npy")
-betas_down_small_epsilon = np.load("betas-other-epsilon-down.npy")
-ms_up_small_epsilon = np.load("ms-other-epsilon-up.npy")
-ms_down_small_epsilon = np.load("ms-other-epsilon-down.npy")
-ax.plot(betas_up_small_epsilon, ms_up_small_epsilon, 'g.', markersize=.5)
-ax.plot(betas_down_small_epsilon, ms_down_small_epsilon, 'r.', markersize=.5)
-
-betas_up_white_noise = np.load("betas-up-white-noise.npy")
-betas_down_white_noise = np.load("betas-down-white-noise.npy")
-ms_up_white_noise = np.load("ms-up-white-noise.npy")
-ms_down_white_noise = np.load("ms-down-white-noise.npy")
-ax.plot(betas_up_white_noise, ms_up_white_noise, 'k.', markersize=.5)
-ax.plot(betas_down_white_noise, ms_down_white_noise, 'k.', markersize=.5)
+betas_up = np.load("epsilon=1o40-betas-up.npy")
+betas_down = np.load("epsilon=1o40-betas-down.npy")
+ms_up = np.load("epsilon=1o40-ms-up.npy")
+ms_down = np.load("epsilon=1o40-ms-down.npy")
+ax.plot(betas_up, ms_up, 'r.', markersize=.5)
+# ax.plot(betas_down, ms_down, 'r.', markersize=.5)
 
 plt.savefig('full_bifurcation.eps', bbox_inches='tight')
 
