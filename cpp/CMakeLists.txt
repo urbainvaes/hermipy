@@ -25,7 +25,13 @@ if (NOT EXISTS /usr/include/boost/python/numpy)
     set (BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/boost/lib)
 endif (NOT EXISTS /usr/include/boost/python/numpy)
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
-find_package(Boost COMPONENTS python3 numpy3 REQUIRED)
+
+find_package(Boost COMPONENTS python3 numpy3)
+
+# Fix for archlinux
+if (NOT Boost_FOUND)
+    find_package(Boost COMPONENTS python37 numpy37 REQUIRED)
+endif (NOT Boost_FOUND)
 
 # Find sources and add include directory of sources
 file(GLOB_RECURSE Sources "src/hermite/*.cpp")
