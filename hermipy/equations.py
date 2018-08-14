@@ -145,8 +145,6 @@ class McKean_Vlasov:
         coeff_noise = sym.Rational(coeff_noise).limit_denominator(1e8)
         print("Effective noise: " + str(float(coeff_noise)))
         coeff_noise = sym.sqrt(1/β/coeff_noise)
-        import ipdb; ipdb.set_trace()
-        # coeff_noise = sym.sqrt(1/β)
 
         # Fokker planck operator
         flux_x = - (d(Vp, x)*f + θ*(x-m)*f - (1-γ)*coeff_noise*y*f/ε

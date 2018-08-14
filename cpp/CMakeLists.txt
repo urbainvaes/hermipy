@@ -23,7 +23,7 @@ set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 if (NOT EXISTS /usr/include/boost/python/numpy)
     set (BOOST_INCLUDEDIR /usr/local/lib/R/site-library/BH/include)
     set (BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/boost/lib)
-endif (EXISTS /usr/include/boost/python/numpy)
+endif (NOT EXISTS /usr/include/boost/python/numpy)
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 find_package(Boost COMPONENTS python3 numpy3 REQUIRED)
 
