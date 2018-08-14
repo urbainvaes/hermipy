@@ -22,6 +22,8 @@
 import pdb
 import argparse
 import math
+import json
+import os
 import sympy as sym
 import importlib
 import numpy as np
@@ -34,10 +36,6 @@ import hermipy.equations as eq
 import hermipy.core as core
 
 import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import json
-
 from sympy.printing import pprint
 
 sym.init_printing()
@@ -52,6 +50,8 @@ parser.add_argument('-tb', '--bifurcation', action='store_true',
                     help='Run bifurcation test')
 parser.add_argument('-tt', '--time', action='store_true',
                     help='Run time dependent test')
+parser.add_argument('-tw', '--white', action='store_true',
+                    help='Generate bifurcation diagram for white noise')
 
 parser.add_argument('-p', '--plots', action='store_true',
                     help='Enable plots')
@@ -59,6 +59,8 @@ parser.add_argument('-v', '--verbose', action='store_true',
                     help='Enable verbose output')
 parser.add_argument('--cache', action='store_true',
                     help='Enable use of cache')
+parser.add_argument('-i', '--interactive', action='store_true',
+                    help='Enable interactive plots')
 
 parser.add_argument('-c', '--config', type=str, help='Configuration file')
 parser.add_argument('-b', '--beta', type=str, help='Value of β')
@@ -66,6 +68,7 @@ parser.add_argument('-t', '--theta', type=str, help='Value of θ')
 parser.add_argument('-e', '--epsilon', type=str, help='Value of ε')
 parser.add_argument('-g', '--gamma', type=str, help='Value of γ')
 parser.add_argument('-m', '--mass', type=str, help='Value of m')
+parser.add_argument('-d', '--directory', type=str, help='Directory of output')
 
 args = parser.parse_args()
 
@@ -73,6 +76,13 @@ if args.config:
     config = importlib.import_module(args.config)
 else:
     config = importlib.import_module("examples.config")
+
+if args.directory:
+    config.misc['directory'] = args.directory + '/'
+if 'directory' not in config.misc:
+    config.misc['directory'] = './'
+if not os.path.exists(config.misc['directory']):
+    os.makedirs(config.misc['directory'])
 
 if args.beta:
     config.eq['β'] = sym.Rational(args.beta)
@@ -98,6 +108,12 @@ if args.plots:
     config.misc['plots'] = args.plots
 elif 'plots' not in config.misc:
     config.misc['plots'] = False
+
+if not args.interactive:
+    matplotlib.use('Agg')
+
+if True:  # To placate linter
+    import matplotlib.pyplot as plt
 
 if args.cache:
     config.misc['cache'] = args.cache
@@ -329,12 +345,14 @@ def plot():
     streamlines = quad_visu.streamlines(f0, f1, ax=ax)
     for c in streamlines.collections:
         plt.setp(c, linewidth=.5)
-    plt.savefig('solution.eps', bbox_inches='tight')
+    output = config.misc['directory'] + 'solution.eps'
+    plt.savefig(output, bbox_inches='tight')
     plt.show()
     fig, ax = plt.subplots(1, 1)
     scatter = ground_series.subdegree(10).plot(ax=ax)
     plt.colorbar(scatter, ax=ax)
-    plt.savefig('coefficients.eps', bbox_inches='tight')
+    output = config.misc['directory'] + 'coefficients.eps'
+    plt.savefig(output, bbox_inches='tight')
     plt.show()
 
     def plot_eigenfunctions():
@@ -504,10 +522,11 @@ def convergence():
         plt.show()
 
     # np.save('errors-epsilon-'+str(float(params['ε'].value)), errors_a)
-    plot_log(degrees, errors, 'l1conv.eps')
-    plot_log(degrees, [max(0, -m) for m in mins], 'min.eps')
-    plot_log(degrees, np.abs(eig_ground), 'eig_val.eps')
-    plot_log(degrees, errors_a, 'l1asym.eps', lin=False)
+    dir = config.misc['directory']
+    plot_log(degrees, errors, dir + 'l1conv.eps')
+    plot_log(degrees, [max(0, -m) for m in mins], dir + 'min.eps')
+    plot_log(degrees, np.abs(eig_ground), dir + 'eig_val.eps')
+    plot_log(degrees, errors_a, dir + 'l1asym.eps', lin=False)
 
 
 if args.convergence:
@@ -523,47 +542,62 @@ if 'drift_correction' in config.num:
 
 
 def white_noise_bifurc():
-    βmin, βmax = 1, 15
+    βmin, βmax = 1, 9.5
     qx = quad_num.project(0)
+
     def branch(m0):
         β, m, βs, ms = βmax, m0, [], []
         Vx, θ = params['Vp'].eval(), params['θ'].value
         while β > βmin:
-            Δ, threshold = 1, 1e-4
-            while abs(Δ) > threshold:
+            threshold, Δ, Δold, mold = 1e-5, None, None, None
+            while Δ is None or abs(Δ) > threshold:
                 Vt = θ*(x - m)**2/2 + Vx
                 u = sym.exp(-β*Vt)
                 integral = qx.integrate(u, flat=True)
-                new_m = qx.integrate(u/integral*hermipy.x, flat=True)
-                Δ, m = new_m - m, new_m
+                Δ = qx.integrate(u/integral*hermipy.x, flat=True) - m
+                if Δold is None:
+                    newm = m + Δ
+                else:
+                    # secant's method
+                    newm = (mold*Δ - m*Δold)/(Δ - Δold)
+                m, mold, Δold = newm, m, Δ
                 print(β, m)
             βs.append(β)
             ms.append(m)
-            gmm, dsdβ, sstep = 20, 1, .1
+            gmm, dsdβ, sstep = 20, 1, .01
             if len(ms) > 1:
                 Δm, Δβ = ms[-1] - ms[-2], βs[-1] - βs[-2]
                 dsdβ = np.sqrt(gmm*Δm*Δm + Δβ*Δβ) / abs(Δβ)
             β = β - sstep/dsdβ
         return ms, βs
+
     m_up, b_up = branch(1)
     m_down, b_down = branch(-1)
-    np.save("ms-up-white-noise", np.asarray(m_up))
-    np.save("betas-up-white-noise.npy", np.asarray(b_up))
-    np.save("ms-down-white-noise", np.asarray(m_down))
-    np.save("betas-down-white-noise.npy", np.asarray(b_down))
+    dir = config.misc['directory']
+    np.save(dir + "white-noise-ms-up", np.asarray(m_up))
+    np.save(dir + "white-noise-betas-up.npy", np.asarray(b_up))
+    np.save(dir + "white-noise-ms-down.npy", np.asarray(m_down))
+    np.save(dir + "white-noise-betas-down.npy", np.asarray(b_down))
 
 
-white_noise_bifurc()
+if args.white:
+    white_noise_bifurc()
 
 
 def time_dependent():
+
+    # Output directory
+    dir = config.misc['directory']
+
+    if args.interactive:
+        plt.ion()
+        fig, ax = plt.subplots(2, 2)
 
     m_operator = forward.diff(params['m'].symbol)
     r_operator = (forward - params['m'].symbol*m_operator).cancel()
     m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
 
     βmin, βmax = 1, 15
-    β = βmax
 
     # Calculate projections
     qx, qy = quad_num.project(0), quad_num.project(1)
@@ -575,72 +609,58 @@ def time_dependent():
     Iy = qy.transform(wy, degree=degree, index_set=index_set)
     mx1 = qx.transform(wx * x, degree=degree, index_set=index_set)
     my1 = qy.transform(wy * y, degree=degree, index_set=index_set)
-    qx = quad_visu.project(0)
-    qy = quad_visu.project(1)
 
-    # Initial condition
-    # translation = -.5
-    # u = (quad_num.position.weight()**2).subs(x, x - translation)
-    # u = quad_num.factor.as_xyz().subs(x, x - translation)
-
-    m = 1
+    β, m, betas, ms = βmax, 1, [], []
     for i in range(20):
         Vp = params['θ'].value*(x - m)**2/2
         Vp = Vp + params['Vp'].eval()
         u = sym.exp(-β*Vp)
         integral = qx.integrate(u, flat=True)
-        u = u / integral
-        m = qx.integrate(u*hermipy.x, flat=True)
+        m = qx.integrate(u / integral * hermipy.x, flat=True)
     m = round(m, 2)
 
     u = u * sym.exp(-params['Vy'].eval())
     integral = quad_num.integrate(u, flat=True)
     t = quad_num.transform(u/integral, degree=degree, index_set=index_set)
 
-    if config.misc['plots']:
-        plt.ion()
-        fig, ax = plt.subplots(2, 2)
-
     x_eval = quad_num.discretize('x')
     eye = quad_num.varf('1', degree=degree, index_set=index_set)
     dt, Ns, scheme = 2**-9, int(1e4), "backward"
-    betas, ms = [], []
-
     while β > βmin:
 
         r_operator_this = r_operator.subs(params['β'].symbol, β)
-        r_mat = quad_num.discretize_op(r_operator_this, degree, index_set=index_set)
+        r_mat = quad_num.discretize_op(r_operator_this, degree,
+                                       index_set=index_set)
 
         # data = {'dt': dt, 'scheme': 'backward'}
         # with open('parameters.json', 'w') as f:
         #     json.dump(data, f)
 
-        Vp = params['θ'].value*(x - m)**2/2
-        Vp = Vp + params['Vp'].eval()
-        density = sym.exp(-β*Vp)
-        density = density / qx.integrate(density, flat=True)
+        Vx, θ = params['Vp'].eval(), params['θ'].value
 
         difference = np.inf
         for i in range(Ns):
 
-            if i % 10 == 0 and config.misc['plots']:
+            if i % 10 == 0 and args.interactive:
 
                 ax[0][0].clear()
-                # quad_visu.plot(t, ax=ax[0][0], vmin=0, extend='min', bounds=True)
-                quad_visu.plot(t, ax=ax[0][0], bounds=True)
+                quad_visu.plot(t, ax=ax[0][0], bounds=True,
+                               vmin=0, extend='min')
 
                 ax[0][1].clear()
-                qx.plot(density.subs(params['m'].symbol, m), ax=ax[0][1])
+                density = sym.exp(-β*(Vx + θ*(x - m)**2/2))
+                density = density / qx.integrate(density, flat=True)
 
                 # Projections
                 proj_x, proj_y = Iy*t, Ix*t
-                # import pdb; pdb.set_trace()
                 mx, my = mx1*proj_x, my1*proj_y
                 ax[1][0].clear()
-                ax[1][1].clear()
                 quad_visu.project(0).plot(proj_x, ax=ax[1][0])
-                quad_visu.project(1).plot(proj_y, ax=ax[1][1])
+                quad_visu.project(0).plot(density, ax=ax[1][0])
                 ax[1][0].set_title("First moment: " + str(mx.coeffs[0]))
+
+                ax[1][1].clear()
+                quad_visu.project(1).plot(proj_y, ax=ax[1][1])
                 ax[1][1].set_title("First moment: " + str(my.coeffs[0]))
 
                 plt.draw()
@@ -696,135 +716,29 @@ def time_dependent():
                     β = math.floor(β)
                     fig, ax = plt.subplots(1, 1)
                     quad_visu.plot(t, bounds=False, ax=ax, title="$\\rho(x, \\eta)$")
-                    plt.savefig('solution-beta=' + str(β) + '.eps',
+                    plt.savefig(dir + 'solution-beta=' + str(β) + '.eps',
                                 bbox_inches='tight')
                     fig, ax = plt.subplots(1, 1)
                     title = "$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$"
                     qx.plot(Iy*t, bounds=False, ax=ax, title=title)
-                    plt.savefig('solution-proj-beta=' + str(β) + '.eps',
+                    plt.savefig(dir + 'solution-proj-beta=' + str(β) + '.eps',
                                 bbox_inches='tight')
                     plt.close()
                 β = newβ
                 break
 
-    np.save("betas-other-epsilon-up.npy", np.asarray(betas))
-    np.save("ms-other-epsilon-up.npy", np.asarray(ms))
+    np.save(dir + "betas-other-epsilon-up.npy", np.asarray(betas))
+    np.save(dir + "ms-other-epsilon-up.npy", np.asarray(ms))
 
-    # fig, ax = plt.subplots(1)
-    # quad_visu.plot(t, bounds=False, ax=ax, title="$\\rho(x, \\eta)$")
-    # plt.savefig('solution_bad.eps', bbox_inches='tight')
+#     fig, ax = plt.subplots(1)
+#     quad_visu.plot(t, bounds=False, ax=ax, title="$\\rho(x, \\eta)$")
+#     plt.savefig('solution_bad.eps', bbox_inches='tight')
 
-    # fig, ax = plt.subplots(1)
-    # title = "$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$"
-    # qx.plot(Iy*t, bounds=False, ax=ax, title=title)
-    # plt.savefig('solution_bad_projection.eps', bbox_inches='tight')
+#     fig, ax = plt.subplots(1)
+#     title = "$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$"
+#     qx.plot(Iy*t, bounds=False, ax=ax, title=title)
+#     plt.savefig('solution_bad_projection.eps', bbox_inches='tight')
 
 
 if args.time:
     time_dependent()
-# }}}
-# Study bifurcations {{{
-
-
-# def bifurcation(factor_x, m_init):
-
-#     def compute_m(series):
-#         quad_x = quad_num.project(0)
-#         series_x = series.project(0)
-#         x_d = quad_x.discretize('x')
-#         factor_d = quad_x.discretize(factor_x)
-#         solution_d = quad_x.eval(series_x) * factor_d
-#         weight_d = quad_x.discretize(quad_x.position.weight())
-#         moment0 = quad_x.integrate(solution_d/weight_d)
-#         moment1 = quad_x.integrate(solution_d/weight_d*x_d)
-#         return moment1 / moment0
-
-#     def compute_moment1(m_val):
-#         if config.misc['verbose']:
-#             print("Solving the eigenvalue problem for m = " + str(m_val) + ".")
-#         mat_operator = r_mat + m_mat * m_val
-#         eig_vals, eig_vecs = mat_operator.eigs(k=1, which='LR')
-#         ground_state = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])
-#         value = compute_m(ground_state)
-#         if config.misc['verbose']:
-#             print(value)
-#         if config.misc['plots']:
-#             fig, ax = plt.subplots(1, 1)
-#             cont = quad_visu.plot(ground_state, factor, ax)
-#             plt.colorbar(cont, ax=ax)
-#             plt.show()
-#         return value
-
-#     # streams = quad_visu.streamlines(flux_proj[0], flux_proj[1],
-#     #                                 factor_visu, ax)
-
-#     # m_values = np.linspace(-2, 2, 41)
-#     # m_values = [0]
-#     m_converged = []
-
-#     # if config.misc['parallel']:
-#     #     with multiprocessing.Pool() as p:
-#     #         images = p.map(compute_moment1, m_values)
-#     # else:
-#     #     for m_val in m_values:
-#     #         images.append(compute_moment1(m_val))
-#     for m_it in m_init:
-#         error = 1
-#         while abs(error) > 1e-4:
-#             m_new = compute_moment1(m_it)
-#             error = m_new - m_it
-#             m_it = m_new
-#         m_converged.append(m_it)
-#     return m_converged
-
-#     # fig, ax = plt.subplots(1, 1)
-#     # ax.plot(m_values, m_values, label='m')
-#     # ax.plot(m_values, images, label='R(m)')
-#     # ax.legend()
-#     # plt.show()
-
-# factor_sym = factor
-# delta_arc_length = 0.1
-# beta = 10
-# # beta_range = np.arange(10, 1, delta_beta)
-# betas, conv, conv1, conv2 = [], [], [], []
-# m_init = [-2, 2]
-
-# while beta > 1:
-#     betas.append(beta)
-#     print("\n--> β = " + str(beta))
-#     backward_b = backward.subs(params['β'].symbol, beta).simplify()
-
-#     # vprint("Splitting operator in m-linear and m-independent parts")
-#     m_operator = backward_b.diff(params['m'].symbol)
-#     r_operator = (backward_b - params['m'].symbol*m_operator).cancel()
-
-#     # vprint("Discretizing operators")
-#     m_mat = quad_num.discretize_op(m_operator, degree)
-#     r_mat = quad_num.discretize_op(r_operator, degree)
-#     eig_vals, eig_vecs = r_mat.eigs(k=1, which='LR')
-
-#     bif = hermipy.cache()(bifurcation)
-#     conv.append(bifurcation(factor_x.subs(params['β'].symbol, beta), m_init))
-#     if len(conv) > 1:
-#         for i in range(len(m_init)):
-#             length = np.sqrt((betas[-1] - betas[-2])**2 + (conv[-1][i] - conv[-2][i])**2)
-#             delta_beta = (betas[-1] - betas[-2]) * delta_arc_length / length
-#             slope = (conv[-1][i] - conv[-2][i]) / (betas[-1] - betas[-2])
-#             beta = betas[-1] + delta_beta
-#             m_init[i] = conv[-1][i] + slope * delta_beta
-#     else:
-#         m_init = conv[-1]
-#         beta = beta - delta_arc_length
-#     # print(conv)
-#     # print(m_init)
-# fig, ax = plt.subplots(1, 1)
-# conv1 = [c[0] for c in conv]
-# conv2 = [c[1] for c in conv]
-# ax.plot(betas, conv1, 'k.')
-# ax.plot(betas, conv2, 'k.')
-# plt.show()
-# }}}
-# }}}
-
-pdb.set_trace()

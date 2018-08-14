@@ -6,6 +6,7 @@ hermite_cpp.so
 # Test and output files
 /test*
 /*.eps
+data/*.eps
 
 # Cache files
 /.cache/*
