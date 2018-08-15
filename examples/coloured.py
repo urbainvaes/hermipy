@@ -611,6 +611,8 @@ def time_dependent():
     my1 = qy.transform(wy * y, degree=degree, index_set=index_set)
 
     β, m, betas, ms = βmax, 1, [], []
+    β = config.eq['β']
+
     for i in range(20):
         Vp = params['θ'].value*(x - m)**2/2
         Vp = Vp + params['Vp'].eval()
@@ -650,6 +652,8 @@ def time_dependent():
                 ax[0][1].clear()
                 density = sym.exp(-β*(Vx + θ*(x - m)**2/2))
                 density = density / qx.integrate(density, flat=True)
+
+                t.plot(ax=ax[0][1])
 
                 # Projections
                 proj_x, proj_y = Iy*t, Ix*t
@@ -702,9 +706,23 @@ def time_dependent():
             else:
                 t, m = new_t, new_m
 
-            if difference < 1e-6:
+            if difference < 1e-8:
                 betas.append(β)
                 ms.append(m)
+
+                fig, ax = plt.subplots(1)
+                cont = quad_visu.plot(t, bounds=False, ax=ax,
+                                      title="$\\rho(x, \\eta)$")
+                plt.colorbar(cont, ax=ax)
+                plt.savefig('solution.eps', bbox_inches='tight')
+                plt.close()
+
+                fig, ax = plt.subplots(1)
+                title = "Hermite coefficients"
+                hermite_coeffs = t.plot(ax=ax, title=title)
+                plt.colorbar(hermite_coeffs, ax=ax)
+                plt.savefig('hermite_coefficients.eps', bbox_inches='tight')
+                plt.close()
 
                 gmm, dsdβ, sstep = 20, 1, .1
                 if len(ms) > 1:
@@ -729,15 +747,6 @@ def time_dependent():
 
     np.save(dir + "betas-other-epsilon-up.npy", np.asarray(betas))
     np.save(dir + "ms-other-epsilon-up.npy", np.asarray(ms))
-
-#     fig, ax = plt.subplots(1)
-#     quad_visu.plot(t, bounds=False, ax=ax, title="$\\rho(x, \\eta)$")
-#     plt.savefig('solution_bad.eps', bbox_inches='tight')
-
-#     fig, ax = plt.subplots(1)
-#     title = "$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$"
-#     qx.plot(Iy*t, bounds=False, ax=ax, title=title)
-#     plt.savefig('solution_bad_projection.eps', bbox_inches='tight')
 
 
 if args.time:
