@@ -40,6 +40,14 @@ ax.plot(betas_up, ms_up, 'b.', markersize=.5)
 ax.plot(betas_down, ms_down, 'b.', markersize=.5,
         label="$\\varepsilon = 1/20$")
 
+# zoom
+betas_up = np.load("epsilon=1o20-m0=0.5-betas.npy")
+betas_down = np.load("epsilon=1o20-m0=-0.5-betas.npy")
+ms_up = np.load("epsilon=1o20-m0=0.5-ms.npy")
+ms_down = np.load("epsilon=1o20-m0=-0.5-ms.npy")
+ax.plot(betas_up, ms_up, 'b.', markersize=.5)
+ax.plot(betas_down, ms_down, 'b.', markersize=.5)
+
 betas_up = np.load("epsilon=1o40-betas-up.npy")
 betas_down = np.load("epsilon=1o40-betas-down.npy")
 ms_up = np.load("epsilon=1o40-ms-up.npy")
@@ -47,6 +55,14 @@ ms_down = np.load("epsilon=1o40-ms-down.npy")
 ax.plot(betas_up, ms_up, 'r.', markersize=.5)
 ax.plot(betas_down, ms_down, 'r.', markersize=.5,
         label="$\\varepsilon = 1/40$")
+
+# zoom
+betas_up = np.load("epsilon=1o40-m0=0.5-betas.npy")
+betas_down = np.load("epsilon=1o40-m0=-0.5-betas.npy")
+ms_up = np.load("epsilon=1o40-m0=0.5-ms.npy")
+ms_down = np.load("epsilon=1o40-m0=-0.5-ms.npy")
+ax.plot(betas_up, ms_up, 'r.', markersize=.5)
+ax.plot(betas_down, ms_down, 'r.', markersize=.5)
 
 ax.legend()
 plt.savefig('full_bifurcation.eps', bbox_inches='tight')
