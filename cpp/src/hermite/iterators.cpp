@@ -488,8 +488,6 @@ u_int Cross_iterator_nc::s_size(u_int dim, u_int degree)
 // Rectangle iterator {{{
 bool Rectangle_iterator::s_increment(ivec & multi_index, u_int degree)
 {
-    std::cout << multi_index << std::endl;
-
     u_int max = 0,
           ind = 0, i;
 
