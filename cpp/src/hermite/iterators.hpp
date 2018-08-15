@@ -188,6 +188,20 @@ class Cross_iterator_nc : public Multi_index_iterator
         static u_int s_get_degree(u_int dim, u_int n_polys);
 };
 
+class Rectangle_iterator : public Multi_index_iterator
+{
+    private:
+        const u_int degree;
+
+    public:
+        Rectangle_iterator(u_int dim, u_int degree);
+
+        static bool s_increment(ivec & multi_index, u_int degree);
+        static imat s_list(u_int dim, u_int degree);
+        static u_int s_size(u_int dim, u_int degree);
+        static u_int s_get_degree(u_int dim, u_int n_polys);
+};
+
 }
 
 #endif
