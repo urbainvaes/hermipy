@@ -30,14 +30,14 @@ x, y, f = equation.x, equation.y, equation.f
 r = sym.Rational
 
 # Configuration of numerical method
-num['degree'] = 80  # degree of approximation
+num['degree'] = 50  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
 num['μx'] = r(0, 5)
 num['μy'] = r(0, 4)
 num['σx'] = r(1, 20)
-num['σy'] = r(1, 20)
+num['σy'] = r(1, 10)
 num['λ'] = r(1, 2)
-num['index_set'] = 'cube'
+num['index_set'] = 'rectangle'
 
 # Scalar parameters of the equation
 # eq['β'] = r(2**5, 2**2)
@@ -60,32 +60,31 @@ eq['Vp'] = x**4/4 - x**2/2
 Z, m = 6.301119049538182, 0.8852269357209047
 # m = m + 0.152235
 # m = 0
-m = r(m).limit_denominator(1e16)
-eq['Vy'] = (y-m)**4/4 - (y-m)**2/2 + (y-m)
+# m = r(m).limit_denominator(1e16)
+# eq['Vy'] = (y-m)**4/4 - (y-m)**2/2 + (y-m)
 
-# eq['Vy'] = y**4/4 - y**2/2
+eq['Vy'] = y**4/4 - y**2/2
 # eq['Vy'] = y**2/2
 
-# Vy = y**4/4 - y**2/2 + y
-Vy = eq['Vy']
-ny, μy, σy = num['n_points_num'], [num['μy']], [[num['σy']]]
-qy = hermipy.Quad.gauss_hermite(ny, mean=μy, cov=σy, dirs=[1])
-factor = sym.sqrt(qy.position.weight() * sym.exp(-Vy))
-qy.factor = hermipy.Function(factor, dirs=[1])
+# Vy = eq['Vy']
+# ny, μy, σy = num['n_points_num'], [num['μy']], [[num['σy']]]
+# qy = hermipy.Quad.gauss_hermite(ny, mean=μy, cov=σy, dirs=[1])
+# factor = sym.sqrt(qy.position.weight() * sym.exp(-Vy))
+# qy.factor = hermipy.Function(factor, dirs=[1])
 
-fy = sym.Function('f')(y)
-index_set, degree = num['index_set'], num['degree']
-gen = (Vy.diff(y)*fy).diff(y) + fy.diff(y, y)
+# fy = sym.Function('f')(y)
+# index_set, degree = num['index_set'], num['degree']
+# gen = (Vy.diff(y)*fy).diff(y) + fy.diff(y, y)
 
-qy.factor = hermipy.Function(factor, dirs=[1])
-L0 = qy.discretize_op(gen, degree=degree, index_set=index_set)
-l, [e] = L0.eigs(k=1, which='LR')
-# qy.plot(e)
-vy = qy.varf('y', degree=degree, index_set=index_set)
-coeff_noise = 1/sym.sqrt(sym.Rational(37243868, 52597017))
+# qy.factor = hermipy.Function(factor, dirs=[1])
+# L0 = qy.discretize_op(gen, degree=degree, index_set=index_set)
+# l, [e] = L0.eigs(k=1, which='LR')
+# # qy.plot(e)
+# vy = qy.varf('y', degree=degree, index_set=index_set)
+# coeff_noise = 1/sym.sqrt(sym.Rational(37243868, 52597017))
 
-drift = - r((vy(e)*e).coeffs[0]).limit_denominator(1e16) * coeff_noise
-num['drift_correction'] = drift
+# drift = - r((vy(e)*e).coeffs[0]).limit_denominator(1e16) * coeff_noise
+# num['drift_correction'] = drift
 
 
 # import matplotlib.pyplot as plt
