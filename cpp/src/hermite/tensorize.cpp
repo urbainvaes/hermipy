@@ -128,6 +128,7 @@ vec tensorize_vecs_dirs(const mat & inputs, const imat & dirs, std::string index
     else if (index_set == "cross") function = tensorize<Cross_iterator>;
     else if (index_set == "cross_nc") function = tensorize<Cross_iterator_nc>;
     else if (index_set == "cube") function = tensorize<Cube_iterator>;
+    else if (index_set == "rectangle") function = tensorize<Rectangle_iterator>;
     else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
     return function(inputs, dirs);
 }
@@ -351,6 +352,7 @@ T tensorize_mats_dirs(const vector<S> & inputs, const imat & dirs, std::string i
     else if (index_set == "cross") function = _tensorize_mats_dirs<Cross_iterator,T,S>;
     else if (index_set == "cross_nc") function = _tensorize_mats_dirs<Cross_iterator_nc,T,S>;
     else if (index_set == "cube") function = _tensorize_mats_dirs<Cube_iterator,T,S>;
+    else if (index_set == "rectangle") function = _tensorize_mats_dirs<Rectangle_iterator,T,S>;
     else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
     return function(inputs, dirs);
 }
@@ -363,6 +365,7 @@ T tensorize_mats_axes(const vector<S> & inputs, std::string index_set)
     else if (index_set == "cross") function = _tensorize_mats_axes<Cross_iterator,T,S>;
     else if (index_set == "cross_nc") function = _tensorize_mats_axes<Cross_iterator_nc,T,S>;
     else if (index_set == "cube") function = _tensorize_mats_axes<Cube_iterator,T,S>;
+    else if (index_set == "rectangle") function = _tensorize_mats_axes<Rectangle_iterator,T,S>;
     else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
     return function(inputs);
 }
@@ -378,14 +381,17 @@ T tensorize_mat_id(const S & input, u_int dim, u_int dir, std::string index_set)
 }
 
 template mat _tensorize_mats_axes<Cube_iterator>(const std::vector<mat> & input);
+template mat _tensorize_mats_axes<Rectangle_iterator>(const std::vector<mat> & input);
 template mat _tensorize_mats_axes<Cross_iterator>(const std::vector<mat> & input);
 template mat _tensorize_mats_axes<Cross_iterator_nc>(const std::vector<mat> & input);
 template mat _tensorize_mats_axes<Triangle_iterator>(const std::vector<mat> & input);
 template spmat _tensorize_mats_axes<Cube_iterator>(const std::vector<mat> & input);
+template spmat _tensorize_mats_axes<Rectangle_iterator>(const std::vector<mat> & input);
 template spmat _tensorize_mats_axes<Cross_iterator>(const std::vector<mat> & input);
 template spmat _tensorize_mats_axes<Cross_iterator_nc>(const std::vector<mat> & input);
 template spmat _tensorize_mats_axes<Triangle_iterator>(const std::vector<mat> & input);
 template boost_mat _tensorize_mats_axes<Cube_iterator>(const std::vector<mat> & input);
+template boost_mat _tensorize_mats_axes<Rectangle_iterator>(const std::vector<mat> & input);
 template boost_mat _tensorize_mats_axes<Cross_iterator>(const std::vector<mat> & input);
 template boost_mat _tensorize_mats_axes<Cross_iterator_nc>(const std::vector<mat> & input);
 template boost_mat _tensorize_mats_axes<Triangle_iterator>(const std::vector<mat> & input);

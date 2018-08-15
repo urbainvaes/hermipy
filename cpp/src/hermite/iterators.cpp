@@ -420,7 +420,7 @@ u_int Cross_iterator::s_size(u_int dim, u_int degree)
     return Cross_iterator(dim, degree).size();
 }
 // }}}
-// {{{
+// Non consistent hyperbolic cross iterator {{{
 bool Cross_iterator_nc::s_increment(ivec & multi_index, u_int degree)
 {
     degree = MAX(degree, 1);
@@ -484,5 +484,118 @@ u_int Cross_iterator_nc::s_size(u_int dim, u_int degree)
 {
     return Cross_iterator_nc(dim, degree).size();
 }
+// }}}
+// Rectangle iterator {{{
+bool Rectangle_iterator::s_increment(ivec & multi_index, u_int degree)
+{
+    std::cout << multi_index << std::endl;
+
+    u_int max = 0,
+          ind = 0, i;
+
+    u_int dim = multi_index.size();
+
+    ivec factors(dim, 0);
+    for (u_int i = 0; i < dim; i++)
+    {
+        factors[i] = i == 0 ? 1 : 2;
+    }
+
+    for (i = 0; i < dim; i++)
+    {
+        if (multi_index[i] * factors[i] >= max)
+        {
+            max = multi_index[i] * factors[i];
+            ind = i;
+        }
+    }
+
+    for (i = 0; i < dim; i++)
+    {
+        // Careful with unsigned ints!!
+        if ((multi_index[i] + 1) * factors[i] < max + (i < ind))
+        {
+            multi_index[i] += 1;
+            return false;
+        }
+        else if (i != ind)
+        {
+            multi_index[i] = 0;
+        }
+    }
+
+    if (ind == dim - 1)
+    {
+        if (max >= degree)
+            return true;
+
+        multi_index[ind] = 0;
+        // factors[0] must be 1!
+        multi_index[0] = max + 1;
+        return false;
+    }
+
+    multi_index[ind] = 0;
+
+    u_int next = ind + 1;
+    while (next < dim && max % factors[next] != 0)
+        next++;
+
+    if (next < dim)
+    {
+        multi_index[ind] = 0;
+        multi_index[next] = max / factors[next];
+        return false;
+    }
+
+    if (max == degree)
+        return true;
+
+    multi_index[ind] = 0;
+    multi_index[0] = max + 1;
+    return false;
+}
+
+Rectangle_iterator::Rectangle_iterator(u_int dim, u_int degree)
+    : Multi_index_iterator(dim), degree(degree)
+{
+    ivec m(dim, 0);
+    u_int ind = 0;
+    do
+    {
+        list.push_back(m);
+        std::string hash = hash_print(m);
+        hash_table.insert(std::pair<std::string, u_int>(hash, ind++));
+    }
+    while (!Rectangle_iterator::s_increment(m, degree));
+}
+
+u_int Rectangle_iterator::s_size(u_int dim, u_int degree)
+{
+    ivec factors(dim, 0);
+    for (u_int i = 0; i < dim; i++)
+        factors[i] = i == 0 ? 1 : 2;
+
+    u_int result = 1;
+    for (u_int i = 0; i < factors.size(); i++)
+        result *= (1 + degree/factors[i]);
+
+    return result;
+}
+
+imat Rectangle_iterator::s_list(u_int dim, u_int degree)
+{
+    imat result;
+    for(Rectangle_iterator m(dim, degree); !m.isFull(); m.increment())
+        result.push_back(m.get());
+    return result;
+}
+
+u_int Rectangle_iterator::s_get_degree(u_int dim, u_int n_polys)
+{
+    auto function = [dim] (u_int degree) {return s_size(dim, degree);};
+    return pos_bissect (n_polys, function, DEGREE_BISSECT_MAX);
+}
+
 // }}}
 }

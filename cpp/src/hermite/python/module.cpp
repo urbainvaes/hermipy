@@ -151,16 +151,19 @@ BOOST_PYTHON_MODULE(hermite_cpp)
     def("cross_list_indices", Cross_iterator::s_list);
     def("cross_nc_list_indices", Cross_iterator_nc::s_list);
     def("cube_list_indices", Cube_iterator::s_list);
+    def("rectangle_list_indices", Rectangle_iterator::s_list);
 
     def("triangle_get_degree", Triangle_iterator::s_get_degree);
     def("cross_get_degree", Cross_iterator::s_get_degree);
     def("cross_nc_get_degree", Cross_iterator_nc::s_get_degree);
     def("cube_get_degree", Cube_iterator::s_get_degree);
+    def("rectangle_get_degree", Rectangle_iterator::s_get_degree);
 
     def("triangle_size", Triangle_iterator::s_size);
     def("cross_size", Cross_iterator::s_size);
     def("cross_nc_size", Cross_iterator_nc::s_size);
     def("cube_size", Cube_iterator::s_size);
+    def("rectangle_size", Rectangle_iterator::s_size);
 }
 
 }

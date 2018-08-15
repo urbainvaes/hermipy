@@ -227,6 +227,7 @@ vec inner(const vec & s1,
     else if (index_set == "cross") function = inner<Cross_iterator>;
     else if (index_set == "cross_nc") function = inner<Cross_iterator_nc>;
     else if (index_set == "cube") function = inner<Cube_iterator>;
+    else if (index_set == "rectangle") function = inner<Rectangle_iterator>;
     else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
     return function(s1, s2, dirs1, dirs2);
 }

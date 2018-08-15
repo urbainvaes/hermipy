@@ -27,7 +27,17 @@ using namespace std;
 
 int main()
 {
-    u_int dim = 4, degree = 9, i = 0;
+    u_int dim = 2, degree = 9, i = 0;
+
+    Rectangle_iterator m_rect(dim, degree);
+    for (m_rect.reset(), i = 0; !m_rect.isFull(); i++, m_rect.increment())
+    {
+        u_int index = m_rect.index(m_rect.get());
+        cout << "i " << i << ", index(m_rect): " << index << ", m_rect: " << m_rect.get() << endl;
+        if (i != index)
+            return 1;
+    }
+
     Cross_iterator mh(dim, degree);
     for (mh.reset(), i = 0; !mh.isFull(); i++, mh.increment())
     {
