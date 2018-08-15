@@ -172,7 +172,7 @@ class Series:
         return core.iterator_list_indices(self.position.dim, self.degree,
                                           index_set=self.index_set)
 
-    def plot(self, ax=None):
+    def plot(self, ax=None, title=None):
 
         show_plt = ax is None
         if show_plt:
@@ -191,19 +191,22 @@ class Series:
             # zoom = 1e3/max(mx)
             # positives = zoom * (coeffs > 0) * coeffs
             # negatives = zoom * (coeffs < 0) * coeffs * (-1)
-            zeros = abs(coeffs) < 1e-12
             # ax.scatter(mx, my, s=positives, c='g', marker='o')
             pl = ax.scatter(mx, my, c=abs(coeffs),
                             cmap='ocean_r', s=1e2, edgecolor='k')
-            ax.scatter(mx, my, s=zeros, c='r', marker='o')
             ax.xaxis.set_major_locator(MaxNLocator(integer=True))
             ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+            # zeros = abs(coeffs) < 1e-12
+            # ax.scatter(mx, my, s=zeros, c='r', marker='o')
 
             # for i, txt in enumerate(coeffs):
             #     ax.annotate("{:.2f}".format(txt), (mx[i] + .1, my[i] +
             #     .1), size=8)
 
-        ax.set_title("Coefficients of the Hermite expansion")
+        if title is None:
+            title = "Coefficients of the Hermite expansion"
+        ax.set_title(title)
 
         if show_plt:
             if self.position.dim is 2:
