@@ -319,7 +319,7 @@ def iterator_list_indices(dim, degree, index_set="triangle"):
             "cross": hm.cross_list_indices,
             "cross_nc": hm.cross_nc_list_indices,
             "cube": hm.cube_list_indices,
-            "rectangle": hm.cube_list_indices,
+            "rectangle": hm.rectangle_list_indices,
             }
     if index_set not in cpp_func:
         raise ValueError("Unknown index set")
