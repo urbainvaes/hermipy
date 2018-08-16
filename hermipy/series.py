@@ -101,6 +101,7 @@ class Series:
     def __eq__(self, other):
         assert type(other) is Series
         return self.position == other.position \
+            and self.factor == other.factor \
             and la.norm(self.coeffs - other.coeffs) < very_small
 
     def __add__(self, other):
@@ -162,9 +163,11 @@ class Series:
 
     def subdegree(self, degree):
         assert degree <= self.degree
-        n_polys = core.iterator_size(self.position.dim, degree)
+        n_polys = core.iterator_size(self.position.dim, degree,
+                                     index_set=self.index_set)
         coeffs = self.coeffs[0:n_polys]
-        return Series(coeffs, self.position, index_set=self.index_set)
+        return Series(coeffs, self.position,
+                      factor=self.factor, index_set=self.index_set)
 
     def multi_indices(self):
         if self.position.dim == 0:

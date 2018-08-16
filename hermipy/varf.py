@@ -138,7 +138,8 @@ class Varf:
 
     def subdegree(self, degree):
         assert degree <= self.degree
-        n_polys = core.iterator_size(self.position.dim, degree)
+        n_polys = core.iterator_size(self.position.dim, degree,
+                                     index_set=self.index_set)
         kwargs = {'order': 'C'} if not self.is_sparse else {}
         matrix = self.matrix[0:n_polys, 0:n_polys].copy(**kwargs)
         return Varf(matrix, self.position,
