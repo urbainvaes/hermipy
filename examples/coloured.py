@@ -46,6 +46,8 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('-tc', '--convergence', action='store_true',
                     help='Run convergence test')
+parser.add_argument('-tce', '--convergence_eig', action='store_true',
+                    help='Run convergence test with eig')
 parser.add_argument('-tb', '--bifurcation', action='store_true',
                     help='Run bifurcation test')
 parser.add_argument('-tt', '--time', action='store_true',
@@ -68,6 +70,7 @@ parser.add_argument('-t', '--theta', type=str, help='Value of θ')
 parser.add_argument('-e', '--epsilon', type=str, help='Value of ε')
 parser.add_argument('-g', '--gamma', type=str, help='Value of γ')
 parser.add_argument('-m', '--mass', type=str, help='Value of m')
+parser.add_argument('-m0', '--m0', type=str, help='Initial value of m')
 parser.add_argument('-d', '--directory', type=str, help='Directory of output')
 
 args = parser.parse_args()
@@ -76,6 +79,22 @@ if args.config:
     config = importlib.import_module(args.config)
 else:
     config = importlib.import_module("examples.config")
+
+# Make sure contains arrays
+try:
+    config.eq
+except NameError:
+    config.eq = {}
+
+try:
+    config.num
+except NameError:
+    config.num = {}
+
+try:
+    config.misc
+except NameError:
+    config.misc = {}
 
 if args.directory:
     config.misc['directory'] = args.directory + '/'
@@ -98,6 +117,9 @@ if args.gamma:
 
 if args.mass:
     config.eq['m'] = sym.Rational(args.mass)
+
+if args.m0:
+    config.num['m0'] = float(args.m0)
 
 if args.verbose:
     config.misc['verbose'] = args.verbose
@@ -317,10 +339,6 @@ vprint("Splitting operator in m-linear and m-independent parts")
 index_set = config.num['index_set']
 m_operator = forward.diff(params['m'].symbol)
 r_operator = (forward - params['m'].symbol*m_operator).cancel()
-# vprint("Discretizing operators")
-# m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
-# r_mat = quad_num.discretize_op(r_operator, degree, index_set=index_set)
-# r_mat.plot()
 if params['m'].value.free_symbols == set() and params['β'].value.free_symbols == set():
     fd = [quad_num.discretize_op(flux, degree, index_set=index_set) for flux in fluxes]
 
@@ -422,8 +440,12 @@ def plot():
 # }}}
 # Test convergence {{{
 
-def convergence():
+def convergence_eig():
     vprint("[convergence]")
+    vprint("Discretizing operators")
+    m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
+    r_mat = quad_num.discretize_op(r_operator, degree, index_set=index_set)
+    # r_mat.plot()
 
     def asymptotic():
         Vp = params['θ'].value*(x - params['m'].value)**2/2
@@ -476,7 +498,7 @@ def convergence():
     v0, degrees, errors, errors_a, mins, eig_ground = None, [], [], [], [], []
     for d in range(20, degree):
         print("-- Solving for degree = " + str(d))
-        npolys = core.iterator_size(2, d)
+        npolys = core.iterator_size(2, d, index_set=index_set)
         sub_varf = r_mat.subdegree(d)
         # sub_mat = sub_mat
         if v0 is not None:
@@ -487,6 +509,8 @@ def convergence():
         eig_vals, eig_vecs = sub_varf.eigs(v0=v0, k=1, which='LR')
         v0 = eig_vecs[0].coeffs.copy(order='C')
         ground_state_eval = get_ground_state(eig_vecs[0])
+        # if d > 60:
+        #     quad_num.plot(eig_vecs[0], title=str(eig_vals[0]))
         # error_consistency =
         # error_discretization =
         error = quad_num.norm(ground_state_eval - solution_eval, n=1, flat=True)
@@ -529,8 +553,8 @@ def convergence():
     plot_log(degrees, errors_a, dir + 'l1asym.eps', lin=False)
 
 
-if args.convergence:
-    convergence()
+if args.convergence_eig:
+    convergence_eig()
 # }}}
 # {{{ Time dependent solution
 
@@ -542,7 +566,7 @@ if 'drift_correction' in config.num:
 
 
 def white_noise_bifurc():
-    βmin, βmax = 1, 9.5
+    βmin, βmax, sstep = 1, 10, .01
     qx = quad_num.project(0)
 
     def branch(m0):
@@ -564,7 +588,7 @@ def white_noise_bifurc():
                 print(β, m)
             βs.append(β)
             ms.append(m)
-            gmm, dsdβ, sstep = 20, 1, .01
+            gmm, dsdβ = 20, 1
             if len(ms) > 1:
                 Δm, Δβ = ms[-1] - ms[-2], βs[-1] - βs[-2]
                 dsdβ = np.sqrt(gmm*Δm*Δm + Δβ*Δβ) / abs(Δβ)
@@ -597,7 +621,7 @@ def time_dependent():
     r_operator = (forward - params['m'].symbol*m_operator).cancel()
     m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
 
-    βmin, βmax = 1, 15
+    βmin, βmax, sstep = .99, 15, .1
 
     # Calculate projections
     qx, qy = quad_num.project(0), quad_num.project(1)
@@ -610,9 +634,8 @@ def time_dependent():
     mx1 = qx.transform(wx * x, degree=degree, index_set=index_set)
     my1 = qy.transform(wy * y, degree=degree, index_set=index_set)
 
-    β, m, betas, ms = βmax, 1, [], []
-    β = config.eq['β']
-
+    assert 'm0' in config.num
+    β, m, betas, ms = βmax, config.num['m0'], [], []
     for i in range(20):
         Vp = params['θ'].value*(x - m)**2/2
         Vp = Vp + params['Vp'].eval()
@@ -629,7 +652,6 @@ def time_dependent():
     eye = quad_num.varf('1', degree=degree, index_set=index_set)
     dt, Ns, scheme = 2**-9, int(1e4), "backward"
     while β > βmin:
-
         r_operator_this = r_operator.subs(params['β'].symbol, β)
         r_mat = quad_num.discretize_op(r_operator_this, degree,
                                        index_set=index_set)
@@ -694,37 +716,22 @@ def time_dependent():
 
             difference = quad_num.norm(t - new_t, n=1)/dt
             difference = difference + abs(new_m - m)/dt
-            t, m = new_t, new_m
 
             # Time adaptation
             threshold, dt_max = .01, 64
-            if difference*dt < threshold and dt < dt_max:
-                dt = dt * 2.
-            elif difference*dt > 2*threshold:
-                dt = dt / 2.
-                t, m = new_t, new_m
-            else:
-                t, m = new_t, new_m
 
-            if difference < 1e-8:
+            if difference*dt > 2*threshold:
+                dt = dt / 2.
+                continue
+            elif difference*dt < threshold and dt < dt_max:
+                dt = dt * 2.
+            t, m = new_t, new_m
+
+            if difference < 1e-7:
                 betas.append(β)
                 ms.append(m)
 
-                fig, ax = plt.subplots(1)
-                cont = quad_visu.plot(t, bounds=False, ax=ax,
-                                      title="$\\rho(x, \\eta)$")
-                plt.colorbar(cont, ax=ax)
-                plt.savefig('solution.eps', bbox_inches='tight')
-                plt.close()
-
-                fig, ax = plt.subplots(1)
-                title = "Hermite coefficients"
-                hermite_coeffs = t.plot(ax=ax, title=title)
-                plt.colorbar(hermite_coeffs, ax=ax)
-                plt.savefig('hermite_coefficients.eps', bbox_inches='tight')
-                plt.close()
-
-                gmm, dsdβ, sstep = 20, 1, .1
+                gmm, dsdβ = 20, 1
                 if len(ms) > 1:
                     Δm, Δβ = ms[-1] - ms[-2], betas[-1] - betas[-2]
                     dsdβ = np.sqrt(gmm*Δm*Δm + Δβ*Δβ) / abs(Δβ)
@@ -732,22 +739,145 @@ def time_dependent():
 
                 if math.floor(β) != math.floor(newβ):
                     β = math.floor(β)
+
                     fig, ax = plt.subplots(1, 1)
                     quad_visu.plot(t, bounds=False, ax=ax, title="$\\rho(x, \\eta)$")
                     plt.savefig(dir + 'solution-beta=' + str(β) + '.eps',
                                 bbox_inches='tight')
+                    plt.close()
+
                     fig, ax = plt.subplots(1, 1)
-                    title = "$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$"
-                    qx.plot(Iy*t, bounds=False, ax=ax, title=title)
+                    density = sym.exp(-β*(Vx + θ*(x - m)**2/2))
+                    density = density / qx.integrate(density, flat=True)
+                    quad_visu.project(0).plot(density, ax=ax, label="White noise")
+                    quad_visu.project(0).plot(Iy*t, bounds=False, ax=ax, label="$\\varepsilon = 0.25$")
+                    plt.legend()
+                    ax.set_title("$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$")
                     plt.savefig(dir + 'solution-proj-beta=' + str(β) + '.eps',
                                 bbox_inches='tight')
                     plt.close()
                 β = newβ
                 break
 
-    np.save(dir + "betas-other-epsilon-up.npy", np.asarray(betas))
-    np.save(dir + "ms-other-epsilon-up.npy", np.asarray(ms))
+    ε = config.eq['ε']
+    np.save(dir + "epsilon=1o" + str(1/ε) + "-m0=" + str(args.m0) + "-betas", np.asarray(betas))
+    np.save(dir + "epsilon=1o" + str(1/ε) + "-m0=" + str(args.m0) + "-ms", np.asarray(ms))
 
 
 if args.time:
     time_dependent()
+
+
+def convergence():
+
+    # Output directory
+    dir = config.misc['directory']
+
+    if args.interactive:
+        plt.ion()
+        fig, ax = plt.subplots(2, 2)
+
+    r_operator = (forward - params['m'].symbol*m_operator).cancel()
+    r_mat = quad_num.discretize_op(r_operator, degree, index_set=index_set)
+
+    # Calculate projections
+    qx, qy = quad_num.project(0), quad_num.project(1)
+    wx = qx.factor * qx.factor / qx.position.weight()
+    wy = qy.factor * qy.factor / qy.position.weight()
+
+    # Integral and moment operators
+    Ix = qx.transform(wx, degree=degree, index_set=index_set)
+    Iy = qy.transform(wy, degree=degree, index_set=index_set)
+
+    m, Vx = params['m'].value, params['Vp'].eval()
+    β, θ = params['β'].value, params['θ'].value
+    Vp = Vx + θ*(x - m)**2/2
+    u = sym.exp(-β*Vp)*sym.exp(-params['Vy'].eval())
+    integral = quad_num.integrate(u, flat=True)
+    t = quad_num.transform(u/integral, degree=degree, index_set=index_set)
+
+    eye = quad_num.varf('1', degree=degree, index_set=index_set)
+    dt, Ns, scheme = 2**-9, int(1e4), "backward"
+
+    density = sym.exp(-β*(Vx + θ*(x - m)**2/2))
+    density = density / qx.integrate(density, flat=True)
+
+    dmin, d = 20, degree
+    while d >= dmin:
+        r_mat, eye = r_mat.subdegree(d), eye.subdegree(d)
+        t, Ix, Iy = t.subdegree(d), Ix.subdegree(d), Iy.subdegree(d)
+
+        Δ = np.inf
+        for i in range(Ns):
+
+            print("d: " + str(d) + ", i: " + str(i) +
+                  ", dt: " + str(dt) + ", Δ: " + str(Δ))
+
+            # Backward Euler
+            if scheme == 'backward':
+                total_op = eye - dt*r_mat
+                new_t = total_op.solve(t)
+
+            # Crank-Nicholson
+            if scheme == 'crank':
+                crank_left = eye - dt*r_mat*(1/2)
+                crank_right = eye + dt*r_mat*(1/2)
+                new_t = crank_left.solve(crank_right(t))
+
+            # Normalization
+            r_eval = quad_num.eval(new_t)
+            integral = quad_num.integrate(r_eval, flat=True)
+            new_t = new_t * (1/integral)
+
+            Δ = quad_num.norm(t - new_t, n=1)/dt
+
+            # Time adaptation
+            threshold, dt_max = .01, 64
+            if Δ*dt > 2*threshold:
+                dt = dt / 2.
+                continue
+            elif Δ*dt < threshold and dt < dt_max:
+                dt = dt * 2.
+            t = new_t
+
+            if Δ < 1e-10:
+                ax[0][0].clear()
+                quad_visu.plot(t, ax=ax[0][0], bounds=True,
+                               vmin=0, extend='min')
+
+                # Hermite coefficients
+                ax[0][1].clear()
+                t.plot(ax=ax[0][1])
+
+                # Projections
+                proj_x, proj_y = Iy*t, Ix*t
+                ax[1][0].clear()
+                quad_visu.project(0).plot(proj_x, ax=ax[1][0])
+                quad_visu.project(0).plot(density, ax=ax[1][0])
+
+                ax[1][1].clear()
+                quad_visu.project(1).plot(proj_y, ax=ax[1][1])
+
+                plt.draw()
+                plt.pause(.01)
+
+                # fig, ax = plt.subplots(1)
+                # cont = quad_visu.plot(t, bounds=False, ax=ax,
+                #                       title="$\\rho(x, \\eta)$")
+                # plt.colorbar(cont, ax=ax)
+                # plt.savefig('solution.eps', bbox_inches='tight')
+                # plt.close()
+
+                # fig, ax = plt.subplots(1)
+                # title = "Hermite coefficients"
+                # hermite_coeffs = t.plot(ax=ax, title=title)
+                # plt.colorbar(hermite_coeffs, ax=ax)
+                # plt.savefig('hermite_coefficients.eps', bbox_inches='tight')
+                # plt.close()
+
+                d = d - 1
+                break
+
+
+if args.convergence:
+    convergence()
