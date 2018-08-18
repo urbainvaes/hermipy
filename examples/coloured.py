@@ -983,6 +983,9 @@ def convergence_epsilon():
     dt, Ns = 2**-9, int(1e4)
 
     # Calculate white noise solution
+    #
+    # Comparison with this is not great, because there is an error on the
+    # coefficient that multiplies the noise.
     Vp, β = params['Vp'].value, params['β'].value
     γ, ε = params['γ'].symbol, params['ε'].symbol
     kwargs = {'degree': degree, 'index_set': index_set}
@@ -995,10 +998,10 @@ def convergence_epsilon():
     tx0 = tx0 * (1/qx.integrate(tx0, flat=True, tensorize=False))
     t20 = t20 * (1/quad_num.integrate(t20, flat=True, tensorize=False))
 
-    εs = [2**(-i/2) for i in range(10)]
+    εs = [2**(-i/4) for i in range(17)]
     e2, ex, t2, tx = [], [], [], []
 
-    for ε in εs:
+    for iε, ε in enumerate(εs):
 
         kwargs = {'degree': degree, 'index_set': index_set}
         forward_ε = forward.subs(γ, 0).subs(params['ε'].symbol, ε)
@@ -1057,12 +1060,20 @@ def convergence_epsilon():
 
             t = new_t
 
-            if Δ < 1e-18:
+            if Δ < 1e-16:
                 t2.append(t)
                 tx.append(Iy*t)
                 error2, errorx = t20 - t2[-1], Iy*(t20 - t2[-1])
                 e2.append(quad_num.norm(error2, n=1, flat=True))
                 ex.append(qx.norm(errorx, n=1, flat=True))
+
+                if iε > 2:
+                    logε = np.log2(εs[0:iε+1])
+                    coeffs = np.polyfit(logε, np.log2(e2), 1)
+                    print(coeffs)
+                    coeffs_x = np.polyfit(logε, np.log2(ex), 1)
+                    print(coeffs_x)
+
                 break
 
     fig, ax = plt.subplots()
@@ -1074,8 +1085,31 @@ def convergence_epsilon():
     ax.set_title("Convergence as $\\varepsilon \\to 0$")
     plt.legend()
     plt.savefig("convergence-epsilon.eps", bbox_inches='tight')
-    import ipdb; ipdb.set_trace()
 
+    fig, ax1 = plt.subplots()
+    xplot, yplot = logε = np.asarray(εs), np.asarray(e2)
+    ax1.plot(xplot, yplot, 'b.', label="$|\\rho - \\rho_0|_1$")
+    ax1.set_xscale('log', basex=2)
+    ax1.set_yscale('log', basey=2)
+    coeffs = np.polyfit(np.log2(xplot), np.log2(yplot), 1)
+    ax1.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'b-',
+                        label='$y = {:.2f} \\, \\varepsilon^{{ {:.2f} }}$'.
+                              format(2**coeffs[1], coeffs[0]))
+    # ax1.tick_params('y', colors='b')
+    ax2, yplot = ax1, np.asarray(ex)
+    ax2.plot(xplot, yplot, 'r.', label="$|\\rho^x - \\rho^x_0|_1$")
+    ax2.set_xscale('log', basex=2)
+    ax2.set_yscale('log', basey=2)
+    coeffs = np.polyfit(np.log2(xplot), np.log2(yplot), 1)
+    ax2.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'r-',
+                        label='$y = {:.2f} \\, \\varepsilon^{{ {:.2f} }}$'.
+                              format(2**coeffs[1], coeffs[0]))
+    # ax2.tick_params('y', colors='r')
+    plt.legend(loc='lower right')
+    plt.savefig("errors.eps", bbox_inches='tight')
+    plt.show()
+
+    import ipdb; ipdb.set_trace()
 
 if args.epsilon0:
     convergence_epsilon()
