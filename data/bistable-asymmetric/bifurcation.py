@@ -17,10 +17,10 @@ ax.set_ylabel("$m$")
 # ax.plot(betas_zoom_up, ms_zoom_up, 'g.', markersize=.5)
 
 # ε = 1/10
-# betas_up = np.load("betas-up.npy")
-# betas_down = np.load("betas-down.npy")
-# ms_up = np.load("ms-up.npy")
-# ms_down = np.load("ms-down.npy")
+# betas_up = np.load("epsilon=1o10-betas-up.npy")
+# betas_down = np.load("epsilon=1o10-betas-down.npy")
+# ms_up = np.load("epsilon=1o10-ms-up.npy")
+# ms_down = np.load("epsilon=1o10-ms-down.npy")
 # ax.plot(betas_up, ms_up, 'g.', markersize=.5)
 # ax.plot(betas_down, ms_down, 'g.', markersize=.5)
 
