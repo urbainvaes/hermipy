@@ -326,7 +326,7 @@ def compute_quads():
     # band_width = np.sqrt(2) * np.sqrt(2*degree + 1)
     # bounds_x = band_width*np.sqrt(float(σx))
     # bounds_y = band_width*np.sqrt(float(σy))
-    bounds_x = 4
+    bounds_x = 3
     bounds_y = 3
 
     quad_visu = hermipy.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y],
@@ -1067,6 +1067,14 @@ def convergence_epsilon():
                 e2.append(quad_num.norm(error2, n=1, flat=True))
                 ex.append(qx.norm(errorx, n=1, flat=True))
 
+                fig, ax = plt.subplots(1, 1)
+                quad_visu.plot(t, ax=ax, vmin=0, extend='min')
+                ax.set_title("$\\rho(x, \\eta),~\\varepsilon = {}$".format(ε))
+                plt.savefig(dir + 'solution-epsilon=' + str(ε) + '.eps',
+                            bbox_inches='tight')
+                plt.close()
+
+
                 if iε > 2:
                     logε = np.log2(εs[0:iε+1])
                     coeffs = np.polyfit(logε, np.log2(e2), 1)
@@ -1095,7 +1103,6 @@ def convergence_epsilon():
     ax1.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'b-',
                         label='$y = {:.2f} \\, \\varepsilon^{{ {:.2f} }}$'.
                               format(2**coeffs[1], coeffs[0]))
-    # ax1.tick_params('y', colors='b')
     ax2, yplot = ax1, np.asarray(ex)
     ax2.plot(xplot, yplot, 'r.', label="$|\\rho^x - \\rho^x_0|_1$")
     ax2.set_xscale('log', basex=2)
@@ -1104,7 +1111,6 @@ def convergence_epsilon():
     ax2.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'r-',
                         label='$y = {:.2f} \\, \\varepsilon^{{ {:.2f} }}$'.
                               format(2**coeffs[1], coeffs[0]))
-    # ax2.tick_params('y', colors='r')
     plt.legend(loc='lower right')
     plt.savefig("errors.eps", bbox_inches='tight')
     plt.show()
