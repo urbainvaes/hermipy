@@ -171,6 +171,9 @@ class Quad:
     @tensorize_at(1)
     def integrate(self, function, flat=False):
 
+        if isinstance(function, hm.Series):
+            function = self.eval(function)
+
         if not isinstance(function, np.ndarray):
             function = self.discretize(function)
 
