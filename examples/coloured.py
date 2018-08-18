@@ -326,7 +326,7 @@ def compute_quads():
     # band_width = np.sqrt(2) * np.sqrt(2*degree + 1)
     # bounds_x = band_width*np.sqrt(float(σx))
     # bounds_y = band_width*np.sqrt(float(σy))
-    bounds_x = 3
+    bounds_x = 4
     bounds_y = 3
 
     quad_visu = hermipy.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y],
@@ -1069,7 +1069,7 @@ def convergence_epsilon():
 
                 fig, ax = plt.subplots(1, 1)
                 quad_visu.plot(t, ax=ax, vmin=0, extend='min')
-                ax.set_title("$\\rho(x, \\eta),~\\varepsilon = {}$".format(ε))
+                ax.set_title("$\\varepsilon = {}$".format(ε))
                 plt.savefig(dir + 'solution-epsilon=' + str(ε) + '.eps',
                             bbox_inches='tight')
                 plt.close()
@@ -1087,29 +1087,29 @@ def convergence_epsilon():
     fig, ax = plt.subplots()
     cmap = matplotlib.cm.get_cmap('viridis_r')
     for i, (ε, txε) in enumerate(zip(εs, tx)):
+        if i % 2 is not 0:
+            continue
         label = "$\\varepsilon = 2^{{ -{} }} $".format(i/2)
         kwargs = {'color': cmap(ε), 'label': label}
         quad_visu.project(0).plot(txε, ax=ax, **kwargs)
-    ax.set_title("Convergence as $\\varepsilon \\to 0$")
+    ax.set_title("")
     plt.legend()
     plt.savefig("convergence-epsilon.eps", bbox_inches='tight')
 
-    fig, ax1 = plt.subplots()
-    xplot, yplot = logε = np.asarray(εs), np.asarray(e2)
-    ax1.plot(xplot, yplot, 'b.', label="$|\\rho - \\rho_0|_1$")
-    ax1.set_xscale('log', basex=2)
-    ax1.set_yscale('log', basey=2)
-    coeffs = np.polyfit(np.log2(xplot), np.log2(yplot), 1)
-    ax1.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'b-',
-                        label='$y = {:.2f} \\, \\varepsilon^{{ {:.2f} }}$'.
-                              format(2**coeffs[1], coeffs[0]))
-    ax2, yplot = ax1, np.asarray(ex)
-    ax2.plot(xplot, yplot, 'r.', label="$|\\rho^x - \\rho^x_0|_1$")
-    ax2.set_xscale('log', basex=2)
-    ax2.set_yscale('log', basey=2)
-    coeffs = np.polyfit(np.log2(xplot), np.log2(yplot), 1)
-    ax2.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'r-',
-                        label='$y = {:.2f} \\, \\varepsilon^{{ {:.2f} }}$'.
+    fig, ax = plt.subplots()
+    xplot, yplot1 = logε = np.asarray(εs), np.asarray(e2)
+    ax.set_xscale('log', basex=2)
+    ax.set_yscale('log', basey=2)
+    ax.plot(xplot, yplot1, 'b.', label="$|\\rho - \\rho_0|_1$")
+    yplot2 = np.asarray(ex)
+    ax.plot(xplot, yplot2, 'r.', label="$|\\rho^x - \\rho^x_0|_1$")
+    coeffs = np.polyfit(np.log2(xplot), np.log2(yplot1), 1)
+    ax.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'b-',
+            label='$y = {:.2f} \\, \\times \\, \\varepsilon^{{ {:.2f} }}$'.
+            format(2**coeffs[1], coeffs[0]))
+    coeffs = np.polyfit(np.log2(xplot), np.log2(yplot2), 1)
+    ax.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'r-',
+             label='$y = {:.2f} \\, \\times \\, \\varepsilon^{{ {:.2f} }}$'.
                               format(2**coeffs[1], coeffs[0]))
     plt.legend(loc='lower right')
     plt.savefig("errors.eps", bbox_inches='tight')
