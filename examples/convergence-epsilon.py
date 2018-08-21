@@ -13,34 +13,29 @@ x, y, f = equation.x, equation.y, equation.f
 r = sym.Rational
 
 # Configuration of numerical method
-num['degree'] = 100  # degree of approximation
+num['degree'] = 80  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
-num['μx'] = r(1, 5)
-num['σx'] = r(1, 10)
-num['μy'] = r(0)
-num['σy'] = r(1)
+num['μx'] = r(0, 4)
+num['μy'] = r(0, 4)
+num['σx'] = r(1, 20)
+num['σy'] = r(1, 20)
 num['λ'] = r(1, 2)
-num['index_set'] = 'triangle'
+num['index_set'] = 'cube'
 
 # Scalar parameters of the equation
-eq['β'] = r(5)
-eq['ε'] = r(1, 2)
+eq['β'] = r(1)
 eq['γ'] = r(0)
 eq['θ'] = r(0)
+eq['m'] = r(0)
 
 # Functional parameters of the equation
-# eq['Vp'] = x**4/4 - x**2/2
-
-sx = sym.symbols('sx', real=True, positive=True)
-eq['sx'] = r(1)
-eq['Vp'] = r(.5)*x*x/sx
-eq['Vy'] = y**2/2
+eq['Vp'] = x**2/2
+eq['Vy'] = y**4/4 - y**2/2
 
 # Miscellaneous parameters
-misc['cache'] = False
-misc['debug'] = False
-misc['parallel'] = False
+misc['cache'] = True
 misc['tensorize'] = True
 misc['sparse'] = True
-misc['trails'] = True
+misc['trails'] = False
+misc['verbose'] = False
 misc['symbolic'] = 0  # Values 0, 1, 2
