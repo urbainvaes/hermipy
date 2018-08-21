@@ -14,12 +14,12 @@ x, y, f = equation.x, equation.y, equation.f
 r = sym.Rational
 
 # Configuration of numerical method
-num['degree'] = 30  # degree of approximation
+num['degree'] = 100  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
 num['μx'] = r(0, 4)
 num['μy'] = r(0, 4)
-num['σx'] = r(1, 40)
-num['σy'] = r(1, 20)
+num['σx'] = r(1, 50)
+num['σy'] = r(1, 10)
 num['λ'] = r(1, 2)
 num['index_set'] = 'cube'
 
@@ -34,8 +34,7 @@ eq['θ'] = r(1)
 # eq['m'] = r(0)
 
 # Functional parameters of the equation
-# eq['Vp'] = x**4/4 - x**2/2
-eq['Vp'] = x**2/10
+eq['Vp'] = x**4/4 - x**2/2
 # eq['Vp'] = x**4/4
 # + (x - 1)**2/2
 # eq['Vp'] = x**2/2
@@ -48,7 +47,7 @@ Z, m = 6.301119049538182, 0.8852269357209047
 # m = r(m).limit_denominator(1e16)
 # eq['Vy'] = (y-m)**4/4 - (y-m)**2/2 + (y-m)
 
-eq['Vy'] = (y**4/4 - y**2/2)
+eq['Vy'] = y**4/4 - y**2/2
 # eq['Vy'] = y**2/2
 
 # Vy = eq['Vy']
