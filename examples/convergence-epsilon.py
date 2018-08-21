@@ -24,7 +24,6 @@ num['index_set'] = 'cube'
 
 # Scalar parameters of the equation
 eq['β'] = r(1)
-eq['γ'] = r(0)
 eq['θ'] = r(0)
 eq['m'] = r(0)
 
