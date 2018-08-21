@@ -54,6 +54,8 @@ parser.add_argument('-tt', '--time', action='store_true',
                     help='Run time dependent test')
 parser.add_argument('-tw', '--white', action='store_true',
                     help='Generate bifurcation diagram for white noise')
+parser.add_argument('-te0', '--epsilon0', action='store_true',
+                    help='Study ε --> 0')
 
 parser.add_argument('-p', '--plots', action='store_true',
                     help='Enable plots')
@@ -183,7 +185,8 @@ class Parameter():
         value = self.value
         sym_val = {params[k].symbol: params[k].value for k in params}
         m, β = params['m'].symbol, params['β'].symbol
-        while value.free_symbols - {x, y, m, β} != set():
+        ε, γ = params['ε'].symbol, params['γ'].symbol
+        while value.free_symbols - {x, y, m, β, ε, γ} != set():
             for symbol in self.value.free_symbols:
                 if symbol in sym_val:
                     value = value.subs(symbol, sym_val[symbol])
@@ -323,7 +326,7 @@ def compute_quads():
     # band_width = np.sqrt(2) * np.sqrt(2*degree + 1)
     # bounds_x = band_width*np.sqrt(float(σx))
     # bounds_y = band_width*np.sqrt(float(σy))
-    bounds_x = 3
+    bounds_x = 4
     bounds_y = 3
 
     quad_visu = hermipy.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y],
@@ -339,7 +342,10 @@ vprint("Splitting operator in m-linear and m-independent parts")
 index_set = config.num['index_set']
 m_operator = forward.diff(params['m'].symbol)
 r_operator = (forward - params['m'].symbol*m_operator).cancel()
-if params['m'].value.free_symbols == set() and params['β'].value.free_symbols == set():
+if params['m'].value.free_symbols == set() \
+        and params['β'].value.free_symbols == set() \
+        and params['ε'].value.free_symbols == set() \
+        and params['γ'].value.free_symbols == set():
     fd = [quad_num.discretize_op(flux, degree, index_set=index_set) for flux in fluxes]
 
 vprint("Solving eigenvalue problem")
@@ -443,7 +449,6 @@ def plot():
 def convergence_eig():
     vprint("[convergence]")
     vprint("Discretizing operators")
-    m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
     r_mat = quad_num.discretize_op(r_operator, degree, index_set=index_set)
     # r_mat.plot()
 
@@ -472,8 +477,6 @@ def convergence_eig():
 
     asym_num = asymptotic()
 
-    factor_eval = quad_num.discretize(factor)
-
     def get_ground_state(eig_vec):
         ground_series = eig_vec * np.sign(eig_vec.coeffs[0])
         # quad_visu.plot(ground_series, factor=factor)
@@ -493,7 +496,8 @@ def convergence_eig():
         solution_eval = get_ground_state(eig_vecs[0])
         norm_sol = quad_num.integrate(solution_eval, flat=True)
         solution_eval = solution_eval / norm_sol
-        t_solution_eval = quad_num.transform(solution_eval, degree=degree)
+
+    quad_num.plot(solution_eval)
 
     v0, degrees, errors, errors_a, mins, eig_ground = None, [], [], [], [], []
     for d in range(20, degree):
@@ -520,6 +524,7 @@ def convergence_eig():
         eig_ground.append(eig_vals[0])
         errors.append(error)
         errors_a.append(error_a)
+        print(error, eig_vals[0], np.min(ground_state_eval))
 
     fig, ax = plt.subplots(1, 1)
     ground_series = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])
@@ -548,9 +553,32 @@ def convergence_eig():
     # np.save('errors-epsilon-'+str(float(params['ε'].value)), errors_a)
     dir = config.misc['directory']
     plot_log(degrees, errors, dir + 'l1conv.eps')
-    plot_log(degrees, [max(0, -m) for m in mins], dir + 'min.eps')
+    # plot_log(degrees, [max(0, -m) for m in mins], dir + 'min.eps')
     plot_log(degrees, np.abs(eig_ground), dir + 'eig_val.eps')
-    plot_log(degrees, errors_a, dir + 'l1asym.eps', lin=False)
+    # plot_log(degrees, errors_a, dir + 'l1asym.eps', lin=False)
+
+    # qy = quad_num.project(1)
+    # wy = qy.factor * qy.factor / qy.position.weight()
+    # Iy = qy.transform(wy, degree=degree, index_set=index_set)
+    # quad_num.plot(Iy*eig_vecs[0])
+
+    fig, ax1 = plt.subplots()
+    xplot, yplot = np.asarray(degrees), np.asarray(errors)
+    ax1.semilogy(xplot, yplot, 'b.', label="$L^1$ error")
+    ax1.set_yscale('log', basey=2)
+    coeffs = np.polyfit(xplot, np.log10(yplot), 1)
+    ax1.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'b-')
+    ax1.tick_params('y', colors='b')
+    plt.legend(loc='lower left')
+    ax2, yplot = ax1.twinx(), np.asarray(np.abs(eig_ground))
+    ax2.semilogy(xplot, yplot, 'r.', label="$|\\lambda_0|$")
+    ax2.set_yscale('log', basey=2)
+    coeffs = np.polyfit(xplot, np.log10(yplot), 1)
+    ax2.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'r-')
+    ax2.tick_params('y', colors='r')
+    plt.legend(loc='upper right')
+    plt.savefig("errors.eps", bbox_inches='tight')
+    plt.show()
 
 
 if args.convergence_eig:
@@ -566,7 +594,7 @@ if 'drift_correction' in config.num:
 
 
 def white_noise_bifurc():
-    βmin, βmax, sstep = 1, 10, .01
+    βmin, βmax, sstep = 1, 15, .01
     qx = quad_num.project(0)
 
     def branch(m0):
@@ -610,6 +638,11 @@ if args.white:
 
 def time_dependent():
 
+    use_translate = False
+    t_sym, Vp = sym.symbols('t'), params['Vp'].value
+    translate_Vp = (Vp.subs(x, x + t_sym) - Vp).expand()
+    translate_op = (translate_Vp.diff(x)*f).diff(x)
+
     # Output directory
     dir = config.misc['directory']
 
@@ -621,7 +654,7 @@ def time_dependent():
     r_operator = (forward - params['m'].symbol*m_operator).cancel()
     m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
 
-    βmin, βmax, sstep = .99, 15, .1
+    βmin, βmax, sstep = 1, 6, .1
 
     # Calculate projections
     qx, qy = quad_num.project(0), quad_num.project(1)
@@ -644,6 +677,13 @@ def time_dependent():
         m = qx.integrate(u / integral * hermipy.x, flat=True)
     m = round(m, 2)
 
+    if use_translate:
+        translation = m
+        u = u.subs(x, x + translation)
+        m = 0
+    else:
+        translation = 0
+
     u = u * sym.exp(-params['Vy'].eval())
     integral = quad_num.integrate(u, flat=True)
     t = quad_num.transform(u/integral, degree=degree, index_set=index_set)
@@ -651,16 +691,23 @@ def time_dependent():
     x_eval = quad_num.discretize('x')
     eye = quad_num.varf('1', degree=degree, index_set=index_set)
     dt, Ns, scheme = 2**-9, int(1e4), "backward"
+
     while β > βmin:
+
+        kwargs = {'degree': degree, 'index_set': index_set}
         r_operator_this = r_operator.subs(params['β'].symbol, β)
-        r_mat = quad_num.discretize_op(r_operator_this, degree,
-                                       index_set=index_set)
+        r_mat = quad_num.discretize_op(r_operator_this, **kwargs)
+
+        if use_translate:
+            t_operator_this = translate_op.subs(t_sym, translation)
+            r_mat = r_mat + quad_num.discretize_op(t_operator_this, **kwargs)
 
         # data = {'dt': dt, 'scheme': 'backward'}
         # with open('parameters.json', 'w') as f:
         #     json.dump(data, f)
 
-        Vx, θ = params['Vp'].eval(), params['θ'].value
+        Vx = params['Vp'].eval().subs(x, x + translation)
+        θ = params['θ'].value
 
         difference = np.inf
         for i in range(Ns):
@@ -693,7 +740,7 @@ def time_dependent():
                 plt.pause(.01)
 
             print("β: " + str(β) + ", i: " + str(i), "dt: " + str(dt) +
-                  ", m: " + str(m), ", Δ: " + str(difference))
+                  ", m: " + str(m + translation), ", Δ: " + str(difference))
 
             operator = r_mat + m*m_mat
 
@@ -729,7 +776,7 @@ def time_dependent():
 
             if difference < 1e-7:
                 betas.append(β)
-                ms.append(m)
+                ms.append(m + translation)
 
                 gmm, dsdβ = 20, 1
                 if len(ms) > 1:
@@ -750,13 +797,20 @@ def time_dependent():
                     density = sym.exp(-β*(Vx + θ*(x - m)**2/2))
                     density = density / qx.integrate(density, flat=True)
                     quad_visu.project(0).plot(density, ax=ax, label="White noise")
-                    quad_visu.project(0).plot(Iy*t, bounds=False, ax=ax, label="$\\varepsilon = 0.25$")
+                    ε = params['ε'].value
+                    quad_visu.project(0).plot(Iy*t, bounds=False, ax=ax, label="$\\varepsilon = " + str(ε) + "$")
                     plt.legend()
                     ax.set_title("$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$")
                     plt.savefig(dir + 'solution-proj-beta=' + str(β) + '.eps',
                                 bbox_inches='tight')
                     plt.close()
+
                 β = newβ
+
+                if use_translate:
+                    translation += m
+                    m = 0
+
                 break
 
     ε = config.eq['ε']
@@ -802,7 +856,7 @@ def convergence():
     density = sym.exp(-β*(Vx + θ*(x - m)**2/2))
     density = density / qx.integrate(density, flat=True)
 
-    dmin, d = 20, degree
+    dmin, d, degrees, errors = 20, degree, [], []
     while d >= dmin:
         r_mat, eye = r_mat.subdegree(d), eye.subdegree(d)
         t, Ix, Iy = t.subdegree(d), Ix.subdegree(d), Iy.subdegree(d)
@@ -841,25 +895,38 @@ def convergence():
             t = new_t
 
             if Δ < 1e-10:
-                ax[0][0].clear()
-                quad_visu.plot(t, ax=ax[0][0], bounds=True,
-                               vmin=0, extend='min')
 
-                # Hermite coefficients
-                ax[0][1].clear()
-                t.plot(ax=ax[0][1])
+                if d == config.num['degree']:
+                    t_exact = t
+                    e_exact = quad_num.eval(t_exact)
 
-                # Projections
-                proj_x, proj_y = Iy*t, Ix*t
-                ax[1][0].clear()
-                quad_visu.project(0).plot(proj_x, ax=ax[1][0])
-                quad_visu.project(0).plot(density, ax=ax[1][0])
+                else:
+                    degrees.append(d)
+                    error = quad_num.eval(t) - e_exact
+                    errors.append(quad_num.norm(error, n=1, flat=True))
+                    print(errors[-1])
 
-                ax[1][1].clear()
-                quad_visu.project(1).plot(proj_y, ax=ax[1][1])
+                if args.interactive:
 
-                plt.draw()
-                plt.pause(.01)
+                    ax[0][0].clear()
+                    quad_visu.plot(t, ax=ax[0][0], bounds=True,
+                                   vmin=0, extend='min')
+
+                    # Hermite coefficients
+                    ax[0][1].clear()
+                    t.plot(ax=ax[0][1])
+
+                    # Projections
+                    proj_x, proj_y = Iy*t, Ix*t
+                    ax[1][0].clear()
+                    quad_visu.project(0).plot(proj_x, ax=ax[1][0])
+                    quad_visu.project(0).plot(density, ax=ax[1][0])
+
+                    ax[1][1].clear()
+                    quad_visu.project(1).plot(proj_y, ax=ax[1][1])
+
+                    plt.draw()
+                    plt.pause(.01)
 
                 # fig, ax = plt.subplots(1)
                 # cont = quad_visu.plot(t, bounds=False, ax=ax,
@@ -877,7 +944,178 @@ def convergence():
 
                 d = d - 1
                 break
+    import ipdb; ipdb.set_trace()
 
 
 if args.convergence:
     convergence()
+
+
+def convergence_epsilon():
+
+    # Output directory
+    dir = config.misc['directory']
+
+    if args.interactive:
+        plt.ion()
+        fig, ax = plt.subplots(2, 2)
+
+    # Calculate projections
+    qx, qy = quad_num.project(0), quad_num.project(1)
+    wx = qx.factor * qx.factor / qx.position.weight()
+    wy = qy.factor * qy.factor / qy.position.weight()
+
+    # Integral and moment operators
+    Ix = qx.transform(wx, degree=degree, index_set=index_set)
+    Iy = qy.transform(wy, degree=degree, index_set=index_set)
+    mx1 = qx.transform(wx * x, degree=degree, index_set=index_set)
+    my1 = qy.transform(wy * y, degree=degree, index_set=index_set)
+
+    β = params['β'].eval()
+    Vx, Vy = params['Vp'].eval(), params['Vy'].eval()
+    ux, uy = sym.exp(-β*Vx), sym.exp(-Vy)
+    Zx, Zy = qx.integrate(ux, flat=True), qy.integrate(uy, flat=True)
+    ux, uy, u = ux/Zx, uy/Zy, ux/Zx*uy/Zy
+    integral = quad_num.integrate(u, flat=True)
+    t = quad_num.transform(u/integral, degree=degree, index_set=index_set)
+
+    eye = quad_num.varf('1', degree=degree, index_set=index_set)
+    dt, Ns = 2**-9, int(1e4)
+
+    # Calculate white noise solution
+    #
+    # Comparison with this is not great, because there is an error on the
+    # coefficient that multiplies the noise.
+    Vp, β = params['Vp'].value, params['β'].value
+    γ, ε = params['γ'].symbol, params['ε'].symbol
+    kwargs = {'degree': degree, 'index_set': index_set}
+    forward0x = eq.Fokker_Planck_1d.equation({'Vp': Vp, 'β': β})
+    var0x = qx.discretize_op(forward0x, **kwargs)
+    _, [tx0] = var0x.eigs(k=1, which='LR')
+    forward0 = forward.subs(γ, 1).subs(ε, 1)
+    var0 = quad_num.discretize_op(forward0, **kwargs)
+    _, [t20] = var0.eigs(k=1, which='LR')
+    tx0 = tx0 * (1/qx.integrate(tx0, flat=True, tensorize=False))
+    t20 = t20 * (1/quad_num.integrate(t20, flat=True, tensorize=False))
+
+    εs = [2**(-i/4) for i in range(17)]
+    e2, ex, t2, tx = [], [], [], []
+
+    for iε, ε in enumerate(εs):
+
+        kwargs = {'degree': degree, 'index_set': index_set}
+        forward_ε = forward.subs(γ, 0).subs(params['ε'].symbol, ε)
+        r_mat = quad_num.discretize_op(forward_ε, **kwargs)
+
+        Δ, Δx = np.inf, np.inf
+        for i in range(Ns):
+
+            if i % 10 == 0 and args.interactive:
+
+                ax[0][0].clear()
+                quad_num.plot(t, ax=ax[0][0], bounds=True,
+                              vmin=0, extend='min')
+
+                ax[0][1].clear()
+                t.plot(ax=ax[0][1])
+
+                # Projections
+                proj_x, proj_y = Iy*t, Ix*t
+                mx, my = mx1*proj_x, my1*proj_y
+                ax[1][0].clear()
+                quad_num.project(0).plot(proj_x, ax=ax[1][0])
+                quad_num.project(0).plot(ux, ax=ax[1][0])
+                ax[1][0].set_title("First moment: " + str(mx.coeffs[0]))
+
+                ax[1][1].clear()
+                quad_num.project(1).plot(proj_y, ax=ax[1][1])
+                quad_num.project(1).plot(uy, ax=ax[1][1])
+                ax[1][1].set_title("First moment: " + str(my.coeffs[0]))
+
+                plt.draw()
+                plt.pause(.01)
+
+            print("ε: " + str(ε) + ", i: " + str(i), "dt: " + str(dt) +
+                  ", Δ: " + str(Δ) + ", Δx: " + str(Δx))
+
+            total_op = eye - dt*r_mat
+            new_t = total_op.solve(t)
+
+            # Normalization
+            r_eval = quad_num.eval(new_t)
+            integral = quad_num.integrate(r_eval, flat=True)
+            new_t = new_t * (1/integral)
+
+            Δ = quad_num.norm(t - new_t, n=1, flat=True)/dt
+            Δx = qx.norm(Iy*(t - new_t), n=1, flat=True)/dt
+
+            # Time adaptation
+            threshold, dt_max = .01, 64
+
+            if Δ*dt > 2*threshold:
+                dt = dt / 2.
+                continue
+            elif Δ*dt < threshold and dt < dt_max:
+                dt = dt * 2.
+
+            t = new_t
+
+            if Δ < 1e-16:
+                t2.append(t)
+                tx.append(Iy*t)
+                error2, errorx = t20 - t2[-1], Iy*(t20 - t2[-1])
+                e2.append(quad_num.norm(error2, n=1, flat=True))
+                ex.append(qx.norm(errorx, n=1, flat=True))
+
+                fig, ax = plt.subplots(1, 1)
+                quad_visu.plot(t, ax=ax, vmin=0, extend='min')
+                ax.set_title("$\\varepsilon = {}$".format(ε))
+                plt.savefig(dir + 'solution-epsilon=' + str(ε) + '.eps',
+                            bbox_inches='tight')
+                plt.close()
+
+
+                if iε > 2:
+                    logε = np.log2(εs[0:iε+1])
+                    coeffs = np.polyfit(logε, np.log2(e2), 1)
+                    print(coeffs)
+                    coeffs_x = np.polyfit(logε, np.log2(ex), 1)
+                    print(coeffs_x)
+
+                break
+
+    fig, ax = plt.subplots()
+    cmap = matplotlib.cm.get_cmap('viridis_r')
+    for i, (ε, txε) in enumerate(zip(εs, tx)):
+        if i % 2 is not 0:
+            continue
+        label = "$\\varepsilon = 2^{{ -{} }} $".format(i/4)
+        kwargs = {'color': cmap(ε), 'label': label}
+        quad_visu.project(0).plot(txε, ax=ax, **kwargs)
+    ax.set_title("")
+    plt.legend()
+    plt.savefig("convergence-epsilon.eps", bbox_inches='tight')
+
+    fig, ax = plt.subplots()
+    xplot, yplot1 = logε = np.asarray(εs), np.asarray(e2)
+    ax.set_xscale('log', basex=2)
+    ax.set_yscale('log', basey=2)
+    ax.plot(xplot, yplot1, 'b.', label="$|\\rho - \\rho_0|_1$")
+    yplot2 = np.asarray(ex)
+    ax.plot(xplot, yplot2, 'r.', label="$|\\rho^x - \\rho^x_0|_1$")
+    coeffs = np.polyfit(np.log2(xplot), np.log2(yplot1), 1)
+    ax.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'b-',
+            label='$y = {:.2f} \\, \\times \\, \\varepsilon^{{ {:.2f} }}$'.
+            format(2**coeffs[1], coeffs[0]))
+    coeffs = np.polyfit(np.log2(xplot), np.log2(yplot2), 1)
+    ax.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'r-',
+             label='$y = {:.2f} \\, \\times \\, \\varepsilon^{{ {:.2f} }}$'.
+                              format(2**coeffs[1], coeffs[0]))
+    plt.legend(loc='lower right')
+    plt.savefig("errors.eps", bbox_inches='tight')
+    plt.show()
+
+    import ipdb; ipdb.set_trace()
+
+if args.epsilon0:
+    convergence_epsilon()
