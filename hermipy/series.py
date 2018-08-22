@@ -142,6 +142,12 @@ class Series:
     def __sub__(self, other):
         return self + other * (-1)
 
+    def __truediv__(self, other):
+        assert isinstance(other, (int, float, np.float64))
+        new_coeffs = self.coeffs / other
+        return Series(new_coeffs, self.position,
+                      factor=self.factor, index_set=self.index_set)
+
     def __repr__(self):
         m_list = self.multi_indices()
         assert len(m_list) == len(self.coeffs)
