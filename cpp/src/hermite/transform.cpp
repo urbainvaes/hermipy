@@ -86,6 +86,10 @@ vec transform(
     Grid_iterator p(n_points);
     for (i = 0; i < n_points_tot; i++, p.increment())
     {
+        #ifdef DEBUG
+        std::cout << "Grid point " << i << " of " << n_points_tot << "." << std::endl;
+        #endif
+
         double weight = 1;
         if (forward)
         {
