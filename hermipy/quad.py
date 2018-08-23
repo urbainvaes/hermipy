@@ -63,6 +63,7 @@ class Quad:
 
         """
 
+        #  FIXME: This requires same number of points in each direction
         self.nodes = np.asarray(nodes, float)
         self.weights = np.asarray(weights, float)
 
@@ -117,6 +118,12 @@ class Quad:
             def wrapper(*args, tensorize=None, **kwargs):
                 do_tensorize = hm.settings['tensorize'] if \
                                tensorize is None else tensorize
+
+                # <- Fix bug with integrate(series)
+                if isinstance(args[arg_num], hm.Series):
+                    do_tensorize = False
+                # ->
+
                 if not do_tensorize:
                     return func(*args, **kwargs)
 
@@ -170,6 +177,9 @@ class Quad:
 
     @tensorize_at(1)
     def integrate(self, function, flat=False):
+
+        if isinstance(function, hm.Series):
+            function = self.eval(function)
 
         if not isinstance(function, np.ndarray):
             function = self.discretize(function)
