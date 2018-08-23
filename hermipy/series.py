@@ -142,6 +142,12 @@ class Series:
     def __sub__(self, other):
         return self + other * (-1)
 
+    def __truediv__(self, other):
+        assert isinstance(other, (int, float, np.float64))
+        new_coeffs = self.coeffs / other
+        return Series(new_coeffs, self.position,
+                      factor=self.factor, index_set=self.index_set)
+
     def __repr__(self):
         m_list = self.multi_indices()
         assert len(m_list) == len(self.coeffs)
@@ -162,10 +168,18 @@ class Series:
                       index_set=self.index_set)
 
     def subdegree(self, degree):
-        assert degree <= self.degree
+
+        # At the moment, only works if index set is consistent
+        assert self.index_set is not "cross_nc"
         n_polys = core.iterator_size(self.position.dim, degree,
                                      index_set=self.index_set)
-        coeffs = self.coeffs[0:n_polys]
+
+        if degree <= self.degree:
+            coeffs = self.coeffs[0:n_polys]
+        else:
+            zeros = np.zeros(n_polys - len(self.coeffs))
+            coeffs = np.hstack([self.coeffs, zeros])
+
         return Series(coeffs, self.position,
                       factor=self.factor, index_set=self.index_set)
 
