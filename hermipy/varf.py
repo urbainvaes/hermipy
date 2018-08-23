@@ -174,10 +174,10 @@ class Varf:
         eig_vals, eig_vecs = eigs(self.matrix, **kwargs)
         result = []
         for v in eig_vecs.T:
-            coeffs = np.real(v)
-            series = hs.Series(coeffs, self.position,
-                               factor=self.factor, index_set=self.index_set)
-            result.append(series)
+            rv, iv = np.real(v), np.imag(v)
+            v = v if la.norm(iv) > 1e-15 else rv
+            result.append(hs.Series(v, self.position,
+                          factor=self.factor, index_set=self.index_set))
         return eig_vals, result
 
     def plot(self, ax=None, lines=True):
