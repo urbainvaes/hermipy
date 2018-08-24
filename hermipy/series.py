@@ -156,6 +156,10 @@ class Series:
             result += str(m) + ": " + str(c) + "\n"
         return result
 
+    def __float__(self):
+        assert self.position.dim is 0
+        return float(self.coeffs[0])
+
     def project(self, directions):
         if type(directions) is not list:
             directions = [directions]

@@ -34,6 +34,13 @@ hm.settings['cache'] = True
 # Process arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--interactive', action='store_true')
+parser.add_argument('-tcd', '--convergence_degree', action='store_true')
+parser.add_argument('-tce', '--convergence_epsilon', action='store_true')
+parser.add_argument('-e', '--epsilon', type=float)
+parser.add_argument('-b', '--beta', type=float)
+parser.add_argument('-t', '--theta', type=float)
+parser.add_argument('-g', '--gamma', type=float)
+parser.add_argument('-m', '--mass', type=float)
 args = parser.parse_args()
 
 # Matplotlib configuration
@@ -52,10 +59,15 @@ dim = 3
 
 # Equation parameters
 index_set = 'rectangle'
-r = sym.Rational
+r, s = sym.Rational, sym.symbols
 equation = eq.McKean_Vlasov_harmonic_noise
 x, y, z, f = equation.x, equation.y, equation.z, equation.f
-params = {'β': r(5), 'ε': r(1, 5), 'γ': 0, 'θ': 0, 'm': 0}
+β, ε, γ, θ, m = r(5), r(1, 5), 0, 0, 0
+
+# For convergence_epsilon
+ε, γ = s('ε'), s('γ')
+
+params = {'β': β, 'ε': ε, 'γ': γ, 'θ': θ, 'm': m}
 Vp, β = x**4/4 - x**2/2, params['β']
 
 # Numerical parameters
@@ -104,11 +116,6 @@ ux = sym.exp(-β*Vp) / qx.integrate(sym.exp(-β*Vp), flat=True)
 uy = sym.exp(-y*y/2) / qy.integrate(sym.exp(-y*y/2), flat=True)
 uz = sym.exp(-z*z/2) / qz.integrate(sym.exp(-z*z/2), flat=True)
 
-# Discretization of the operator
-degrees = list(range(5, degree + 1))
-mat = quad.discretize_op(forward, degrees[-1], index_set=index_set)
-solutions, v0, eig_vec = [], None, None
-
 if args.interactive:
     plt.ion()
     fig, ax = plt.subplots(2, 2)
@@ -155,7 +162,7 @@ def plot(t):
     plt.pause(0.1)
 
 
-def convergence():
+def convergence_degree():
 
     eye = quad.varf('1', degree=degree, index_set=index_set)
     dt, Ns, scheme = 2**-9, int(1e4), "backward"
@@ -166,7 +173,6 @@ def convergence():
     t = quad.transform(ux*uy*uz, degree=degree, index_set=index_set)
 
     while d >= dmin:
-        # import ipdb; ipdb.set_trace()
         r_mat, eye = mat.subdegree(d), eye.subdegree(d)
         t = t.subdegree(d)
 
@@ -248,8 +254,135 @@ def convergence():
     plt.savefig("errors.eps", bbox_inches='tight')
 
 
-convergence()
+if args.convergence_degree:
+    convergence_degree()
 
+
+def convergence_epsilon():
+
+    # Initial condition
+    t = quad.transform(ux*uy*uz, degree=degree, index_set=index_set)
+
+    eye = quad.varf('1', degree=degree, index_set=index_set)
+    dt, Ns, scheme = 2**-9, int(1e4), "backward"
+
+    # Calculate white noise solution
+    kwargs = {'degree': degree, 'index_set': index_set}
+    forward0x = eq.Fokker_Planck_1d.equation({'Vp': Vp, 'β': β})
+    var0x = qx.discretize_op(forward0x, **kwargs)
+    _, [tx0] = var0x.eigs(k=1, which='LR')
+    forward0 = forward.subs(γ, 1).subs(ε, 1)
+    var0 = quad.discretize_op(forward0, **kwargs)
+    _, [t30] = var0.eigs(k=1, which='LR')
+    tx0, t30 = tx0 / float(Ix*tx0), t30 / float(Ix*(Iy*(Iz*t30)))
+
+    εs = [2**(-i/4) for i in range(30)]
+    e3, ex, t3, tx = [], [], [], []
+
+    for iε, εi in enumerate(εs):
+
+        forward_ε = forward.subs(γ, 0).subs(ε, εi)
+        r_mat = quad.discretize_op(forward_ε, **kwargs)
+
+        Δ, Δx = np.inf, np.inf
+        for i in range(Ns):
+
+            if args.interactive:
+                plot(t)
+
+            print("ε: " + str(εi) + ", i: " + str(i) + ", dt: " + str(dt)
+                  + ", Δ: " + str(Δ) + ", Δx: " + str(Δx))
+
+            # Backward Euler
+            if scheme == 'backward':
+                total_op = eye - dt*r_mat
+                new_t = total_op.solve(t)
+
+            # Crank-Nicholson
+            if scheme == 'crank':
+                crank_left = eye - dt*r_mat*(1/2)
+                crank_right = eye + dt*r_mat*(1/2)
+                new_t = crank_left.solve(crank_right(t))
+
+            # Normalization
+            new_t = new_t / float(Ix*(Iy*(Iz*new_t)))
+
+            # Error
+            Δ = ((t - new_t)*(t - new_t)).coeffs[0]/dt
+
+            # Time adaptation
+            threshold, dt_max = .01, 64
+            if Δ*dt > 2*threshold:
+                dt = dt / 2.
+                continue
+            elif Δ*dt < threshold and dt < dt_max:
+                dt = dt * 2.
+            t = new_t
+
+            if Δ < 1e-16:
+
+                if args.interactive:
+                    plot(t)
+
+                t3.append(t)
+                tx.append(Iy*(Iz*t))
+                error3, errorx = t30 - t3[-1], tx0 - tx[-1]
+                e3.append(min_quad.norm(error3, n=1, flat=True))
+                ex.append(qx.norm(errorx, n=1, flat=True))
+
+                if iε > 1:
+                    logε = np.log2(εs[0:iε+1])
+                    coeffs = np.polyfit(logε, np.log2(e3), 1)
+                    print(coeffs)
+                    coeffs_x = np.polyfit(logε, np.log2(ex), 1)
+                    print(coeffs_x)
+
+                break
+
+    t30, tx0 = t3[-1], tx[-1]
+    ex = [qx.norm(tx0 - txi, n=1, flat=True) for txi in tx]
+    e3 = [min_quad.norm(t30 - t3i, n=1, flat=True) for t3i in t3]
+    εs, ex, e3 = εs[0:-1], ex[0:-1], e3[0:-1]
+
+    fig, ax = plt.subplots()
+    cmap = matplotlib.cm.get_cmap('viridis_r')
+    for i, (εi, txε) in enumerate(zip(εs, tx)):
+        if i % 2 is not 0:
+            continue
+        label = "$\\varepsilon = 2^{{ -{} }} $".format(i/4)
+        kwargs = {'color': cmap(εi), 'label': label}
+        qx.plot(txε, ax=ax, **kwargs)
+    ax.set_title("")
+    plt.legend()
+    plt.savefig("convergence-epsilon.eps", bbox_inches='tight')
+
+    fig, ax = plt.subplots()
+    xplot, yplot1 = logε = np.asarray(εs), np.asarray(e3)
+    ax.set_xscale('log', basex=2)
+    ax.set_yscale('log', basey=2)
+    ax.plot(xplot, yplot1, 'b.', label="$|\\rho - \\rho_0|_1$")
+    yplot2 = np.asarray(ex)
+    ax.plot(xplot, yplot2, 'r.', label="$|\\rho^x - \\rho^x_0|_1$")
+    coeffs = np.polyfit(np.log2(xplot), np.log2(yplot1), 1)
+    ax.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'b-',
+            label='$y = {:.2f} \\, \\times \\, \\varepsilon^{{ {:.2f} }}$'.
+            format(2**coeffs[1], coeffs[0]))
+    coeffs = np.polyfit(np.log2(xplot), np.log2(yplot2), 1)
+    ax.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'r-',
+            label='$y = {:.2f} \\, \\times \\, \\varepsilon^{{ {:.2f} }}$'.
+            format(2**coeffs[1], coeffs[0]))
+    plt.legend(loc='lower right')
+    plt.savefig("errors.eps", bbox_inches='tight')
+    plt.show()
+
+
+if args.convergence_epsilon:
+    convergence_epsilon()
+
+# Discretization of the operator
+degrees = list(range(5, degree + 1))
+mat = quad.discretize_op(forward, degrees[-1], index_set=index_set)
+solutions, v0, eig_vec = [], None, None
 
 if args.interactive:
     plt.ion()
