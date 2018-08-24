@@ -16,11 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import os
 import argparse
 import sympy as sym
 import numpy as np
 import numpy.linalg as la
-import matplotlib.pyplot as plt
+import matplotlib
 import hermipy as hm
 import hermipy.equations as eq
 import hermipy.core as core
@@ -34,6 +35,17 @@ hm.settings['cache'] = True
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--interactive', action='store_true')
 args = parser.parse_args()
+
+# Matplotlib configuration
+matplotlib.rc('font', size=14)
+matplotlib.rc('font', family='serif')
+matplotlib.rc('text', usetex=True)
+
+if 'DISPLAY' not in os.environ:
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+else:
+    import matplotlib.pyplot as plt
 
 # Dimension of the problem
 dim = 3
@@ -68,9 +80,7 @@ factor = factor_x * factor_pq
 new_q = hm.Quad.gauss_hermite
 cov = [[s2x, 0, 0], [0, s2y, 0], [0, 0, s2z]]
 quad = new_q(n_points_num, dim=3, mean=[0]*3, cov=cov, factor=factor)
-
-import ipdb; ipdb.set_trace()
-min_quad = new_q(n_points=degree+1, mean=[0]*3, cov=cov, factor=factor)
+min_quad = new_q(n_points=degree+1, dim=3, mean=[0]*3, cov=cov, factor=factor)
 
 # Projections
 qx, qy, qz = quad.project(0), quad.project(1), quad.project(2)
@@ -149,7 +159,8 @@ def convergence():
 
     eye = quad.varf('1', degree=degree, index_set=index_set)
     dt, Ns, scheme = 2**-9, int(1e4), "backward"
-    dmin, d, degrees, errors = 10, degree, [], []
+    dmin, d, degrees = 10, degree, []
+    errors, mins = [], []
 
     # Initial condition
     t = quad.transform(ux*uy*uz, degree=degree, index_set=index_set)
@@ -206,8 +217,15 @@ def convergence():
                     t_exact = t
 
                 else:
-                    errors.append(t.subdegree(degree) - t_exact)
-                    # print(errors[-1])
+                    error_series = t.subdegree(degree) - t_exact
+                    error_series_x = Iy*(Iz*error_series)
+                    error = min_quad.norm(error_series, n=1, flat=True)
+                    error_x = qx.norm(error_series_x, n=1, flat=True)
+                    min = np.min(min_quad.eval(error_series))
+                    mins.append(abs(min))
+                    errors.append(error)
+                    degrees.append(d)
+                    print(min, error, error_x)
 
                 if args.interactive:
                     plot(t)
@@ -215,7 +233,19 @@ def convergence():
                 d = d - 1
                 break
 
-    import ipdb; ipdb.set_trace()
+    cond = np.asarray(degrees)*0 + 1
+    xplot, yplot = np.extract(cond, degrees), np.extract(cond, errors)
+    fig, ax = plt.subplots()
+    ax.semilogy(xplot, yplot, 'b.', label="$\\|\\rho^{{50}} - \\rho^d\\|_1$")
+    coeffs = np.polyfit(xplot, np.log10(yplot), 1)
+    ax.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'b-')
+    yplot = np.extract(cond, mins)
+    ax.semilogy(xplot, yplot, 'r.', label="$|\\min \\, \\rho^d(x, p, q)|$")
+    coeffs = np.polyfit(xplot, np.log10(yplot), 1)
+    ax.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'r-')
+    ax.set_xlabel("$d$")
+    plt.legend(loc='upper right')
+    plt.savefig("errors.eps", bbox_inches='tight')
 
 
 convergence()
