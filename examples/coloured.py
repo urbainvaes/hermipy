@@ -262,8 +262,8 @@ def factors(symbolic, λ):
     elif symbolic == 0:
         Vp, Vq = params['Vp'].eval(), params['Vqx'].eval()
         Vy, Vqy = params['Vy'].eval(), params['Vqy'].eval()
-    # factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
-    factor_x = sym.exp(-Vq/2)
+    # factor_x = sym.exp(-Vq/2)
+    factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
     factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
     # factor_x = sym.exp(-Vq/2)
     # factor_y = sym.exp(-Vqy/2)
@@ -493,7 +493,8 @@ def convergence_eig():
         assert abs(norm_sol - 1) < 1e-6
     else:
         eig_vals, eig_vecs = r_mat.eigs(k=4, which='LR')
-        solution_eval = get_ground_state(eig_vecs[0])
+        argmin = np.argmin(np.abs(eig_vals))
+        solution_eval = get_ground_state(eig_vecs[argmin])
         norm_sol = quad_num.integrate(solution_eval, flat=True)
         solution_eval = solution_eval / norm_sol
 
@@ -562,21 +563,18 @@ def convergence_eig():
     # Iy = qy.transform(wy, degree=degree, index_set=index_set)
     # quad_num.plot(Iy*eig_vecs[0])
 
-    fig, ax1 = plt.subplots()
-    xplot, yplot = np.asarray(degrees), np.asarray(errors)
-    ax1.semilogy(xplot, yplot, 'b.', label="$L^1$ error")
-    ax1.set_yscale('log', basey=2)
+    fig, ax = plt.subplots()
+    condition = (np.asarray(degrees) + 1) % 2
+    xplot, yplot = np.extract(condition, degrees), np.extract(condition, errors)
+    ax.semilogy(xplot, yplot, 'b.', label="$\\|\\rho^{{80}} - \\rho^d\\|_1$")
     coeffs = np.polyfit(xplot, np.log10(yplot), 1)
-    ax1.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'b-')
-    ax1.tick_params('y', colors='b')
-    plt.legend(loc='lower left')
-    ax2, yplot = ax1.twinx(), np.asarray(np.abs(eig_ground))
-    ax2.semilogy(xplot, yplot, 'r.', label="$|\\lambda_0|$")
-    ax2.set_yscale('log', basey=2)
+    # ax.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'b-')
+    yplot = np.extract(condition, np.abs(eig_ground))
+    ax.semilogy(xplot, yplot, 'r.', label="$|\\lambda_0(d)|$")
     coeffs = np.polyfit(xplot, np.log10(yplot), 1)
-    ax2.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'r-')
-    ax2.tick_params('y', colors='r')
+    # ax.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'r-')
     plt.legend(loc='upper right')
+    ax.set_xlabel('d')
     plt.savefig("errors.eps", bbox_inches='tight')
     plt.show()
 
