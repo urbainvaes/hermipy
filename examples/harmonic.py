@@ -101,8 +101,8 @@ params = {'β': β, 'ε': ε, 'γ': γ, 'θ': θ, 'm': m}
 Vp, β = x**4/4 - x**2/2, params['β']
 
 # Numerical parameters
-s2x, s2y, s2z = r(1, 20), r(1, 5), r(1, 5)
-# s2x, s2y, s2z, degree = r(1, 30), r(1), r(1), 50
+# s2x, s2y, s2z = r(1, 20), r(1, 5), r(1, 5)
+s2x, s2y, s2z, degree = r(1, 30), r(1), r(1), 50
 degree = args.degree if args.degree else 50
 n_points_num = 2*degree + 1
 
