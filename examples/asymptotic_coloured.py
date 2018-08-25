@@ -33,6 +33,7 @@ equation = eq.McKean_Vlasov
 x, y, f = equation.x, equation.y, equation.f
 params = equation.params()
 params['γ'], params['θ'] = 0, 0
+params.update({'γ': 0, 'θ': 0, 'Vy': y*y/2})
 forward = equation.equation(params)
 β, Vp, θ, m = (params[k] for k in ('β', 'Vp', 'θ', 'm'))
 
@@ -173,6 +174,7 @@ for term in split:
 
 print("x-projection of the solution: ")
 sym.pprint(func.Function.sanitize(solution_x).factor())
+import ipdb; ipdb.set_trace()
 # }}}
 # Plot x - y {{{
 n_points = 100
@@ -206,19 +208,21 @@ for i, p in enumerate(un):
     assert abs(quad_gauss.integrate(un[i], flat=True) - i == 0) < 1e-8
 
 
-import matplotlib
-import matplotlib.pyplot as plt
-matplotlib.rc('font', size=14)
-matplotlib.rc('font', family='serif')
-matplotlib.rc('text', usetex=True)
+if False:
+    import matplotlib
+    import matplotlib.pyplot as plt
+    matplotlib.rc('font', size=14)
+    matplotlib.rc('font', family='serif')
+    matplotlib.rc('text', usetex=True)
 
-fig, axes = plt.subplots(1, 2)
-quad_visu = quad.Quad.newton_cotes([n_points, n_points], [2, 2], dirs=[0, 1])
-proj_total = 0
+    fig, axes = plt.subplots(1, 2)
+    quad_visu = quad.Quad.newton_cotes([n_points, n_points],
+                                       [2, 2], dirs=[0, 1])
+    proj_total = 0
 
-for i in (0, 1):
-    cont = quad_visu.plot(un[i+1], ax=axes[i])
-    plt.colorbar(cont, ax=axes[i], pad=.01)
-    for c in cont.collections:
-        c.set_edgecolor("face")
-plt.show()
+    for i in (0, 1):
+        cont = quad_visu.plot(un[i+1], ax=axes[i])
+        plt.colorbar(cont, ax=axes[i], pad=.01)
+        for c in cont.collections:
+            c.set_edgecolor("face")
+    plt.show()
