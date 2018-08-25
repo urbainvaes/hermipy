@@ -17,14 +17,13 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import os
+import math
 import argparse
 import sympy as sym
 import numpy as np
-import numpy.linalg as la
 import matplotlib
 import hermipy as hm
 import hermipy.equations as eq
-import hermipy.core as core
 
 hm.settings['tensorize'] = True
 hm.settings['sparse'] = True
@@ -41,9 +40,11 @@ parser.add_argument('-tce', '--convergence_epsilon', action='store_true')
 parser.add_argument('-tb', '--bifurcation', action='store_true')
 parser.add_argument('-bmin', '--beta_min', type=float)
 parser.add_argument('-bmax', '--beta_max', type=float)
-parser.add_argument('-e', '--epsilon', type=float)
+parser.add_argument('-sstep', '--arclength', type=float)
+parser.add_argument('-m0', '--mass0', type=float)
+parser.add_argument('-e', '--epsilon', type=str)
 parser.add_argument('-b', '--beta', type=float)
-parser.add_argument('-t', '--theta', type=float)
+parser.add_argument('-t', '--theta', type=str)
 parser.add_argument('-g', '--gamma', type=float)
 parser.add_argument('-m', '--mass', type=float)
 parser.add_argument('-d', '--degree', type=int)
@@ -80,11 +81,15 @@ if args.convergence_epsilon:
     args.gamma = -1
 
 if args.bifurcation:
-    args.beta = -1
+    args.beta, args.mass = -1, -1
+    minit = args.mass0 if args.mass0 else 1
+    βmin = args.beta_min if args.beta_min else 1
+    βmax = args.beta_max if args.beta_max else 6
+    sstep = args.arclength if args.arclength else .1
 
 
 def set_param(arg, default, symbol):
-    if arg and arg < 0:
+    if arg and r(arg) < 0:
         return s(symbol)
     if arg:
         return r(arg)
@@ -101,13 +106,16 @@ params = {'β': β, 'ε': ε, 'γ': γ, 'θ': θ, 'm': m}
 Vp, β = x**4/4 - x**2/2, params['β']
 
 # Numerical parameters
-# s2x, s2y, s2z = r(1, 20), r(1, 5), r(1, 5)
-s2x, s2y, s2z, degree = r(1, 30), r(1), r(1), 50
+s2x, s2y, s2z = r(1, 20), r(1, 5), r(1, 5)
+
+if args.convergence_epsilon:
+    s2x, s2y, s2z = r(1, 30), r(1), r(1)
+
 degree = args.degree if args.degree else 50
 n_points_num = 2*degree + 1
 
 # Potential for approximation
-Vqx = sym.Rational(1/2)*x*x/(β*s2x)
+Vqx = sym.Rational(1/2)*x*x/s2x
 Vqy = sym.Rational(1/2)*y*y/s2y
 Vqz = sym.Rational(1/2)*z*z/s2z
 
@@ -116,7 +124,8 @@ params.update({'Vp': Vp})
 forward = equation.equation(params)
 
 # Map to appropriate space
-factor_x = sym.exp(- β / 2 * (Vqx + Vp))
+factor_x = sym.exp(- 1/2 * Vqx) if args.bifurcation \
+        else sym.exp(- 1/2 * (Vqx + β*Vp))
 factor_pq = sym.exp(- 1/2 * (y*y/2 + Vqy + z*z/2 + Vqz))
 factor = factor_x * factor_pq
 
@@ -144,7 +153,10 @@ my1 = qy.transform(wy * y, degree=degree, index_set=index_set)
 mz1 = qz.transform(wz * z, degree=degree, index_set=index_set)
 
 # Marginals in white noise case
-ux = sym.exp(-β*Vp) / qx.integrate(sym.exp(-β*Vp), flat=True)
+βinit = βmax if args.bifurcation else β
+minit = minit if args.bifurcation else m
+Vx = Vp + θ*(x - minit)**2/2
+ux = sym.exp(-βinit*Vx) / qx.integrate(sym.exp(-βinit*Vx), flat=True)
 uy = sym.exp(-y*y/2) / qy.integrate(sym.exp(-y*y/2), flat=True)
 uz = sym.exp(-z*z/2) / qz.integrate(sym.exp(-z*z/2), flat=True)
 
@@ -179,9 +191,9 @@ def plot(t, βplot=β):
     qxy.plot(txy, ax=ax[0][0], bounds=False, vmin=0, extend='min')
 
     ax[0][1].clear()
-    uxplot = ux.subs(β, βplot) if args.bifurcation else ux
-    qx.plot(uxplot, ax=ax[0][1])
     qx.plot(tx, ax=ax[0][1], title="1st moment - X: " + mx)
+    if not args.bifurcation:
+        qx.plot(ux, ax=ax[0][1])
 
     ax[1][0].clear()
     qy.plot(uy, ax=ax[1][0])
@@ -317,7 +329,7 @@ def convergence_epsilon():
     integral = float(Ix*(Iy*(Iz*t30)))
     t30, tx0 = t30 / integral, Iy*(Iz*t30) / integral
 
-    εs = [2**(-i/4) for i in range(14)]
+    εs = [2**(-i/4) for i in range(40)]
     e3, ex, t3, tx = [], [], [], []
 
     for iε, εi in enumerate(εs):
@@ -434,59 +446,103 @@ if args.convergence_epsilon:
 
 def bifurcation():
 
-    # Discretization of the operator
-    mat = quad.discretize_op(forward, degree, index_set=index_set)
-    eye = quad.varf('1', degree=degree, index_set=index_set)
-    dt, Ns, scheme = 2**-9, int(1e4), "backward"
-    dmin, d, degrees = 10, degree, []
-    errors, mins = [], []
-
-    βmin = args.beta_max if args.beta_max else 6
-    βmax = args.beta_max if args.beta_max else 6
+    kwargs = {'degree': degree, 'index_set': index_set}
+    m_operator = forward.diff(m)
+    r_operator = (forward - m*m_operator).cancel()
+    m_mat = quad.discretize_op(m_operator, **kwargs)
+    eye = quad.varf('1', **kwargs)
 
     # Initial condition
-    t = quad.transform(ux*uy*uz, degree=degree, index_set=index_set)
+    βnum, mnum, betas, ms = βmax, 1, [], []
+    t = quad.transform(ux.subs(β, βnum)*uy*uz, **kwargs)
 
-    for d in degrees:
-        print(d)
-        npolys = core.iterator_size(dim, d, index_set=index_set)
-        if d is not degrees[0]:
-            v0 = np.zeros(npolys)
-            for i in range(len(eig_vec.coeffs)):
-                v0[i] = eig_vec.coeffs[i]
-        sub_mat = mat.subdegree(d)
-        eig_vals, [eig_vec] = sub_mat.eigs(k=1, v0=v0, which='LR')
-        t = eig_vec * np.sign(eig_vec.coeffs[0])
+    dt, dt_max, Ns, scheme = 2**-9, 256, int(1e4), "backward"
+    while βnum > βmin:
 
-        t = t / quad.integrate(t, flat=True, tensorize=False)
-        solutions.append(t)
+        r_operator_this = r_operator.subs(β, βnum)
+        r_mat = quad.discretize_op(r_operator_this, **kwargs)
 
-        if args.interactive:
-            plot(t)
+        Δ = np.inf
+        for i in range(Ns):
 
-    finest = ground_state
-    finest_eval = solutions[-1]
+            if args.interactive:
+                plot(t)
 
-    # Plot of the finest solution
-    fig, ax = plt.subplots(1, 1)
-    quad.plot(finest, factor, ax=ax)
-    plt.show()
+            print("β: " + str(βnum) + ", i: " + str(i) + ", dt: " + str(dt)
+                  + ", m: " + str(mnum) + ", Δ: " + str(Δ))
 
-    # Associated errors
-    errors, degrees = [], degrees[0:-1]
-    for sol in solutions[0:-1]:
-        error = quad.norm(sol - finest_eval, flat=True)
-        errors.append(error)
-        print(error)
+            operator = r_mat + mnum*m_mat
 
-    log_errors = np.log(errors)
-    poly_approx = np.polyfit(degrees, log_errors, 1)
-    errors_approx = np.exp(np.polyval(poly_approx, degrees))
-    error = la.norm(log_errors - np.log(errors_approx), 2)
+            # Backward Euler
+            if scheme == 'backward':
+                total_op = eye - dt*operator
+                new_t = total_op.solve(t)
 
-    plt.semilogy(degrees, errors, 'k.')
-    plt.semilogy(degrees, errors_approx)
-    plt.show()
+            # Crank-Nicholson
+            if scheme == 'crank':
+                crank_left = eye - dt*operator*(1/2)
+                crank_right = eye + dt*operator*(1/2)
+                new_t = crank_left.solve(crank_right(t))
+
+            # Inverse power method
+            # if scheme == 'inverse':
+            #     new_t = operator.solve(t)
+
+            # Normalization
+            new_t = new_t / float(Ix*(Iy*(Iz*new_t)))
+            new_m = float(mx1*(Iy*(Iz*new_t)))
+
+            # Error
+            Δ = np.sqrt(float((t - new_t)*(t - new_t)))/dt
+            Δ = Δ + (i > 0)*abs(new_m - mnum)/dt
+
+            # Time adaptation
+            threshold = .1
+            if Δ*dt > 2*threshold or dt > dt_max:
+                dt = dt / 2.
+                continue
+            elif Δ*dt < threshold and dt < dt_max:
+                dt = dt * 2.
+            t, mnum = new_t, new_m
+
+            if Δ < 1e-8:
+                break
+
+        betas.append(βnum)
+        ms.append(mnum)
+
+        gmm, dsdβ = 20, 1
+        if len(ms) > 1:
+            Δm, Δβ = ms[-1] - ms[-2], betas[-1] - betas[-2]
+            dsdβ = np.sqrt(gmm*Δm*Δm + Δβ*Δβ) / abs(Δβ)
+        newβ = βnum - sstep/dsdβ
+
+        if math.floor(βnum) != math.floor(newβ):
+            βnum = math.floor(βnum)
+
+            plt.ioff()
+            fig, ax = plt.subplots(1, 1)
+            qxy.plot(Iy*t, bounds=False, ax=ax)
+            plt.savefig(dir + 'solution-beta=' + str(βnum) + '.eps',
+                        bbox_inches='tight')
+            plt.close()
+
+            fig, ax = plt.subplots(1, 1)
+            density = sym.exp(-βnum*(Vp + θ*(x - mnum)**2/2))
+            density = density / qx.integrate(density, flat=True)
+            qx.plot(density, ax=ax, label="White noise")
+            qx.plot(Iy*(Iz*t), bounds=False, ax=ax,
+                    label="$\\varepsilon = " + str(ε) + "$")
+            plt.legend()
+            plt.savefig(dir + 'solution-proj-beta=' + str(βnum) + '.eps',
+                        bbox_inches='tight')
+            plt.close()
+            plt.ion()
+
+        βnum = newβ
+
+    np.save(dir + "epsilon=1o" + str(1/ε) + "-betas", np.asarray(betas))
+    np.save(dir + "epsilon=1o" + str(1/ε) + "-ms", np.asarray(ms))
 
 
 if args.bifurcation:
