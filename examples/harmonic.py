@@ -38,6 +38,9 @@ parser.add_argument('-i', '--interactive', action='store_true')
 parser.add_argument('-p', '--parallel', action='store_true')
 parser.add_argument('-tcd', '--convergence_degree', action='store_true')
 parser.add_argument('-tce', '--convergence_epsilon', action='store_true')
+parser.add_argument('-tb', '--bifurcation', action='store_true')
+parser.add_argument('-bmin', '--beta_min', type=float)
+parser.add_argument('-bmax', '--beta_max', type=float)
 parser.add_argument('-e', '--epsilon', type=float)
 parser.add_argument('-b', '--beta', type=float)
 parser.add_argument('-t', '--theta', type=float)
@@ -71,20 +74,35 @@ index_set = 'rectangle'
 r, s = sym.Rational, sym.symbols
 equation = eq.McKean_Vlasov_harmonic_noise
 x, y, z, f = equation.x, equation.y, equation.z, equation.f
-β = r(args.beta) if args.beta else r(5)
-ε = r(args.epsilon) if args.epsilon else r(1, 5)
-γ = r(args.gamma) if args.gamma else 0
-θ = r(args.theta) if args.theta else 0
-m = r(args.mass) if args.mass else 0
 
-# For convergence_epsilon
-ε, γ = s('ε'), s('γ')
+if args.convergence_epsilon:
+    args.epsilon = -1
+    args.gamma = -1
+
+if args.bifurcation:
+    args.beta = -1
+
+
+def set_param(arg, default, symbol):
+    if arg and arg < 0:
+        return s(symbol)
+    if arg:
+        return r(arg)
+    return default
+
+
+β = set_param(args.beta, r(5), 'β')
+ε = set_param(args.epsilon, r(1, 5), 'ε')
+γ = set_param(args.gamma, 0, 'γ')
+θ = set_param(args.theta, 0, 'θ')
+m = set_param(args.mass, 0, 'm')
 
 params = {'β': β, 'ε': ε, 'γ': γ, 'θ': θ, 'm': m}
 Vp, β = x**4/4 - x**2/2, params['β']
 
 # Numerical parameters
 s2x, s2y, s2z = r(1, 20), r(1, 5), r(1, 5)
+# s2x, s2y, s2z, degree = r(1, 30), r(1), r(1), 50
 degree = args.degree if args.degree else 50
 n_points_num = 2*degree + 1
 
@@ -135,7 +153,7 @@ if args.interactive:
     fig, ax = plt.subplots(2, 2)
 
 
-def plot(t):
+def plot(t, βplot=β):
 
     # Retrieve degree
     d = t.degree
@@ -161,7 +179,8 @@ def plot(t):
     qxy.plot(txy, ax=ax[0][0], bounds=False, vmin=0, extend='min')
 
     ax[0][1].clear()
-    qx.plot(ux, ax=ax[0][1])
+    uxplot = ux.subs(β, βplot) if args.bifurcation else ux
+    qx.plot(uxplot, ax=ax[0][1])
     qx.plot(tx, ax=ax[0][1], title="1st moment - X: " + mx)
 
     ax[1][0].clear()
@@ -287,16 +306,18 @@ def convergence_epsilon():
     dt, Ns, scheme = 2**-9, int(1e4), "backward"
 
     # Calculate white noise solution
+    use_white = True
     kwargs = {'degree': degree, 'index_set': index_set}
-    forward0x = eq.Fokker_Planck_1d.equation({'Vp': Vp, 'β': β})
-    var0x = qx.discretize_op(forward0x, **kwargs)
-    _, [tx0] = var0x.eigs(k=1, which='LR')
+    # forward0x = eq.Fokker_Planck_1d.equation({'Vp': Vp, 'β': β})
+    # var0x = qx.discretize_op(forward0x, **kwargs)
+    # _, [tx0] = var0x.eigs(k=1, which='LR')
     forward0 = forward.subs(γ, 1).subs(ε, 1)
     var0 = quad.discretize_op(forward0, **kwargs)
     _, [t30] = var0.eigs(k=1, which='LR')
-    tx0, t30 = tx0 / float(Ix*tx0), t30 / float(Ix*(Iy*(Iz*t30)))
+    integral = float(Ix*(Iy*(Iz*t30)))
+    t30, tx0 = t30 / integral, Iy*(Iz*t30) / integral
 
-    εs = [2**(-i/4) for i in range(30)]
+    εs = [2**(-i/4) for i in range(14)]
     e3, ex, t3, tx = [], [], [], []
 
     for iε, εi in enumerate(εs):
@@ -306,6 +327,9 @@ def convergence_epsilon():
 
         Δ, Δx = np.inf, np.inf
         for i in range(Ns):
+
+            if args.interactive:
+                plot(t)
 
             print("ε: " + str(εi) + ", i: " + str(i) + ", dt: " + str(dt)
                   + ", Δ: " + str(Δ) + ", Δx: " + str(Δx))
@@ -328,44 +352,42 @@ def convergence_epsilon():
             Δ = np.sqrt(((t - new_t)*(t - new_t)).coeffs[0])/dt
 
             # Time adaptation
-            threshold, dt_max = .1, 64
-            if Δ*dt > 2*threshold:
+            threshold = .1
+            dt_max = 64
+            if Δ*dt > 2*threshold or dt > dt_max:
                 dt = dt / 2.
                 continue
             elif Δ*dt < threshold and dt < dt_max:
                 dt = dt * 2.
             t = new_t
 
-            if Δ < 1e-12:
-
-                if args.interactive:
-                    plot(t)
-
-                if args.interactive:
-                    plot(t)
-
-                t3.append(t)
-                tx.append(Iy*(Iz*t))
-                error3, errorx = t30 - t3[-1], tx0 - tx[-1]
-                e3.append(qxy.norm(Iy*error3, n=1, flat=True))
-                ex.append(qx.norm(errorx, n=1, flat=True))
-
-                if iε > 1:
-                    logε = np.log2(εs[0:iε+1])
-                    coeffs = np.polyfit(logε, np.log2(e3), 1)
-                    print(coeffs)
-                    coeffs_x = np.polyfit(logε, np.log2(ex), 1)
-                    print(coeffs_x)
-
+            converged = 1e-12
+            if Δ < converged:
                 break
 
-    import ipdb; ipdb.set_trace()
+        if args.interactive:
+            plot(t)
+
+        t3.append(t)
+        tx.append(Iy*(Iz*t))
+        error3, errorx = t30 - t3[-1], tx0 - tx[-1]
+        e3.append(qxy.norm(Iy*error3, n=1, flat=True))
+        ex.append(qx.norm(errorx, n=1, flat=True))
+
+        if iε > 1:
+            logε = np.log2(εs[0:iε+1])
+            coeffs = np.polyfit(logε, np.log2(e3), 1)
+            print(coeffs)
+            coeffs_x = np.polyfit(logε, np.log2(ex), 1)
+            print(coeffs_x)
 
     # Use last estimation as exact solution and remove it
-    t30, tx0, t3, tx = t3[-1], tx[-1], t3[0:-1], tx[0:-1]
-    εs, ex, e3 = εs[0:-1], ex[0:-1], e3[0:-1]
-    ex = [qx.norm(tx0 - txi, n=1, flat=True) for txi in tx]
-    e3 = [qxy.norm(Iy*(t30 - t3i), n=1, flat=True) for t3i in t3]
+    if not use_white:
+        rem = 8
+        t30, tx0, t3, tx = t3[-1], tx[-1], t3[0:-rem], tx[0:-rem]
+        εs, ex, e3 = εs[0:-rem], ex[0:-rem], e3[0:-rem]
+        ex = [qx.norm(tx0 - txi, n=1, flat=True) for txi in tx]
+        e3 = [qxy.norm(Iy*(t30 - t3i), n=1, flat=True) for t3i in t3]
 
     fig, ax = plt.subplots()
     cmap = matplotlib.cm.get_cmap('viridis_r')
@@ -381,17 +403,22 @@ def convergence_epsilon():
                 bbox_inches='tight')
 
     fig, ax = plt.subplots()
-    xplot, yplot1 = logε = np.asarray(εs), np.asarray(e3)
+    xplot = logε = np.asarray(εs)
+    yplot1 = np.asarray(e3)
+    yplot2 = np.asarray(ex)
+    np.save(dir + "convergence-eps-eps", xplot)
+    np.save(dir + "convergence-eps-e3", xplot)
+    np.save(dir + "convergence-eps-ex", xplot)
     ax.set_xscale('log', basex=2)
     ax.set_yscale('log', basey=2)
-    ax.plot(xplot, yplot1, 'b.', label="$|\\rho - \\rho_0|_1$")
-    yplot2 = np.asarray(ex)
+    ax.set_xlabel('$\\varepsilon$')
+    ax.plot(xplot, yplot1, 'b.', label="$|\\rho^{{x,q}} - \\rho^{{x,q}}_0|_1$")
     ax.plot(xplot, yplot2, 'r.', label="$|\\rho^x - \\rho^x_0|_1$")
     coeffs = np.polyfit(np.log2(xplot[5:]), np.log2(yplot1[5:]), 1)
     ax.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'b-',
             label='$y = {:.2f} \\, \\times \\, \\varepsilon^{{ {:.2f} }}$'.
             format(2**coeffs[1], coeffs[0]))
-    coeffs = np.polyfit(np.log2(xplot[5:]), np.log2(yplot2[5:]), 1)
+    coeffs = np.polyfit(np.log2(xplot[7:]), np.log2(yplot2[7:]), 1)
     ax.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'r-',
             label='$y = {:.2f} \\, \\times \\, \\varepsilon^{{ {:.2f} }}$'.
             format(2**coeffs[1], coeffs[0]))
@@ -404,87 +431,63 @@ def convergence_epsilon():
 if args.convergence_epsilon:
     convergence_epsilon()
 
-# Discretization of the operator
-degrees = list(range(5, degree + 1))
-mat = quad.discretize_op(forward, degrees[-1], index_set=index_set)
-solutions, v0, eig_vec = [], None, None
 
-if args.interactive:
-    plt.ion()
-    fig, ax = plt.subplots(2, 2)
+def bifurcation():
 
-for d in degrees:
-    print(d)
-    npolys = core.iterator_size(dim, d, index_set=index_set)
-    if d is not degrees[0]:
-        v0 = np.zeros(npolys)
-        for i in range(len(eig_vec.coeffs)):
-            v0[i] = eig_vec.coeffs[i]
-    sub_mat = mat.subdegree(d)
-    eig_vals, [eig_vec] = sub_mat.eigs(k=1, v0=v0, which='LR')
-    t = eig_vec * np.sign(eig_vec.coeffs[0])
+    # Discretization of the operator
+    mat = quad.discretize_op(forward, degree, index_set=index_set)
+    eye = quad.varf('1', degree=degree, index_set=index_set)
+    dt, Ns, scheme = 2**-9, int(1e4), "backward"
+    dmin, d, degrees = 10, degree, []
+    errors, mins = [], []
 
-    t = t / quad.integrate(t, flat=True, tensorize=False)
-    solutions.append(t)
+    βmin = args.beta_max if args.beta_max else 6
+    βmax = args.beta_max if args.beta_max else 6
 
-    if args.interactive:
+    # Initial condition
+    t = quad.transform(ux*uy*uz, degree=degree, index_set=index_set)
 
-        Ix_d = Ix.subdegree(d)
-        Iy_d = Iy.subdegree(d)
-        Iz_d = Iz.subdegree(d)
+    for d in degrees:
+        print(d)
+        npolys = core.iterator_size(dim, d, index_set=index_set)
+        if d is not degrees[0]:
+            v0 = np.zeros(npolys)
+            for i in range(len(eig_vec.coeffs)):
+                v0[i] = eig_vec.coeffs[i]
+        sub_mat = mat.subdegree(d)
+        eig_vals, [eig_vec] = sub_mat.eigs(k=1, v0=v0, which='LR')
+        t = eig_vec * np.sign(eig_vec.coeffs[0])
 
-        # Projection on x-q subspace
-        integral = (Ix_d*(Iy_d*(Iz_d*t))).coeffs[0]
-        txy, txz = Iz_d*t, Iy_d*t
+        t = t / quad.integrate(t, flat=True, tensorize=False)
+        solutions.append(t)
 
-        # Projections
-        tx, ty, tz = Iy_d*(Iz_d*t), Ix_d*(Iz_d*t), Ix_d*(Iy_d*t)
+        if args.interactive:
+            plot(t)
 
-        # Moments
-        mx = str((mx1.subdegree(d)*tx).coeffs[0])
-        my = str((my1.subdegree(d)*ty).coeffs[0])
-        mz = str((mz1.subdegree(d)*tz).coeffs[0])
+    finest = ground_state
+    finest_eval = solutions[-1]
 
-        ax[0][0].clear()
-        qxz.plot(txz, ax=ax[0][0], bounds=False, vmin=0, extend='min')
-        qxy.plot(txy, ax=ax[0][0], bounds=False, vmin=0, extend='min')
+    # Plot of the finest solution
+    fig, ax = plt.subplots(1, 1)
+    quad.plot(finest, factor, ax=ax)
+    plt.show()
 
-        ax[0][1].clear()
-        qx.plot(ux, ax=ax[0][1])
-        qx.plot(tx, ax=ax[0][1], title="1st moment - X: " + mx)
+    # Associated errors
+    errors, degrees = [], degrees[0:-1]
+    for sol in solutions[0:-1]:
+        error = quad.norm(sol - finest_eval, flat=True)
+        errors.append(error)
+        print(error)
 
-        ax[1][0].clear()
-        qy.plot(uy, ax=ax[1][0])
-        qy.plot(ty, ax=ax[1][0], title="1st moment - P: " + my)
+    log_errors = np.log(errors)
+    poly_approx = np.polyfit(degrees, log_errors, 1)
+    errors_approx = np.exp(np.polyval(poly_approx, degrees))
+    error = la.norm(log_errors - np.log(errors_approx), 2)
 
-        ax[1][1].clear()
-        qz.plot(uz, ax=ax[1][1])
-        qz.plot(tz, ax=ax[1][1], title="1st moment - Q: " + mz)
-
-        plt.draw()
-        plt.pause(.01)
+    plt.semilogy(degrees, errors, 'k.')
+    plt.semilogy(degrees, errors_approx)
+    plt.show()
 
 
-finest = ground_state
-finest_eval = solutions[-1]
-
-# Plot of the finest solution
-fig, ax = plt.subplots(1, 1)
-quad.plot(finest, factor, ax=ax)
-plt.show()
-
-# Associated errors
-errors, degrees = [], degrees[0:-1]
-for sol in solutions[0:-1]:
-    error = quad.norm(sol - finest_eval, flat=True)
-    errors.append(error)
-    print(error)
-
-log_errors = np.log(errors)
-poly_approx = np.polyfit(degrees, log_errors, 1)
-errors_approx = np.exp(np.polyval(poly_approx, degrees))
-error = la.norm(log_errors - np.log(errors_approx), 2)
-
-plt.semilogy(degrees, errors, 'k.')
-plt.semilogy(degrees, errors_approx)
-plt.show()
+if args.bifurcation:
+    bifurcation()
