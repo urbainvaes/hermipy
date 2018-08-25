@@ -33,7 +33,9 @@ hm.settings['cache'] = True
 
 # Process arguments
 parser = argparse.ArgumentParser()
+parser.add_argument('-dir', '--directory', type=str)
 parser.add_argument('-i', '--interactive', action='store_true')
+parser.add_argument('-p', '--parallel', action='store_true')
 parser.add_argument('-tcd', '--convergence_degree', action='store_true')
 parser.add_argument('-tce', '--convergence_epsilon', action='store_true')
 parser.add_argument('-e', '--epsilon', type=float)
@@ -41,7 +43,14 @@ parser.add_argument('-b', '--beta', type=float)
 parser.add_argument('-t', '--theta', type=float)
 parser.add_argument('-g', '--gamma', type=float)
 parser.add_argument('-m', '--mass', type=float)
+parser.add_argument('-d', '--degree', type=int)
 args = parser.parse_args()
+
+# Directory for output files
+dir = ""
+if args.directory:
+    dir = args.directory + "/"
+    os.makedirs(dir, exist_ok=True)
 
 # Matplotlib configuration
 matplotlib.rc('font', size=14)
@@ -62,7 +71,11 @@ index_set = 'rectangle'
 r, s = sym.Rational, sym.symbols
 equation = eq.McKean_Vlasov_harmonic_noise
 x, y, z, f = equation.x, equation.y, equation.z, equation.f
-β, ε, γ, θ, m = r(5), r(1, 5), 0, 0, 0
+β = r(args.beta) if args.beta else r(5)
+ε = r(args.epsilon) if args.epsilon else r(1, 5)
+γ = r(args.gamma) if args.gamma else 0
+θ = r(args.theta) if args.theta else 0
+m = r(args.mass) if args.mass else 0
 
 # For convergence_epsilon
 ε, γ = s('ε'), s('γ')
@@ -71,7 +84,8 @@ params = {'β': β, 'ε': ε, 'γ': γ, 'θ': θ, 'm': m}
 Vp, β = x**4/4 - x**2/2, params['β']
 
 # Numerical parameters
-s2x, s2y, s2z, degree = r(1, 20), r(1, 5), r(1, 5), 50
+s2x, s2y, s2z = r(1, 20), r(1, 5), r(1, 5)
+degree = args.degree if args.degree else 50
 n_points_num = 2*degree + 1
 
 # Potential for approximation
@@ -164,6 +178,9 @@ def plot(t):
 
 def convergence_degree():
 
+    degrees = list(range(5, degree + 1))
+    mat = quad.discretize_op(forward, degrees[-1], index_set=index_set)
+
     eye = quad.varf('1', degree=degree, index_set=index_set)
     dt, Ns, scheme = 2**-9, int(1e4), "backward"
     dmin, d, degrees = 10, degree, []
@@ -241,11 +258,14 @@ def convergence_degree():
 
     cond = np.asarray(degrees)*0 + 1
     xplot, yplot = np.extract(cond, degrees), np.extract(cond, errors)
+    np.save("degrees", xplot),
+    np.save("error_l1", yplot)
     fig, ax = plt.subplots()
     ax.semilogy(xplot, yplot, 'b.', label="$\\|\\rho^{{50}} - \\rho^d\\|_1$")
     coeffs = np.polyfit(xplot, np.log10(yplot), 1)
     ax.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'b-')
     yplot = np.extract(cond, mins)
+    np.save("error_min", yplot)
     ax.semilogy(xplot, yplot, 'r.', label="$|\\min \\, \\rho^d(x, p, q)|$")
     coeffs = np.polyfit(xplot, np.log10(yplot), 1)
     ax.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'r-')
@@ -287,9 +307,6 @@ def convergence_epsilon():
         Δ, Δx = np.inf, np.inf
         for i in range(Ns):
 
-            if args.interactive:
-                plot(t)
-
             print("ε: " + str(εi) + ", i: " + str(i) + ", dt: " + str(dt)
                   + ", Δ: " + str(Δ) + ", Δx: " + str(Δx))
 
@@ -308,10 +325,10 @@ def convergence_epsilon():
             new_t = new_t / float(Ix*(Iy*(Iz*new_t)))
 
             # Error
-            Δ = ((t - new_t)*(t - new_t)).coeffs[0]/dt
+            Δ = np.sqrt(((t - new_t)*(t - new_t)).coeffs[0])/dt
 
             # Time adaptation
-            threshold, dt_max = .01, 64
+            threshold, dt_max = .1, 64
             if Δ*dt > 2*threshold:
                 dt = dt / 2.
                 continue
@@ -319,7 +336,10 @@ def convergence_epsilon():
                 dt = dt * 2.
             t = new_t
 
-            if Δ < 1e-16:
+            if Δ < 1e-12:
+
+                if args.interactive:
+                    plot(t)
 
                 if args.interactive:
                     plot(t)
@@ -327,7 +347,7 @@ def convergence_epsilon():
                 t3.append(t)
                 tx.append(Iy*(Iz*t))
                 error3, errorx = t30 - t3[-1], tx0 - tx[-1]
-                e3.append(min_quad.norm(error3, n=1, flat=True))
+                e3.append(qxy.norm(Iy*error3, n=1, flat=True))
                 ex.append(qx.norm(errorx, n=1, flat=True))
 
                 if iε > 1:
@@ -339,10 +359,13 @@ def convergence_epsilon():
 
                 break
 
-    t30, tx0 = t3[-1], tx[-1]
-    ex = [qx.norm(tx0 - txi, n=1, flat=True) for txi in tx]
-    e3 = [min_quad.norm(t30 - t3i, n=1, flat=True) for t3i in t3]
+    import ipdb; ipdb.set_trace()
+
+    # Use last estimation as exact solution and remove it
+    t30, tx0, t3, tx = t3[-1], tx[-1], t3[0:-1], tx[0:-1]
     εs, ex, e3 = εs[0:-1], ex[0:-1], e3[0:-1]
+    ex = [qx.norm(tx0 - txi, n=1, flat=True) for txi in tx]
+    e3 = [qxy.norm(Iy*(t30 - t3i), n=1, flat=True) for t3i in t3]
 
     fig, ax = plt.subplots()
     cmap = matplotlib.cm.get_cmap('viridis_r')
@@ -354,7 +377,8 @@ def convergence_epsilon():
         qx.plot(txε, ax=ax, **kwargs)
     ax.set_title("")
     plt.legend()
-    plt.savefig("convergence-epsilon.eps", bbox_inches='tight')
+    plt.savefig(dir + "convergence-epsilon-" + str(β) + ".eps",
+                bbox_inches='tight')
 
     fig, ax = plt.subplots()
     xplot, yplot1 = logε = np.asarray(εs), np.asarray(e3)
@@ -363,16 +387,17 @@ def convergence_epsilon():
     ax.plot(xplot, yplot1, 'b.', label="$|\\rho - \\rho_0|_1$")
     yplot2 = np.asarray(ex)
     ax.plot(xplot, yplot2, 'r.', label="$|\\rho^x - \\rho^x_0|_1$")
-    coeffs = np.polyfit(np.log2(xplot), np.log2(yplot1), 1)
+    coeffs = np.polyfit(np.log2(xplot[5:]), np.log2(yplot1[5:]), 1)
     ax.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'b-',
             label='$y = {:.2f} \\, \\times \\, \\varepsilon^{{ {:.2f} }}$'.
             format(2**coeffs[1], coeffs[0]))
-    coeffs = np.polyfit(np.log2(xplot), np.log2(yplot2), 1)
+    coeffs = np.polyfit(np.log2(xplot[5:]), np.log2(yplot2[5:]), 1)
     ax.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'r-',
             label='$y = {:.2f} \\, \\times \\, \\varepsilon^{{ {:.2f} }}$'.
             format(2**coeffs[1], coeffs[0]))
     plt.legend(loc='lower right')
-    plt.savefig("errors.eps", bbox_inches='tight')
+    plt.savefig(dir + "errors-epsilon-" + str(β) + ".eps",
+                bbox_inches='tight')
     plt.show()
 
 
