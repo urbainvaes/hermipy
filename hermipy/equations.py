@@ -17,7 +17,6 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import hermipy.quad as quad
-import hermipy.series as series
 import sympy as sym
 import numpy as np
 import numpy.linalg as la
@@ -29,6 +28,27 @@ def map_operator(operator, function, factor):
 
 
 def solve_gaussian(operator, f, variables):
+
+    if len(variables) is 3:
+        x, y, z = variables
+        cx, cy, cz = sym.symbols('cx cy cz', real=True)
+        cxy, cyz, cxz = sym.symbols('cxy cyz cxz', real=True)
+        ansatz = sym.exp(- sym.Rational(1, 2) *
+                         (cx*x*x + cz*z*z + cy*y*y
+                          + 2*cxy*x*y + 2*cyz*y*z + 2*cxz*x*z))
+        res = (operator.subs(f, ansatz)/ansatz).doit().cancel()
+        coeffs_dict = res.as_poly(x, y, z).as_dict()
+        coeffs_list = list(coeffs_dict[k] for k in coeffs_dict)
+        (sol_cx, sol_cy, sol_cz, sol_cxy, sol_cyz, sol_cxz) = \
+            sym.solve(coeffs_list, cx, cy, cz, cxy, cyz, cxz)[0]
+        solution = ansatz.subs([(cx, sol_cx), (cy, sol_cy),
+                                (cz, sol_cz), (cxy, sol_cxy),
+                                (cyz, sol_cyz), (cxz, sol_cxz)])
+        determinant = sol_cx*(sol_cy*sol_cz-sol_cyz**2) \
+            + sol_cxy*(sol_cxz*sol_cyz-sol_cxy*sol_cz) \
+            + sol_cxz*(sol_cxy*sol_cyz-sol_cy*sol_cxz)
+        factor = sym.sqrt(determinant) / (2*sym.pi)
+        solution = factor * solution
 
     if len(variables) is 2:
         x, y = variables
