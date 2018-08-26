@@ -35,6 +35,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-dir', '--directory', type=str)
 parser.add_argument('-i', '--interactive', action='store_true')
 parser.add_argument('-p', '--parallel', action='store_true')
+parser.add_argument('-tq', '--convergence_quadratic', action='store_true')
 parser.add_argument('-tcd', '--convergence_degree', action='store_true')
 parser.add_argument('-tce', '--convergence_epsilon', action='store_true')
 parser.add_argument('-tb', '--bifurcation', action='store_true')
@@ -103,7 +104,7 @@ def set_param(arg, default, symbol):
 m = set_param(args.mass, 0, 'm')
 
 params = {'β': β, 'ε': ε, 'γ': γ, 'θ': θ, 'm': m}
-Vp, β = x**4/4 - x**2/2, params['β']
+Vp = x**2/2 if args.convergence_quadratic else x**4/4 - x**2/2
 
 # Numerical parameters
 s2x, s2y, s2z = r(1, 20), r(1, 5), r(1, 5)
@@ -220,6 +221,13 @@ def convergence_degree():
     # Initial condition
     t = quad.transform(ux*uy*uz, degree=degree, index_set=index_set)
 
+    # Exact solution if Vp is quadratic
+    if args.convergence_quadratic:
+        solution = eq.solve_gaussian(forward, f, [x, y, z])
+        t_exact = quad.transform(solution, degree=degree)
+        norm_sol = Ix*(Iy*(Iz*t_exact))
+        assert abs(norm_sol - 1) < 1e-6
+
     while d >= dmin:
         r_mat, eye = mat.subdegree(d), eye.subdegree(d)
         t = t.subdegree(d)
@@ -267,7 +275,7 @@ def convergence_degree():
 
             if Δ < 1e-15:
 
-                if d == degree:
+                if d == degree and not args.convergence_quadratic:
                     t_exact = t
 
                 else:
@@ -305,7 +313,7 @@ def convergence_degree():
     plt.savefig("errors.eps", bbox_inches='tight')
 
 
-if args.convergence_degree:
+if args.convergence_degree or args.convergence_quadratic:
     convergence_degree()
 
 
