@@ -1,16 +1,13 @@
-import multiprocessing
 import numpy as np
 import sympy as sym
-import hermipy as hm
-import hermipy.equations as eq
 import scipy.integrate as integrate
 import matplotlib
 import matplotlib.pyplot as plt
 
-sym.init_printing()
-equation = eq.McKean_Vlasov
-q = hm.Quad.gauss_hermite(200, dirs=[0], mean=[0], cov=[[.1]])
-x = equation.x
+matplotlib.rc('font', size=14)
+matplotlib.rc('font', family='serif')
+matplotlib.rc('text', usetex=True)
+x = sym.symbols('x')
 
 
 def Vt(m):
@@ -21,7 +18,6 @@ def Vt(m):
 def moment(β, m, noise='ou'):
 
     rho_0 = sym.exp(-β*Vt(m))
-    Z = q.integrate(rho_0, flat=True)
     Z = integrate.quad(sym.lambdify(x, rho_0), -4, 4)[0] - 0
     rho_0 = rho_0 / Z
 
@@ -33,7 +29,6 @@ def moment(β, m, noise='ou'):
 
     if noise == 'ou':
         rho_p = C*β - 0.5*β*Vtm.diff(x)**2 + Vtm.diff(x, x)
-        Cn = q.integrate(sym.solve(rho_p, C)[0]*rho_0, flat=True)
         Cn_func = sym.solve(rho_p, C)[0]*rho_0
         Cn = integrate.quad(sym.lambdify(x, Cn_func), -4, 4)[0]
         rho_p = rho_0*rho_p.subs(C, Cn)
@@ -49,24 +44,10 @@ def moment(β, m, noise='ou'):
     assert abs(integrate.quad(sym.lambdify(x, rho_0), -4, 4)[0] - 1) < 1e-8
     assert abs(integrate.quad(sym.lambdify(x, rho_p), -4, 4)[0] - 0) < 1e-8
 
-    # Check with hermipy integration
-    check_consistency_hermipy = False
-    if check_consistency_hermipy:
-        hermipy_err_1 = abs(q.integrate(rho_0, flat=True) - 1)
-        hermipy_err_2 = abs(q.integrate(rho_p, flat=True) - 0)
-        if hermipy_err_1 > 1e-8 or hermipy_err_2 > 1e-8:
-            print("Warning: hermipy gives different result: ",
-                  + hermipy_err_1, hermipy_err_2)
-
     i0 = integrate.quad(sym.lambdify(x, x*rho_0), -4, 4)[0]
     ip = integrate.quad(sym.lambdify(x, x*rho_p), -4, 4)[0]
 
-    return lambda ε: q.integrate(i0 + ε**p*ip)
-
-
-def slope(β, noise='ou'):
-    dm = .01
-    return lambda ε: moment(β, dm, noise=noise)(ε)/dm
+    return lambda ε: i0 + ε**p*ip
 
 
 def critical(β, noise='ou'):
@@ -78,7 +59,10 @@ def critical(β, noise='ou'):
     def objective(ε):
         return moment_β(ε)/dm - 1
 
-    if not objective(εmin) < 0 and objective(εmax) > 0:
+    omin, omax = objective(εmin), objective(εmax)
+    print('β = ' + str(β))
+
+    if not omin < 0 or not omax > 0:
         return None
 
     while True:
@@ -93,20 +77,39 @@ def critical(β, noise='ou'):
         else:
             εmin = ε
 
-        print('β: ' + str(β) + ', ε: ' + str(ε) + ', f(ε): ' + str(fε))
+
+def bifurcation_data(noise):
+    β, Δβ = .2, .03
+    while critical(β, noise=noise) is None:
+        β += Δβ
+
+    εold, ε = - np.inf, critical(β, noise=noise)
+    while ε > εold:
+        βold, εold = β, ε
+        β, ε = β + Δβ, critical(β + Δβ, noise=noise)
+
+    Δε, εs, βs = 0.01, [], []
+    while True:
+        dεdβ = (ε - εold)/(β - βold)
+
+        while True:
+            Δβ = min(Δβ, .9*abs(Δε/dεdβ))
+            newε = critical(β + Δβ, noise=noise)
+            newε = newε if newε is not None else 0
+            if abs(newε - ε) < Δε:
+                break
+            dεdβ = (newε - ε)/Δβ
+
+        βold, β = β, β + Δβ
+        εold, ε = ε, newε
+        εs.append(ε), βs.append(β)
+
+        if ε is 0:
+            return βs, εs
 
 
-βs = np.arange(.2, 2.5, .02)
-εs_ou = [critical(β, noise='ou') for β in βs]
-εs_harmonic = [critical(β, noise='harmonic') for β in βs]
-
-condition = [ε is not None for ε in εs_ou]
-βs_ou = np.extract(condition, βs)
-εs_ou = np.extract(condition, εs_ou)
-
-condition = [ε is not None for ε in εs_harmonic]
-βs_harmonic = np.extract(condition, βs)
-εs_harmonic = np.extract(condition, εs_harmonic)
+βs_ou, εs_ou = bifurcation_data('ou')
+βs_harmonic, εs_harmonic = bifurcation_data('harmonic')
 
 np.save("epsilons-critical-ou", εs_ou)
 np.save("epsilons-critical-harmonic", εs_harmonic)
@@ -114,9 +117,11 @@ np.save("betas-critical-ou", βs_ou)
 np.save("betas-critical-harmonic", βs_harmonic)
 
 fig, ax = plt.subplots()
-ax.plot(εs_ou, βs_ou, 'r.', label='OU noise')
-ax.plot(εs_harmonic, βs_harmonic, 'b+', label='Harmonic noise')
+ax.plot(εs_ou, βs_ou, 'r-', label='OU noise')
+ax.plot(εs_harmonic, βs_harmonic, 'b-', label='Harmonic noise')
 plt.legend()
+ax.set_xlim((0, 1))
+ax.set_xlabel('$\\varepsilon$')
+ax.set_ylabel('$\\beta^c$')
+plt.savefig("asymptotic_bifurction.eps", bbox_inches='tight')
 plt.show()
-
-import ipdb; ipdb.set_trace()
