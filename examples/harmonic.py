@@ -21,6 +21,7 @@ import math
 import argparse
 import sympy as sym
 import numpy as np
+import numpy.linalg as la
 import matplotlib
 import hermipy as hm
 import hermipy.equations as eq
@@ -72,7 +73,6 @@ else:
 dim = 3
 
 # Equation parameters
-index_set = 'rectangle'
 r, s = sym.Rational, sym.symbols
 equation = eq.McKean_Vlasov_harmonic_noise
 x, y, z, f = equation.x, equation.y, equation.z, equation.f
@@ -107,12 +107,16 @@ params = {'β': β, 'ε': ε, 'γ': γ, 'θ': θ, 'm': m}
 Vp = x**2/2 if args.convergence_quadratic else x**4/4 - x**2/2
 
 # Numerical parameters
-s2x, s2y, s2z = r(1, 20), r(1, 5), r(1, 5)
-
 if args.convergence_epsilon:
     s2x, s2y, s2z = r(1, 30), r(1), r(1)
+elif args.convergence_quadratic:
+    s2x, s2y, s2z = r(1, 5), r(1, 5), r(1, 5)
+else:
+    s2x, s2y, s2z = r(1, 20), r(1, 5), r(1, 5)
 
+index_set = 'cube' if args.convergence_quadratic else 'rectangle'
 degree = args.degree if args.degree else 50
+kwargs0 = {'degree': degree, 'index_set': index_set}
 n_points_num = 2*degree + 1
 
 # Potential for approximation
@@ -125,9 +129,16 @@ params.update({'Vp': Vp})
 forward = equation.equation(params)
 
 # Map to appropriate space
-factor_x = sym.exp(- 1/2 * Vqx) if args.bifurcation \
-        else sym.exp(- 1/2 * (Vqx + β*Vp))
-factor_pq = sym.exp(- 1/2 * (y*y/2 + Vqy + z*z/2 + Vqz))
+if args.convergence_quadratic:
+    factor_x = sym.exp(- 1/2 * Vqx)
+    factor_pq = sym.exp(- 1/2 * (Vqy + Vqz))
+elif args.bifurcation:
+    factor_x = sym.exp(- 1/2 * Vqx)
+    factor_pq = sym.exp(- 1/2 * (y*y/2 + Vqy + z*z/2 + Vqz))
+else:
+    factor_x = sym.exp(- 1/2 * (Vqx + β*Vp))
+    factor_pq = sym.exp(- 1/2 * (y*y/2 + Vqy + z*z/2 + Vqz))
+
 factor = factor_x * factor_pq
 
 # Calculation of the solution
@@ -141,7 +152,7 @@ qx, qy, qz = quad.project(0), quad.project(1), quad.project(2)
 wx = qx.factor * qx.factor / qx.position.weight()
 wy = qy.factor * qy.factor / qy.position.weight()
 wz = qz.factor * qz.factor / qz.position.weight()
-qxy, qxz = quad.project([0, 1]), quad.project([0, 2])
+qxy, qxz, qyz = quad.project([0, 1]), quad.project([0, 2]), quad.project([1, 2])
 
 # Integral operators
 Ix = qx.transform(wx, degree=degree, index_set=index_set)
@@ -188,8 +199,9 @@ def plot(t, βplot=β):
     mz = str((mz1.subdegree(d)*tz).coeffs[0])
 
     ax[0][0].clear()
-    qxz.plot(txz, ax=ax[0][0], bounds=False, vmin=0, extend='min')
-    qxy.plot(txy, ax=ax[0][0], bounds=False, vmin=0, extend='min')
+    plot_position = True
+    field = txz if plot_position else txy
+    qxz.plot(field, ax=ax[0][0], bounds=False, vmin=0, extend='min')
 
     ax[0][1].clear()
     qx.plot(tx, ax=ax[0][1], title="1st moment - X: " + mx)
@@ -224,9 +236,12 @@ def convergence_degree():
     # Exact solution if Vp is quadratic
     if args.convergence_quadratic:
         solution = eq.solve_gaussian(forward, f, [x, y, z])
-        t_exact = quad.transform(solution, degree=degree)
-        norm_sol = Ix*(Iy*(Iz*t_exact))
-        assert abs(norm_sol - 1) < 1e-6
+        t_exact = min_quad.transform(solution, **kwargs0)
+        norm_sol = float(Ix*(Iy*(Iz*t_exact)))
+        print('Norm of exact solution: ', abs(norm_sol - 1))
+        t_exact = t_exact / norm_sol
+        if args.interactive:
+            plot(t_exact)
 
     while d >= dmin:
         r_mat, eye = mat.subdegree(d), eye.subdegree(d)
@@ -463,6 +478,20 @@ def bifurcation():
     # Initial condition
     βnum, mnum, betas, ms = βmax, 1, [], []
     t = quad.transform(ux.subs(β, βnum)*uy*uz, **kwargs)
+
+    # Calculate effective diffusion
+    # ! Different index_set !
+    kwargs_langevin = {'degree': degree // 2, 'index_set': 'cube'}
+    langevin = eq.Langevin.forward(1).subs(y, z).subs(x, y)
+    mat = qyz.discretize_op(langevin, **kwargs_langevin)
+    [l0], [e0] = mat.eigs(k=1, which='LR')
+    mat = mat - np.real(l0)*qyz.varf('1', **kwargs_langevin)
+    varz = qyz.varf('z', **kwargs_langevin)
+    # solution = la.solve(mat.matrix[1:, 1:], (varz(e0)).coeffs[1:])
+    # sol_series = qyz.series([0, *solution], index_set=index_set)
+    sol_series = mat.solve(varz(e0))
+    diff = - float(varz(e0)*sol_series)
+    print("Effective diffusion coefficient: ", diff)
 
     dt, dt_max, Ns, scheme = 2**-9, 256, int(1e4), "backward"
     while βnum > βmin:
