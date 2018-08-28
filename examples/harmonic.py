@@ -21,7 +21,6 @@ import math
 import argparse
 import sympy as sym
 import numpy as np
-import numpy.linalg as la
 import matplotlib
 import hermipy as hm
 import hermipy.equations as eq
@@ -87,6 +86,9 @@ if args.bifurcation:
     βmin = args.beta_min if args.beta_min else 1
     βmax = args.beta_max if args.beta_max else 6
     sstep = args.arclength if args.arclength else .1
+
+if args.convergence_quadratic:
+    args.beta = 1
 
 
 def set_param(arg, default, symbol):
@@ -315,7 +317,8 @@ def convergence_degree():
     np.save("degrees", xplot),
     np.save("error_l1", yplot)
     fig, ax = plt.subplots()
-    ax.semilogy(xplot, yplot, 'b.', label="$\\|\\rho^{{50}} - \\rho^d\\|_1$")
+    ax.semilogy(xplot, yplot, 'b.',
+                label="$\\|\\rho^{{ {} }} - \\rho^d\\|_1$".format(degree))
     coeffs = np.polyfit(xplot, np.log10(yplot), 1)
     ax.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'b-')
     yplot = np.extract(cond, mins)
@@ -578,8 +581,8 @@ def bifurcation():
 
         βnum = newβ
 
-    np.save(dir + "epsilon=1o" + str(1/ε) + "-betas", np.asarray(betas))
-    np.save(dir + "epsilon=1o" + str(1/ε) + "-ms", np.asarray(ms))
+    np.save(dir + "epsilon=" + str(ε).replace('/', 'o') + "-betas", np.asarray(betas))
+    np.save(dir + "epsilon=" + str(ε).replace('/', 'o') + "-ms", np.asarray(ms))
 
 
 if args.bifurcation:
