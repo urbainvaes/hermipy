@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import numpy as np
 import sympy as sym
 import scipy.integrate as integrate
@@ -8,6 +10,17 @@ matplotlib.rc('font', size=14)
 matplotlib.rc('font', family='serif')
 matplotlib.rc('text', usetex=True)
 x = sym.symbols('x')
+
+
+εs_spectral_ou = [0.1, 0.2, 0.5, 1]
+βs_spectral_ou = [2.152, 2.055, 1.57, 0.896]
+
+εs_spectral_harmonic = [0.1, 0.2, 0.5]
+βs_spectral_harmonic = [2.138, 2.127, 1.96]
+
+# With correction for wrong effective drift
+factor_degree_30 = 0.9728
+βs_spectral_harmonic = np.asarray(βs_spectral_harmonic)/factor_degree_30
 
 
 def Vt(m):
@@ -79,7 +92,7 @@ def critical(β, noise='ou'):
 
 
 def bifurcation_data(noise):
-    β, Δβ = .2, .03
+    β, Δβ = .01, .03
     while critical(β, noise=noise) is None:
         β += Δβ
 
@@ -117,8 +130,12 @@ np.save("betas-critical-ou", βs_ou)
 np.save("betas-critical-harmonic", βs_harmonic)
 
 fig, ax = plt.subplots()
-ax.plot(εs_ou, βs_ou, 'r-', label='OU noise')
-ax.plot(εs_harmonic, βs_harmonic, 'b-', label='Harmonic noise')
+ax.plot(εs_ou, βs_ou, 'r-', label='Asymptotic - OU noise')
+ax.plot(εs_harmonic, βs_harmonic, 'b-', label='Asymptotic - Harmonic noise')
+ax.plot(εs_spectral_ou, βs_spectral_ou, 'k.', markersize=15,
+        label='Spectral method - OU noise')
+ax.plot(εs_spectral_harmonic, βs_spectral_harmonic, 'g.', markersize=15,
+        label='Spectral method - Harmonic noise')
 plt.legend()
 ax.set_xlim((0, 1))
 ax.set_xlabel('$\\varepsilon$')

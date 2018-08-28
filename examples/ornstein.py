@@ -262,8 +262,8 @@ def factors(symbolic, λ):
     elif symbolic == 0:
         Vp, Vq = params['Vp'].eval(), params['Vqx'].eval()
         Vy, Vqy = params['Vy'].eval(), params['Vqy'].eval()
-    # factor_x = sym.exp(-Vq/2)
-    factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
+    factor_x = sym.exp(-Vq/2)
+    # factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
     factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
     # factor_x = sym.exp(-Vq/2)
     # factor_y = sym.exp(-Vqy/2)
@@ -652,7 +652,7 @@ def time_dependent():
     r_operator = (forward - params['m'].symbol*m_operator).cancel()
     m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
 
-    βmin, βmax, sstep = 0.5, 4, .1
+    βmin, βmax, sstep = 0.4, 10, .1
 
     # Calculate projections
     qx, qy = quad_num.project(0), quad_num.project(1)
