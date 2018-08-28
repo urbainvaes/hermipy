@@ -230,7 +230,7 @@ def convergence_degree():
     eye = quad.varf('1', degree=degree, index_set=index_set)
     dt, Ns, scheme = 2**-9, int(1e4), "backward"
     dmin, d, degrees = 10, degree, []
-    errors, mins = [], []
+    errors, mins, eigs = [], [], []
 
     # Initial condition
     t = quad.transform(ux*uy*uz, degree=degree, index_set=index_set)
@@ -300,11 +300,13 @@ def convergence_degree():
                     error_series_x = Iy*(Iz*error_series)
                     error = min_quad.norm(error_series, n=1, flat=True)
                     error_x = qx.norm(error_series_x, n=1, flat=True)
-                    min = np.min(min_quad.eval(error_series))
-                    mins.append(abs(min))
+                    min = np.min(qx.eval(Iy_d*(Iz_d*t)))
+                    eig = r_mat(t).coeffs[0]/t.coeffs[0]
                     errors.append(error)
+                    mins.append(abs(min))
+                    eigs.append(abs(eig))
                     degrees.append(d)
-                    print(min, error, error_x)
+                    print(min, eig, error, error_x)
 
                 if args.interactive:
                     plot(t)
@@ -314,21 +316,21 @@ def convergence_degree():
 
     cond = np.asarray(degrees)*0 + 1
     xplot, yplot = np.extract(cond, degrees), np.extract(cond, errors)
-    np.save("degrees", xplot),
-    np.save("error_l1", yplot)
+    np.save(dir + "degrees", xplot),
+    np.save(dir + "error_l1", yplot)
     fig, ax = plt.subplots()
     ax.semilogy(xplot, yplot, 'b.',
-                label="$\\|\\rho^{{ {} }} - \\rho^d\\|_1$".format(degree))
+                label="$\\|\\rho_{{ {} }} - \\rho_d\\|_1$".format(degree))
     coeffs = np.polyfit(xplot, np.log10(yplot), 1)
     ax.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'b-')
-    yplot = np.extract(cond, mins)
-    np.save("error_min", yplot)
-    ax.semilogy(xplot, yplot, 'r.', label="$|\\min \\, \\rho^d(x, p, q)|$")
+    yplot = np.extract(cond, eigs)
+    np.save(dir + "error_eig", yplot)
+    ax.semilogy(xplot, yplot, 'r.', label="$|\\lambda_0(d)|$")
     coeffs = np.polyfit(xplot, np.log10(yplot), 1)
     ax.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'r-')
     ax.set_xlabel("$d$")
     plt.legend(loc='upper right')
-    plt.savefig("errors.eps", bbox_inches='tight')
+    plt.savefig(dir + "errors.eps", bbox_inches='tight')
 
 
 if args.convergence_degree or args.convergence_quadratic:
