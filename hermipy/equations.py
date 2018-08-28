@@ -47,7 +47,7 @@ def solve_gaussian(operator, f, variables):
         determinant = sol_cx*(sol_cy*sol_cz-sol_cyz**2) \
             + sol_cxy*(sol_cxz*sol_cyz-sol_cxy*sol_cz) \
             + sol_cxz*(sol_cxy*sol_cyz-sol_cy*sol_cxz)
-        factor = sym.sqrt(determinant) / (2*sym.pi)
+        factor = sym.sqrt(determinant / (2*sym.pi)**3)
         solution = factor * solution
 
     if len(variables) is 2:
