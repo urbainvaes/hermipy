@@ -3,6 +3,7 @@
 import numpy as np
 import sympy as sym
 import scipy.integrate as integrate
+import scipy.optimize as optimize
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -12,11 +13,11 @@ matplotlib.rc('text', usetex=True)
 x = sym.symbols('x')
 
 
-εs_spectral_ou = [0.1, 0.2, 0.5, 1]
-βs_spectral_ou = [2.152, 2.055, 1.57, 0.896]
+εs_spectral_ou = [0.1, 0.2, 0.3, 0.4, 0.5, 1]
+βs_spectral_ou = [2.152, 2.055, 1.908, 1.742, 1.57, 0.896]
 
-εs_spectral_harmonic = [0.1, 0.2, 0.5]
-βs_spectral_harmonic = [2.138, 2.127, 1.96]
+εs_spectral_harmonic = [0.1, 0.2, 0.3, 0.4, 0.5]
+βs_spectral_harmonic = [2.138, 2.127, 2.094, 2.012, 1.96]
 
 # With correction for wrong effective drift
 factor_degree_30 = 0.9728
@@ -78,17 +79,7 @@ def critical(β, noise='ou'):
     if not omin < 0 or not omax > 0:
         return None
 
-    while True:
-        ε = (εmin + εmax)/2
-        fε = objective(ε)
-
-        if abs(fε) < 1e-8:
-            return ε
-
-        if fε > 0:
-            εmax = ε
-        else:
-            εmin = ε
+    return optimize.bisect(objective, εmin, εmax)
 
 
 def bifurcation_data(noise):
@@ -121,8 +112,14 @@ def bifurcation_data(noise):
             return βs, εs
 
 
-βs_ou, εs_ou = bifurcation_data('ou')
-βs_harmonic, εs_harmonic = bifurcation_data('harmonic')
+try:
+    βs_ou = np.load("betas-critical-ou.npy")
+    βs_harmonic = np.load("betas-critical-harmonic.npy")
+    εs_ou = np.load("epsilons-critical-ou.npy")
+    εs_harmonic = np.load("epsilons-critical-harmonic.npy")
+except IOError:
+    βs_ou, εs_ou = bifurcation_data('ou')
+    βs_harmonic, εs_harmonic = bifurcation_data('harmonic')
 
 np.save("epsilons-critical-ou", εs_ou)
 np.save("epsilons-critical-harmonic", εs_harmonic)

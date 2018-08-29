@@ -40,6 +40,24 @@ ax.plot(betas, ms, '.-', color=cmap(ε), markersize=.5)
 ax.plot(betas, -ms, '.-', color=cmap(ε), markersize=.5,
         label="$\\varepsilon = "+str(ε)+"$")
 
+ε = .3
+betas = np.load("epsilon=3o10-m0=.75-betas.npy")
+ms = np.load("epsilon=3o10-m0=.75-ms.npy")
+condition = betas < βmax
+betas, ms = np.extract(condition, betas), np.extract(condition, ms)
+ax.plot(betas, ms, '.-', color=cmap(ε), markersize=.5)
+ax.plot(betas, -ms, '.-', color=cmap(ε), markersize=.5,
+        label="$\\varepsilon = "+str(ε)+"$")
+
+ε = .4
+betas = np.load("epsilon=2o5-m0=.75-betas.npy")
+ms = np.load("epsilon=2o5-m0=.75-ms.npy")
+condition = betas < βmax
+betas, ms = np.extract(condition, betas), np.extract(condition, ms)
+ax.plot(betas, ms, '.-', color=cmap(ε), markersize=.5)
+ax.plot(betas, -ms, '.-', color=cmap(ε), markersize=.5,
+        label="$\\varepsilon = "+str(ε)+"$")
+
 ε = .5
 betas = np.load("epsilon=1o2-m0=-.75-betas.npy")
 ms = np.load("epsilon=1o2-m0=-.75-ms.npy")

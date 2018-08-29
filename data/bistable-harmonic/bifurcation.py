@@ -15,6 +15,7 @@ ax.set_ylabel("$m$")
 
 cmap = matplotlib.cm.get_cmap('viridis_r')
 factor_degree_30 = 0.9728
+factor_degree_30 = 1
 
 βmin, βmax, ε = 1.6, 4.9, 0
 betas = np.load("theta-1-white-noise-betas.npy")
@@ -42,6 +43,23 @@ ax.plot(betas, ms, '.-', color=cmap(ε), markersize=.5)
 ax.plot(betas, -ms, '.-', color=cmap(ε), markersize=.5,
         label="$\\varepsilon = "+str(ε)+"$")
 
+βmin, βmax, ε = 1.6, 5, .3
+betas = np.load("deg=30-epsilon=3o10-betas.npy")/factor_degree_30
+ms = np.load("deg=30-epsilon=3o10-ms.npy")
+condition = (betas > βmin) * (betas < βmax)
+betas, ms = np.extract(condition, betas), np.extract(condition, ms)
+ax.plot(betas, ms, '.-', color=cmap(ε), markersize=.5)
+ax.plot(betas, -ms, '.-', color=cmap(ε), markersize=.5,
+        label="$\\varepsilon = "+str(ε)+"$")
+
+βmin, βmax, ε = 1.6, 5, .4
+betas = np.load("deg=30-epsilon=2o5-betas.npy")/factor_degree_30
+ms = np.load("deg=30-epsilon=2o5-ms.npy")
+condition = (betas > βmin) * (betas < βmax)
+betas, ms = np.extract(condition, betas), np.extract(condition, ms)
+ax.plot(betas, ms, '.-', color=cmap(ε), markersize=.5)
+ax.plot(betas, -ms, '.-', color=cmap(ε), markersize=.5,
+        label="$\\varepsilon = "+str(ε)+"$")
 
 βmax, ε = 5, .5
 betas = np.load("deg=30-epsilon=1o2-betas.npy")/factor_degree_30
