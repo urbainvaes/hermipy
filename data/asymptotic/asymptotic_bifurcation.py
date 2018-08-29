@@ -129,9 +129,9 @@ np.save("betas-critical-harmonic", βs_harmonic)
 fig, ax = plt.subplots()
 ax.plot(εs_ou, βs_ou, 'r-', label='Asymptotic - OU noise')
 ax.plot(εs_harmonic, βs_harmonic, 'b-', label='Asymptotic - Harmonic noise')
-ax.plot(εs_spectral_ou, βs_spectral_ou, 'k.', markersize=15,
+ax.plot(εs_spectral_ou, βs_spectral_ou, 'k.', markersize=10,
         label='Spectral method - OU noise')
-ax.plot(εs_spectral_harmonic, βs_spectral_harmonic, 'g.', markersize=15,
+ax.plot(εs_spectral_harmonic, βs_spectral_harmonic, 'g.', markersize=10,
         label='Spectral method - Harmonic noise')
 plt.legend()
 ax.set_xlim((0, 1))

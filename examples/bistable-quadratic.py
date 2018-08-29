@@ -13,7 +13,7 @@ x, y, f = equation.x, equation.y, equation.f
 r = sym.Rational
 
 # Configuration of numerical method
-num['degree'] = 80  # degree of approximation
+num['degree'] = 50  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
 num['μx'] = r(0, 4)
 num['μy'] = r(0, 4)

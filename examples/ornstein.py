@@ -812,8 +812,8 @@ def time_dependent():
                 break
 
     ε = config.eq['ε']
-    np.save(dir + "epsilon=1o" + str(ε).replace('/', 'o') + "-m0=" + str(args.m0) + "-betas", np.asarray(betas))
-    np.save(dir + "epsilon=1o" + str(ε).replace('/', 'o') + "-m0=" + str(args.m0) + "-ms", np.asarray(ms))
+    np.save(dir + "epsilon=" + str(ε).replace('/', 'o') + "-m0=" + str(args.m0) + "-betas", np.asarray(betas))
+    np.save(dir + "epsilon=" + str(ε).replace('/', 'o') + "-m0=" + str(args.m0) + "-ms", np.asarray(ms))
 
 
 if args.time:
