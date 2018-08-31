@@ -47,7 +47,7 @@ class Quad:
         return Quad(nodes, weights, position, factor)
 
     def __init__(self, nodes, weights, position=None, factor=1,
-                 mean=None, cov=None, dirs=None):
+                 mean=None, cov=None, dirs=None, types=None):
 
         """Create a quadrature object
 
@@ -69,11 +69,12 @@ class Quad:
 
         dim = len(self.nodes)
         self.position = position if position is not None else \
-            hm.Position(dim=dim, mean=mean, cov=cov, dirs=dirs)
+            hm.Position(dim=dim, mean=mean, cov=cov, dirs=dirs, types=types)
 
         # Factor used for hermite transform, discretize
         self.factor = hm.Function(factor, dirs=self.position.dirs)
         self.factor.sym = self.factor.sym.expand()
+        self.do_fourier = [int(t == "fourier") for t in self.position.types]
 
     @classmethod
     def gauss_hermite(cls, n_points, dim=None, dirs=None, **kwargs):
@@ -89,6 +90,53 @@ class Quad:
 
         nodes, weights = lib.hermegauss_nd(n_points)
         return cls(nodes, weights, dirs=dirs, **kwargs)
+
+    @classmethod
+    def fourier(cls, n_points, bounds=None,
+                position=None, factor=1, dirs=None):
+
+        # Determine dimension
+        if position is not None:
+            dim = position.dim
+        if dirs is not None:
+            dim = len(dirs)
+        elif bounds is not None:
+            dim = len(bounds)
+        elif type(n_points) is not int:
+            dim = len(n_points)
+        else:
+            dim = 1
+
+        # Construct position if undefined
+        if position is None:
+
+            # Default arguments
+            if bounds is None:
+                bounds = [(-np.pi, np.pi)]*dim
+            if dirs is None:
+                dirs = list(range(dim))
+
+            assert dim == len(bounds)
+            assert dim == len(dirs)
+
+            mean, cov = np.zeros(dim), np.zeros((dim, dim))
+            for i in range(dim):
+                left, right = bounds[i][0], bounds[i][1]
+                # FIXME: The notation mean / cov is not adequate for Fourier
+                # series. At the moment this is just a hack
+                mean[i] = left/2 + right/2
+                cov[i][i] = ((right - left)/(2*np.pi))**2
+            position = hm.Position(dim=dim, dirs=dirs, mean=mean, cov=cov,
+                                   types=["fourier"]*dim)
+
+        if type(n_points) is int:
+            n_points = [n_points]*dim
+        assert dim == len(n_points)
+        nodes, weights = [], []
+        for i in range(dim):
+            nodes.append(-np.pi + 2*np.pi*np.arange(n_points[i])/n_points[i])
+            weights.append(2*np.pi/n_points[i]*np.ones(n_points[i]))
+        return cls(nodes, weights, position=position, factor=factor)
 
     @classmethod
     def newton_cotes(cls, n_points, extrema, **kwargs):
@@ -112,6 +160,14 @@ class Quad:
             and self.factor == other.factor \
             and la.norm(self.nodes - other.nodes) < very_small \
             and la.norm(self.weights - other.weights) < very_small
+
+    def __str__(self):
+        return "Quadrature in dimension " + str(self.position.dim) \
+               + "\n- Associated factor: " + str(self.factor) \
+               + "\n- Types: " + str(self.position.types)
+
+    def __repr__(self):
+        return self.__str__()
 
     def tensorize_at(arg_num):
         def tensorize_arg(func):
@@ -192,7 +248,8 @@ class Quad:
             w_grid = 1e-300*(w_grid == 0) + w_grid
             function = function / w_grid
 
-        return core.integrate(function, self.nodes, self.weights)
+        return core.integrate(function, self.nodes, self.weights,
+                              do_fourier=self.do_fourier)
 
     # Norm 1 or 2, in weighted or not
     def norm(self, function, n=2, flat=False):
@@ -218,7 +275,8 @@ class Quad:
         mapped = function / (1e-300*(factor == 0) + factor)
 
         coeffs = core.transform(degree, mapped, self.nodes, self.weights,
-                                forward=True, index_set=index_set)
+                                forward=True, do_fourier=self.do_fourier,
+                                index_set=index_set)
 
         return hm.Series(coeffs, self.position,
                          factor=self.factor, index_set=index_set,
@@ -240,8 +298,8 @@ class Quad:
         for i in range(len(self.nodes)):
             mapped_nodes[i] = self.nodes[i] * factor[i][i] + translation[i]
 
-        result = core.transform(degree, coeffs, mapped_nodes,
-                                self.weights, forward=False,
+        result = core.transform(degree, coeffs, mapped_nodes, self.weights,
+                                forward=False, do_fourier=self.do_fourier,
                                 index_set=series.index_set)
 
         if series.factor != hm.Function(1, dirs=self.position.dirs):
@@ -257,7 +315,8 @@ class Quad:
         if not isinstance(f_grid, np.ndarray):
             f_grid = self.discretize(f_grid)
         var = core.varf(degree, f_grid, self.nodes, self.weights,
-                        sparse=sparse, index_set=index_set)
+                        sparse=sparse, do_fourier=self.do_fourier,
+                        index_set=index_set)
         return hm.Varf(var, self.position,
                        factor=self.factor, index_set=index_set)
 
@@ -269,13 +328,15 @@ class Quad:
         directions = filter(lambda d: d in self.position.dirs, directions)
         sparse = hm.settings['sparse'] if sparse is None else sparse
         var = self.varf(function, degree, sparse=sparse,
-                        index_set=index_set, tensorize=False)
+                        do_fourier=self.do_fourier, index_set=index_set,
+                        tensorize=False)
         mat = var.matrix
         eigval, _ = la.eig(self.position.cov)
         for d in directions:
             rel_dir = self.position.dirs.index(d)
             mat = core.varfd(self.position.dim, degree, rel_dir,
-                             mat, index_set=index_set)
+                             mat, do_fourier=self.do_fourier,
+                             index_set=index_set)
             mat = mat/np.sqrt(eigval[rel_dir])
         return hm.Varf(mat, self.position,
                        factor=self.factor, index_set=index_set)

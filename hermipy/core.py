@@ -131,20 +131,29 @@ def discretize(function, nodes, translation, dilation):
 @cache()
 @debug()
 @log_stats()
-def integrate(fgrid, nodes, weights):
+def integrate(fgrid, nodes, weights, do_fourier=None):
+    if do_fourier is None:
+        do_fourier = [0]*len(nodes)
+    do_fourier_cpp = hm.int_vec()
+    do_fourier_cpp.extend(do_fourier)
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
-    result = hm.integrate(fgrid, nodes, weights)
+    result = hm.integrate(fgrid, nodes, weights, do_fourier_cpp)
     return result
 
 
 @cache()
 @debug()
 @log_stats()
-def transform(degree, fgrid, nodes, weights, forward, index_set="triangle"):
+def transform(degree, fgrid, nodes, weights, forward,
+              do_fourier=None, index_set="triangle"):
+    if do_fourier is None:
+        do_fourier = [0]*len(nodes)
+    do_fourier_cpp = hm.int_vec()
+    do_fourier_cpp.extend(do_fourier)
     degree = int(degree)
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
-    return np.array(hm.transform(degree, fgrid, nodes,
-                                 weights, forward, index_set))
+    return np.array(hm.transform(degree, fgrid, nodes, weights,
+                                 do_fourier_cpp, forward, index_set))
 
 
 @cache()
@@ -157,9 +166,14 @@ def triple_products(degree):
 @cache()
 @debug()
 @log_stats()
-def varf(degree, fgrid, nodes, weights, sparse=False, index_set="triangle"):
+def varf(degree, fgrid, nodes, weights, sparse=False,
+         do_fourier=None, index_set="triangle"):
+    if do_fourier is None:
+        do_fourier = [0]*len(nodes)
+    do_fourier_cpp = hm.int_vec()
+    do_fourier_cpp.extend(do_fourier)
     fgrid, nodes, weights = to_cpp_array(fgrid, nodes, weights)
-    args = [degree, fgrid, nodes, weights, index_set]
+    args = [degree, fgrid, nodes, weights, do_fourier_cpp, index_set]
     function = hm.varf_sp if sparse else hm.varf
     return to_numpy(log_stats()(function)(*args))
 
@@ -167,12 +181,14 @@ def varf(degree, fgrid, nodes, weights, sparse=False, index_set="triangle"):
 @cache()
 @debug()
 @log_stats()
-def varfd(dim, degree, direction, var, index_set="triangle"):
+def varfd(dim, degree, direction, var,
+          do_fourier=0, index_set="triangle"):
     if type(var) is np.ndarray:
         var = hm.to_boost_mat(var)
     elif type(var) is ss.csr_matrix:
         var = convert_to_cpp_sparse(var)
-    result = log_stats()(hm.varfd)(dim, degree, direction, var, index_set)
+    result = log_stats()(hm.varfd)(dim, degree, direction, var,
+                                   do_fourier, index_set)
     return to_numpy(result)
 
 

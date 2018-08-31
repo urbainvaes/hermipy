@@ -180,6 +180,9 @@ class Varf:
                           factor=self.factor, index_set=self.index_set))
         return eig_vals, result
 
+    def __getitem__(self, index):
+        return self.matrix[index]
+
     def plot(self, ax=None, lines=True):
         show_plt = ax is None
 
