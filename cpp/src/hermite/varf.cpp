@@ -100,7 +100,7 @@ cube triple_products_fourier(int degree)
 {
     cube products(2*degree + 1, mat(degree + 1, vec(degree + 1, 0.)));
 
-    if (degree % 2 == 0)
+    if (degree % 2 == 1)
     {
         std::cout << "Use even degree for Fourier" << std::endl;
         exit(1);
@@ -216,7 +216,8 @@ T varf(
     cout << "--> Maximal degree " << max_degree << endl;
     #endif
 
-    cube products = triple_products_1d(degree);
+    cube products_hermite = triple_products_1d(degree);
+    cube products_fourier = triple_products_fourier(degree);
 
     // To store results
     m.reset();
@@ -235,7 +236,7 @@ T varf(
         cube factors(dim);
         for (u_int d = 0; d < dim; ++d)
         {
-            factors[d] = products[m[d]];
+            factors[d] = do_fourier[d] == 1 ? products_fourier[m[d]] : products_hermite[m[d]];
         }
 
         #ifdef DEBUG
@@ -348,14 +349,15 @@ T varfd(
             }
             else
             {
-                // Is the derivative cos or sin?
                 if (m_col[direction] == 0)
                     continue;
 
-                bool is_cos = m_col[direction] % 2;
+                // Is the derivative cos or sin?
+                bool is_cos = (m_col[direction] % 2) == 0;
                 int_m2[direction] += !is_cos - is_cos;
+                u_int wave_number = (m_col[direction] + !is_cos)/2;
                 u_int id = m->index(int_m2);
-                results(row, id) = value * (is_cos - !is_cos) * int_m2[direction];
+                results(row, id) = value * (is_cos - !is_cos) * wave_number;
             }
         }
     }
@@ -422,7 +424,9 @@ mat varfd(
         }
         else
         {
-            bool is_cos = (*m2)[direction] % 2;
+            if ((*m2)[direction] == 0)
+                continue;
+            bool is_cos = ((*m2)[direction] % 2) == 0;
             diff_m2[direction] += !is_cos - is_cos;
         }
 
@@ -430,10 +434,9 @@ mat varfd(
         for (i = 0; i < var.size(); i++)
         {
             // Entry i,j correspond to < A h_j, h_i >
-            bool is_cos = (*m2)[direction] % 2;
-            double factor = do_fourier == 1 ? \
-                            (!is_cos - is_cos) * (*m2)[direction] \
-                            : sqrt((*m2)[direction]);
+            bool is_cos = ((*m2)[direction] % 2) == 0;
+            u_int wave_number = ((*m2)[direction] + !is_cos)/2;
+            double factor = do_fourier == 1 ?  (!is_cos - is_cos) * wave_number : sqrt((*m2)[direction]);
             results[i][j] = factor*var[i][id];
         }
     }
