@@ -160,6 +160,9 @@ class Series:
         assert self.position.dim is 0
         return float(self.coeffs[0])
 
+    def __getitem__(self, index):
+        return self.coeffs[index]
+
     def project(self, directions):
         if type(directions) is not list:
             directions = [directions]

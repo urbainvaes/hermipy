@@ -41,7 +41,8 @@ class Position:
         def _tensorize(p1, p2):
             diff1 = [d for d in p1.dirs if d not in p2.dirs]
             diff2 = [d for d in p2.dirs if d not in p1.dirs]
-            dirs_result, mean, cov = sorted(diff1 + diff2), [], []
+            dirs_result = sorted(diff1 + diff2)
+            mean, cov, types = [], [], []
 
             # Check removed directions match
             for d in [d for d in p1.dirs if d in p2.dirs]:
@@ -55,7 +56,9 @@ class Position:
                 index = pos.dirs.index(d)
                 mean.append(pos.mean[index])
                 cov.append(pos.cov[index][index])
-            return Position(dirs=dirs_result, mean=mean, cov=np.diag(cov))
+                types.append(pos.types[index])
+            return Position(dirs=dirs_result, mean=mean,
+                            cov=np.diag(cov), types=types)
 
         result = args[0]
         for a in args[1:]:
@@ -63,7 +66,7 @@ class Position:
 
         return result
 
-    def __init__(self, dim=None, mean=None, cov=None, dirs=None):
+    def __init__(self, dim=None, mean=None, cov=None, dirs=None, types=None):
 
         if mean is not None:
             self.dim = len(mean)
@@ -79,12 +82,14 @@ class Position:
         # Checks
         if mean is not None:
             assert self.dim == len(mean)
-        elif cov is not None:
+        if cov is not None:
             assert self.dim == len(cov)
-        elif dirs is not None:
+        if dirs is not None:
             assert self.dim == len(dirs)
-        elif dim is not None:
+        if dim is not None:
             assert self.dim == dim
+        if types is not None:
+            assert self.dim == len(types)
 
         # Defaults to first directions
         self.dirs = list(range(dim)) if dirs is None else dirs
@@ -94,6 +99,8 @@ class Position:
 
         self.cov = np.eye(self.dim) if cov is None \
             else np.asarray(cov, float)
+
+        self.types = ["hermite"]*self.dim if types is None else types
 
         eigval, eigvec = la.eig(self.cov)
         self.factor = np.matmul(eigvec, np.sqrt(np.diag(eigval)))
@@ -107,7 +114,8 @@ class Position:
     def __eq__(self, other):
         return self.dirs == other.dirs \
             and la.norm(self.mean - other.mean, 2) < self.very_small \
-            and la.norm(self.cov - other.cov, 2) < self.very_small
+            and la.norm(self.cov - other.cov, 2) < self.very_small \
+            and self.types == other.types
 
     def __mul__(self, other):
         assert type(other) is Position
@@ -117,14 +125,19 @@ class Position:
         result = "Dimension: " + str(self.dim) + "\n"
         result += "Directions: " + str(self.dirs) + "\n"
         result += "Mean: " + str(self.mean) + "\n"
-        result += "Covariance:\n" + str(self.cov)
+        result += "Covariance:\n" + str(self.cov) + "\n"
+        result += "Types:\n" + str(self.types)
         return result
 
     def weight(self):
-        var = [func.Function.xyz[d] for d in self.dirs]
-        inv_cov = la.inv(self.cov)
-        potential = 0.5 * inv_cov.dot(var - self.mean).dot(var - self.mean)
-        normalization = 1/(sym.sqrt((2*sym.pi)**self.dim * la.det(self.cov)))
+        ind = [i for i, t in enumerate(self.types) if t == "hermite"]
+        if len(ind) == 0:
+            return sym.Rational(1)
+        sub_mean, sub_cov = self.mean[ind], self.mean[np.ix_(ind, ind)]
+        var = [func.Function.xyz[self.dirs[i]] for i in ind]
+        inv_cov = la.inv(sub_cov)
+        potential = 0.5 * inv_cov.dot(var - sub_mean).dot(var - sub_mean)
+        normalization = 1/(sym.sqrt((2*sym.pi)**self.dim * la.det(sub_cov)))
         return normalization * sym.exp(-potential)
 
     def weights(self):
@@ -137,9 +150,10 @@ class Position:
             directions = [directions]
         assert directions == sorted(directions)
         dirs, dim = directions, len(directions)
-        mean, cov = np.zeros(dim), np.zeros((dim, dim))
+        mean, cov, types = np.zeros(dim), np.zeros((dim, dim)), [""]*dim
         rel_dirs = [self.dirs.index(d) for d in directions]
         for rp, rs in enumerate(rel_dirs):
             mean[rp] = self.mean[rs]
             cov[rp][rp] = self.cov[rs][rs]
-        return Position(dim=dim, mean=mean, cov=cov, dirs=dirs)
+            types[rp] = self.types[rs]
+        return Position(dim=dim, mean=mean, cov=cov, dirs=dirs, types=types)
