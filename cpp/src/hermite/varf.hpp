@@ -35,6 +35,7 @@ T varf(
         vec const & input,
         mat const & nodes,
         mat const & weights,
+        ivec const & do_fourier,
         std::string index_set = "triangle");
 
 template<typename T>
@@ -42,7 +43,8 @@ T varfd(
         u_int dim,
         u_int degree,
         u_int direction,
-        const T & var,
+        T const & var,
+        u_int do_fourier,
         std::string index_set = "triangle");
 }
 

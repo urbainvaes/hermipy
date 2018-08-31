@@ -31,13 +31,19 @@ vec transform(
         vec const & f_grid,
         mat const & nodes,
         mat const & weights,
+        ivec const & do_fourier,
         bool forward,
         std::string index_set = "triangle");
 
 double integrate(
         vec const & f_grid,
         mat const & nodes,
-        mat const & weights);
+        mat const & weights,
+        ivec const & do_fourier);
 }
+
+// Indices of sines and cosines for Fourier
+#define COS(k) (2*(k))
+#define SIN(k) (2*(k) - 1)
 
 #endif
