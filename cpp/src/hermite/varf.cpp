@@ -93,12 +93,79 @@ cube triple_products_1d(int degree)
     return products;
 }
 
+// Calculate int_{-pi}^{pi} (1|cos|sin)(k1 x) (1|cos|sin)(k2 x) (1|cos|sin)(k3 x) dx
+// - Ordering: 1, sin(x), cos(x), sin(2x), cos(2x), ...
+// - Normalization factors: 1/√(2π), cos(kx)/√(π), sin(kx)/√(π)
+cube triple_products_fourier(int degree)
+{
+    cube products(2*degree + 1, mat(degree + 1, vec(degree + 1, 0.)));
+
+    if (degree % 2 == 0)
+    {
+        std::cout << "Use even degree for Fourier" << std::endl;
+        exit(1);
+    }
+
+    // Maximal wave number
+    u_int max_freq = degree / 2;
+
+    // Case 0 == k2 == k3
+    double normalization = sqrt(2*M_PI)*(2*M_PI);
+    products[COS(0)][COS(0)][COS(0)] = 2*M_PI / normalization;
+
+    for (u_int k2 = 1; k2 <= max_freq; k2++)
+    {
+        normalization = sqrt(2*M_PI)*M_PI;
+
+        // Cases 0 == k2 < k3, k2
+        products[COS(k2)][COS(0)][COS(k2)] = M_PI / normalization;
+        products[SIN(k2)][COS(0)][SIN(k2)] = M_PI / normalization;
+
+        // Case  0 == k3 < k2, k1
+        products[COS(k2)][COS(k2)][COS(0)] = M_PI / normalization;
+        products[SIN(k2)][SIN(k2)][COS(0)] = M_PI / normalization;
+
+        // Case 0 == k1 < k2 == k3
+        products[COS(0)][COS(k2)][COS(k2)] = M_PI / normalization;
+        products[COS(0)][SIN(k2)][SIN(k2)] = M_PI / normalization;
+
+        // Cases 0 < k2 ≠ k3 < k1
+        normalization = sqrt(M_PI)*M_PI;
+        products[COS(2*k2)][COS(k2)][COS(k2)] =   M_PI / 2 / normalization;
+        products[COS(2*k2)][SIN(k2)][SIN(k2)] = - M_PI / 2 / normalization;
+        products[SIN(2*k2)][COS(k2)][SIN(k2)] =   M_PI / 2 / normalization;
+        products[SIN(2*k2)][SIN(k2)][COS(k2)] =   M_PI / 2 / normalization;
+
+        // Cases 0 < k2 ≠ k3
+        for (u_int k3 = 1; k3 < max_freq; k3++)
+        {
+            if (k2 == k3)
+                continue;
+
+            u_int ks = k2 + k3,
+                  kd = MAX(k2, k3) - MIN(k2, k3);
+
+            products[COS(ks)][COS(k2)][COS(k3)] =   M_PI / 2;
+            products[COS(kd)][COS(k2)][COS(k3)] =   M_PI / 2;
+            products[COS(ks)][SIN(k2)][SIN(k3)] = - M_PI / 2;
+            products[COS(kd)][SIN(k2)][SIN(k3)] =   M_PI / 2;
+            products[SIN(ks)][COS(k2)][SIN(k3)] =   M_PI / 2;
+            products[SIN(ks)][SIN(k2)][COS(k3)] =   M_PI / 2;
+            products[SIN(kd)][COS(k2)][SIN(k3)] =   M_PI / 2 * ((k3 > k2) - (k2 > k3));
+            products[SIN(kd)][SIN(k2)][COS(k3)] =   M_PI / 2 * ((k2 > k3) - (k3 > k2));
+        }
+    }
+
+    return products;
+}
+
 template<typename Iterator,typename T>
 T varf(
         u_int degree,
         vec const & input,
         mat const & nodes,
-        mat const & weights)
+        mat const & weights,
+        ivec const & do_fourier)
 {
     u_int dim = nodes.size();
     u_int n_polys = Iterator::s_size(dim, degree);
@@ -109,7 +176,7 @@ T varf(
     #endif
 
     // Hermite transform of input function
-    vec Hf = transform(2*degree, input, nodes, weights, true);
+    vec Hf = transform(2*degree, input, nodes, weights, do_fourier, true);
 
     #ifdef DEBUG
     cout << "--> Determining whether to use sparse matrices." << endl;
@@ -195,6 +262,7 @@ T varf(
         vec const & input,
         mat const & nodes,
         mat const & weights,
+        ivec const & do_fourier,
         std::string index_set)
 {
     auto function = varf<Triangle_iterator,T>;
@@ -204,7 +272,7 @@ T varf(
     else if (index_set == "cube") function = varf<Cube_iterator,T>;
     else if (index_set == "rectangle") function = varf<Rectangle_iterator,T>;
     else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
-    return function(degree, input, nodes, weights);
+    return function(degree, input, nodes, weights, do_fourier);
 }
 
 template <typename T>
@@ -212,7 +280,8 @@ T varfd(
         u_int dim,
         u_int degree,
         u_int direction,
-        const T & var,
+        T const & var,
+        u_int do_fourier,
         std::string index_set)
 {
     #ifdef DEBUG
@@ -263,17 +332,31 @@ T varfd(
     {
         for (auto i2 = i1.begin(); i2 != i1.end(); ++i2)
         {
-            u_int row = i2.index1();
-            u_int col = i2.index2();
+            u_int row = i2.index1(),
+                  col = i2.index2();
             ivec m_col = multi_indices[col];
             double value = *i2;
             ivec int_m2 = m_col;
-            int_m2[direction] += 1;
-            if (!m->has(int_m2))
-                continue;
+            if (do_fourier == 0)
+            {
+                int_m2[direction] += 1;
+                if (!m->has(int_m2))
+                    continue;
 
-            u_int id = m->index(int_m2);
-            results(row, id) = value*sqrt(int_m2[direction]);
+                u_int id = m->index(int_m2);
+                results(row, id) = value * sqrt(int_m2[direction]);
+            }
+            else
+            {
+                // Is the derivative cos or sin?
+                if (m_col[direction] == 0)
+                    continue;
+
+                bool is_cos = m_col[direction] % 2;
+                int_m2[direction] += !is_cos - is_cos;
+                u_int id = m->index(int_m2);
+                results(row, id) = value * (is_cos - !is_cos) * int_m2[direction];
+            }
         }
     }
     return results;
@@ -285,6 +368,7 @@ mat varfd(
         u_int degree,
         u_int direction,
         const mat & var,
+        u_int do_fourier,
         std::string index_set)
 {
     std::unique_ptr<Multi_index_iterator> m2;
@@ -331,24 +415,37 @@ mat varfd(
         }
 
         ivec diff_m2 = m2->get();
-        diff_m2[direction] -= 1;
-        u_int id = m2->index(diff_m2);
 
+        if (do_fourier == 0)
+        {
+            diff_m2[direction] -= 1;
+        }
+        else
+        {
+            bool is_cos = (*m2)[direction] % 2;
+            diff_m2[direction] += !is_cos - is_cos;
+        }
+
+        u_int id = m2->index(diff_m2);
         for (i = 0; i < var.size(); i++)
         {
-            results[i][j] = var[i][id]*sqrt((*m2)[direction]);
             // Entry i,j correspond to < A h_j, h_i >
+            bool is_cos = (*m2)[direction] % 2;
+            double factor = do_fourier == 1 ? \
+                            (!is_cos - is_cos) * (*m2)[direction] \
+                            : sqrt((*m2)[direction]);
+            results[i][j] = factor*var[i][id];
         }
     }
 
     return results;
 }
 
-template mat varf(u_int degree, vec const & input, mat const & nodes, mat const & weights, std::string index_set);
-template spmat varf(u_int degree, vec const & input, mat const & nodes, mat const & weights, std::string index_set);
-template boost_mat varf(u_int degree, vec const & input, mat const & nodes, mat const & weights, std::string index_set);
+template mat varf(u_int degree, vec const & input, mat const & nodes, mat const & weights, ivec const & do_fourier, std::string index_set);
+template spmat varf(u_int degree, vec const & input, mat const & nodes, mat const & weights, ivec const & do_fourier, std::string index_set);
+template boost_mat varf(u_int degree, vec const & input, mat const & nodes, mat const & weights, ivec const & do_fourier, std::string index_set);
 
-template spmat varfd( u_int dim, u_int degree, u_int direction, const spmat & var, std::string index_set);
-template boost_mat varfd( u_int dim, u_int degree, u_int direction, const boost_mat & var, std::string index_set);
+template spmat varfd( u_int dim, u_int degree, u_int direction, const spmat & var, u_int do_fourier, std::string index_set);
+template boost_mat varfd( u_int dim, u_int degree, u_int direction, const boost_mat & var, u_int do_fourier, std::string index_set);
 
 }

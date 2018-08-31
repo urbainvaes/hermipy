@@ -22,6 +22,7 @@
 #define HERMITE_TYPES_H
 
 #include <vector>
+#include <complex>
 #include <string>
 
 #include <boost/multi_array.hpp>
@@ -38,6 +39,10 @@ namespace hermite {
     typedef std::vector<double> vec;
     typedef std::vector<vec> mat;
     typedef std::vector<mat> cube;
+
+    typedef std::vector<std::complex<double>> c_vec;
+    typedef std::vector<vec> c_mat;
+    typedef std::vector<mat> c_cube;
 
     typedef std::vector<unsigned int> ivec;
     typedef std::vector<ivec> imat;

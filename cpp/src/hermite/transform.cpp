@@ -27,6 +27,7 @@
 #include <utility>
 #include <vector>
 #include <string>
+#include <complex>
 
 #include <boost/function.hpp>
 #include <boost/core/ref.hpp>
@@ -46,6 +47,7 @@ vec transform(
         vec const & input,
         mat const & nodes,
         mat const & weights,
+        ivec const & do_fourier,
         bool forward)
 {
     u_int dim = nodes.size();
@@ -72,13 +74,39 @@ vec transform(
     }
 
     // Compute Hermite polynomials in each dimension
-    cube herm_vals_1d(dim);
+    c_cube bases_functions_1d(dim);
     for (i = 0; i < dim; ++i)
     {
-        herm_vals_1d[i] = mat(n_points[i], vec(degree + 1, 0));
+        bases_functions_1d[i] = mat(n_points[i], vec(degree + 1, 0));
+
         for (j = 0; j < n_points[i]; j++)
         {
-            hermite_eval(nodes[i][j], degree, herm_vals_1d[i][j]);
+            double x = nodes[i][j];
+            if (do_fourier[i] == 0)
+            {
+                hermite_eval(x, degree, bases_functions_1d[i][j]);
+            }
+
+            else if (do_fourier[i] == 1)
+            {
+                if (degree % 2 == 1)
+                {
+                    std::cout << "Use even degree for Fourier." << std::endl;
+                    exit(1);
+                }
+
+                // Maximal wave number
+                u_int max_freq = degree / 2;
+
+                // Assume degree + 1 basis functions are needed
+                bases_functions_1d[i][j][0] = 1/sqrt(2*M_PI);
+
+                for (k = 1; k <= max_freq; k++)
+                {
+                    bases_functions_1d[i][j][COS(k)] = cos(k*x)/sqrt(M_PI);
+                    bases_functions_1d[i][j][SIN(k)] = sin(k*x)/sqrt(M_PI);
+                }
+            }
         }
     }
 
@@ -104,10 +132,7 @@ vec transform(
             double val_at_point = 1;
             for (k = 0; k < dim; k++)
             {
-                if (m[k] != 0)
-                {
-                    val_at_point *= herm_vals_1d[k][p[k]][m[k]];
-                }
+                val_at_point *= bases_functions_1d[k][p[k]][m[k]];
             }
             if(forward)
             {
@@ -128,6 +153,7 @@ vec transform(
         vec const & input,
         mat const & nodes,
         mat const & weights,
+        ivec const & do_fourier,
         bool forward,
         std::string index_set)
 {
@@ -138,16 +164,20 @@ vec transform(
     else if (index_set == "cube") function = transform<Cube_iterator>;
     else if (index_set == "rectangle") function = transform<Rectangle_iterator>;
     else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
-    return function(degree, input, nodes, weights, forward);
+    return function(degree, input, nodes, weights, do_fourier, forward);
 }
 
 double integrate(
         vec const & f_grid,
         mat const & nodes,
-        mat const & weights)
+        mat const & weights,
+        ivec const & do_fourier)
 {
-    vec integral = transform(0, f_grid, nodes, weights, true, "triangle");
-    return integral[0];
+    vec integral = transform(0, f_grid, nodes, weights, do_fourier, true, "triangle");
+    double factor = 1;
+    for (u_int i = 0; i < do_fourier.size(); i++)
+        factor *= do_fourier[i] == 1 ? sqrt(2*M_PI) : 1;
+    return factor*integral[0];
 }
 
 }
