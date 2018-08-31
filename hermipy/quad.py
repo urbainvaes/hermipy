@@ -328,14 +328,13 @@ class Quad:
         directions = filter(lambda d: d in self.position.dirs, directions)
         sparse = hm.settings['sparse'] if sparse is None else sparse
         var = self.varf(function, degree, sparse=sparse,
-                        do_fourier=self.do_fourier, index_set=index_set,
-                        tensorize=False)
+                        index_set=index_set, tensorize=False)
         mat = var.matrix
         eigval, _ = la.eig(self.position.cov)
         for d in directions:
             rel_dir = self.position.dirs.index(d)
             mat = core.varfd(self.position.dim, degree, rel_dir,
-                             mat, do_fourier=self.do_fourier,
+                             mat, do_fourier=self.do_fourier[rel_dir],
                              index_set=index_set)
             mat = mat/np.sqrt(eigval[rel_dir])
         return hm.Varf(mat, self.position,
