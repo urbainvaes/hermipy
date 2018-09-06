@@ -140,7 +140,7 @@ class McKean_Vlasov_white:
         d, x, f = sym.diff, cls.x, cls.f
 
         # Real parameters
-        β, ε, θ, m = (params[x] for x in ['β', 'ε', 'θ', 'm'])
+        β, θ, m = (params[x] for x in ['β', 'θ', 'm'])
 
         # Functional parameter
         Vp = params['Vp']
