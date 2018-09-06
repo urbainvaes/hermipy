@@ -105,6 +105,59 @@ class Fokker_Planck_1d:
         return d(d(Vp, x)*f + 1/β * d(f, x), x)
 
 
+class McKean_Vlasov_white:
+
+    # Space variables
+    x = sym.symbols('x', real=True)
+
+    # Unknown
+    f = sym.Function('f')(x)
+
+    @classmethod
+    def params(cls):
+
+        params, functions = {}, {}
+
+        # Real positive parameters
+        options = {'real': True, 'positive': True}
+        for param in ['β', 'γ', 'ε']:
+            params[param] = sym.symbols(param, **options)
+
+        # Real parameters
+        options = {'real': True}
+        for param in ['θ', 'm']:
+            params[param] = sym.symbols(param, **options)
+
+        # Potential functions
+        functions['Vp'] = sym.Function('Vp')(cls.x)
+
+        return {**params, **functions}
+
+    @classmethod
+    def fluxes(cls, params):
+
+        # Shorthand notations
+        d, x, f = sym.diff, cls.x, cls.f
+
+        # Real parameters
+        β, ε, θ, m = (params[x] for x in ['β', 'ε', 'θ', 'm'])
+
+        # Functional parameter
+        Vp = params['Vp']
+
+        # Fokker planck operator
+        return - (d(Vp, x)*f + θ*(x-m)*f + 1/β * d(f, x))
+
+    @classmethod
+    def equation(cls, params):
+
+        # Compute fluxes
+        flux = cls.fluxes(params)
+
+        # Fokker planck operator
+        return - flux.diff(cls.x)
+
+
 class McKean_Vlasov:
 
     # Space variables
@@ -193,40 +246,6 @@ class McKean_Vlasov:
         return - fx.diff(x) - fy.diff(y)
 
 
-class Langevin:
-
-    # Space variables
-    variables = sym.symbols('x y', real=True)
-
-    # Sharthand notations
-    x, y = variables
-
-    # Unknown
-    f = sym.Function('f')(x, y)
-
-    @classmethod
-    def forward(cls, λ):
-
-        # Shorthand notations
-        d, x, y, f = sym.diff, cls.x, cls.y, cls.f
-
-        # Fokker planck operator
-        operator = (-x*d(f, y) + y*d(f, x)) + λ*d(f*x + d(f, x), x)
-
-        return operator
-
-    @classmethod
-    def backward(cls, λ):
-
-        # Shorthand notations
-        d, x, y, f = sym.diff, cls.x, cls.y, cls.f
-
-        # Backward Kolmogorov operator
-        operator = (x*d(f, y) - y*d(f, x)) + λ*(- x*d(f, x) + d(f, x, x))
-
-        return operator
-
-
 class McKean_Vlasov_harmonic_noise:
 
     # Space variables
@@ -291,5 +310,39 @@ class McKean_Vlasov_harmonic_noise:
 
         # Fokker planck operator
         return - fx.diff(x) - fy.diff(y) - fz.diff(z)
+
+
+class Langevin:
+
+    # Space variables
+    variables = sym.symbols('x y', real=True)
+
+    # Sharthand notations
+    x, y = variables
+
+    # Unknown
+    f = sym.Function('f')(x, y)
+
+    @classmethod
+    def forward(cls, λ):
+
+        # Shorthand notations
+        d, x, y, f = sym.diff, cls.x, cls.y, cls.f
+
+        # Fokker planck operator
+        operator = (-x*d(f, y) + y*d(f, x)) + λ*d(f*x + d(f, x), x)
+
+        return operator
+
+    @classmethod
+    def backward(cls, λ):
+
+        # Shorthand notations
+        d, x, y, f = sym.diff, cls.x, cls.y, cls.f
+
+        # Backward Kolmogorov operator
+        operator = (x*d(f, y) - y*d(f, x)) + λ*(- x*d(f, x) + d(f, x, x))
+
+        return operator
 
 # vim: foldmethod=indent
