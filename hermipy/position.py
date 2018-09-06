@@ -133,7 +133,7 @@ class Position:
         ind = [i for i, t in enumerate(self.types) if t == "hermite"]
         if len(ind) == 0:
             return sym.Rational(1)
-        sub_mean, sub_cov = self.mean[ind], self.mean[np.ix_(ind, ind)]
+        sub_mean, sub_cov = self.mean[ind], self.cov[np.ix_(ind, ind)]
         var = [func.Function.xyz[self.dirs[i]] for i in ind]
         inv_cov = la.inv(sub_cov)
         potential = 0.5 * inv_cov.dot(var - sub_mean).dot(var - sub_mean)
