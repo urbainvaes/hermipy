@@ -65,7 +65,7 @@ Vp = sym.Piecewise((1 + 2*sym.log(-x), x < -1),
 params = {'β': β, 'Vp': Vp}
 forward = equation.equation(params)
 
-sx, mx = r(1, 1), r(0)
+sx, mx = r(1, 10), r(0)
 degree = args.degree if args.degree else 100
 kwargs0 = {'degree': degree}
 n_points_num = 2*degree + 1
