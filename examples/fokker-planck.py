@@ -21,6 +21,7 @@ parser.add_argument('-tc', '--convergence', action='store_true')
 parser.add_argument('-b', '--beta', type=float)
 parser.add_argument('-l', '--lambda_f', type=float)
 parser.add_argument('-d', '--degree', type=int)
+parser.add_argument('-dmin', '--degree_min', type=int)
 args = parser.parse_args()
 
 # Directory for output files
@@ -60,11 +61,14 @@ def set_param(arg, default, symbol):
 # Fokker Planck equation
 β = set_param(args.beta, r(1), 'β')
 λ = set_param(args.lambda_f, r(1, 2), 'λ')
-Vp = sym.Piecewise((1 + 2*sym.log(-x), x < -1),
-                   (x**2, x < 1), (1 + 2*sym.log(x), True))
+# Vp = sym.Piecewise((1 + 2*sym.log(-x), x < -1),
+#                    (x**2, x < 1), (1 + 2*sym.log(x), True))
+# Vp = x*x + 10*sym.cos(x)
+Vp = sym.log(1+x*x)
 params = {'β': β, 'Vp': Vp}
 forward = equation.equation(params)
 
+# sx, mx = r(1, 1), r(0)
 sx, mx = r(1, 10), r(0)
 degree = args.degree if args.degree else 100
 kwargs0 = {'degree': degree}
@@ -72,8 +76,8 @@ n_points_num = 2*degree + 1
 
 # Potential for approximation
 Vq = sym.Rational(1/2)*x*x/sx
-# factor = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
-factor = sym.exp(-Vq/2)
+factor = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
+# factor = sym.exp(-Vq/2)
 
 # Calculation of the solution
 new_q = hm.Quad.gauss_hermite
@@ -91,7 +95,8 @@ u = sym.exp(-x*x/2)
 u = u / quad.integrate(u, flat=True)
 
 # Degrees
-degrees = range(10, degree)
+dmin = args.degree_min if args.degree_min else 10
+degrees = range(dmin, degree)
 varf = quad.discretize_op(forward, degree=degree)
 s_exact = sym.exp(-β*Vp)
 t_exact = quad.transform(s_exact, degree=degree)
@@ -99,7 +104,10 @@ integral = float(In*t_exact)
 s_exact, t_exact = s_exact / integral, t_exact / integral
 eig_ground, errors, mins = [], [], []
 if args.interactive:
-    quad.plot(s_exact)
+    fig, ax = plt.subplots()
+    quad.plot(s_exact, ax=ax)
+    quad.plot(t_exact, ax=ax)
+    plt.show()
 
 # Initial condition
 t = quad.transform(u, degree=degree)
@@ -153,7 +161,7 @@ for d in degrees:
         Δ = quad.norm(new_t - t, n=1, flat=True)
 
         # Time adaptation
-        threshold, dt_max = .01, 64
+        threshold, dt_max = .001, 1
         if Δ*dt > 2*threshold:
             dt = dt / 2.
             continue
