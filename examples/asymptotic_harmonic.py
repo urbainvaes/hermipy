@@ -231,7 +231,7 @@ assert (operator/epsilon**4).expand()\
 
 
 # }}}
-# Plot
+# Plot {{{
 n_points = 100
 potential = (x**4/4 - x**2/2) + θ/2*(x**2 - 2*x*m)
 quad_gauss = quad.Quad.gauss_hermite(n_points, dirs=[0, 2], cov=[[1, 0], [0, 1]])
@@ -266,10 +266,19 @@ matplotlib.rc('font', size=14)
 matplotlib.rc('font', family='serif')
 matplotlib.rc('text', usetex=True)
 
-fig, axes = plt.subplots(2, 2)
 quad_visu = quad.Quad.newton_cotes([n_points, n_points], [2, 2], dirs=[0, 2])
-proj_total = 0
 
+for i in range(5):
+    fig, ax = plt.subplots()
+    cont = quad_visu.plot(proj_xz_n[i], ax=ax, title="")
+    plt.colorbar(cont, ax=ax, pad=.01)
+    for c in cont.collections:
+        c.set_edgecolor("face")
+    plt.tight_layout()
+    plt.savefig("asymptotic-harmonic-{}.eps".format(i), bbox_inches='tight')
+plt.close('all')
+
+fig, axes = plt.subplots(2, 2)
 for i in (0, 1):
     for j in (0, 1):
         n = 1 + 2*i + j
@@ -280,3 +289,4 @@ for i in (0, 1):
 # plt.tight_layout()
 # plt.savefig("test.eps", bbox_inches='tight')
 plt.show()
+# }}}
