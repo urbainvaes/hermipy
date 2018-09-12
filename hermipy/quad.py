@@ -466,6 +466,10 @@ class Quad:
 
             series = arg
 
+            # Fix me maybe?
+            if series.coeffs.dtype == np.dtype('complex128'):
+                series.coeffs = np.real(series.coeffs).copy(order='C')
+
             if factor is None:
                 solution = self.eval(series)
 
