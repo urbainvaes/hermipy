@@ -217,7 +217,18 @@ T varf(
     #endif
 
     cube products_hermite = triple_products_1d(degree);
-    cube products_fourier = triple_products_fourier(degree);
+    cube products_fourier;
+
+    bool fourier = false;
+    for (u_int f : do_fourier)
+    {
+        if (f == 1)
+        {
+            fourier = true;
+            cube products_fourier = triple_products_fourier(degree);
+            break;
+        }
+    }
 
     // To store results
     m.reset();
