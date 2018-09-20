@@ -19,12 +19,14 @@ hm.settings['cache'] = False
 # Process arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('-dir', '--directory', type=str)
-parser.add_argument('-i', '--interactive', action='store_false')
 parser.add_argument('-b', '--beta', type=str)
 parser.add_argument('-m0', '--mass0', type=str)
 parser.add_argument('-m', '--mass', type=str)
 parser.add_argument('-t', '--theta', type=str)
 parser.add_argument('-d', '--degree', type=int)
+parser.add_argument('-tp', '--test_plots', action='store_true')
+parser.add_argument('-te', '--test_eigs', action='store_true')
+parser.add_argument('-tc', '--test_convergence', action='store_true')
 parser.add_argument('--method', type=str)
 args = parser.parse_args()
 
@@ -90,8 +92,8 @@ r_operator = (forward - m*m_operator).cancel()
 r_mat = quad.discretize_op(r_operator, **kwargs0)
 m_mat = quad.discretize_op(m_operator, **kwargs0)
 
-if False:
-    degrees, eigvals = list(range(4, 50)), []
+if args.test_eigs:
+    degrees, eigvals = list(range(4, degree)), []
     for d in degrees:
         e, v = r_mat.subdegree(d).eigs(k=1, which='LR')
         eigvals.append(e)
@@ -151,7 +153,8 @@ def solve(method, subdegree=degree):
             return return_vector
 
         result = scipy.integrate.solve_ivp(dfdt, [0, 5], t.coeffs, 'RK45',
-                                           t_eval=time, max_step=.01)
+                                           t_eval=time, max_step=.01,
+                                           atol=1e-9, rtol=1e-9)
         result = [quad.series(y) for y in result.y.T]
 
     elif method == "semi_explicit":
@@ -163,7 +166,7 @@ def solve(method, subdegree=degree):
 
         for i, dt in enumerate(steps):
 
-            print("i: {}, t: {}, m: {}".format(i, time[i], m))
+            # print("i: {}, t: {}, m: {}".format(i, time[i], m))
 
             mat = sub_r_mat + m*sub_m_mat
             if scheme == 'backward':
@@ -185,49 +188,78 @@ def solve(method, subdegree=degree):
     return result
 
 
-degrees = list(range(10, degree))
-errors = np.zeros(len(degrees))
-for i, d in enumerate(degrees):
+try:
+    degrees = np.load("data/comparison_carillo/comparison_carrillo_degrees_ode45_80.npy")
+    errors_ode45 = np.load("data/comparison_carillo/comparison_carrillo_errors_ode45_80.npy")
+    errors_semi_explicit = np.load("data/comparison_carillo/comparison_carrillo_errors_semi_explicit_80.npy")
+
+    fig, ax = plt.subplots()
+    plt.semilogy(degrees, errors_ode45, '.', label='RK45')
+    plt.semilogy(degrees, errors_semi_explicit, '.', label='Semi-implicit')
+    ax.set_xlabel("Number of Hermite functions")
+    ax.set_ylabel("Difference (in the $L^\\infty(0, T; L^1(\\mathbf R))$ norm)")
+    plt.legend()
+    plt.savefig('comparison-degree-errors.pdf', bbox_inches='tight')
+    plt.show()
+
+except IOError:
+    pass
+
+if args.test_convergence:
+    degrees = list(range(80, degree))
+    errors = np.zeros(len(degrees))
     method = args.method if args.method else "ode45"
-    result = solve("ode45", subdegree=d)
-    errors[i] = error_Linf(result)
-    print("Linf((0, T), L1) Error: " + str(errors[i]))
-np.save("comparison_carrillo_degrees", degrees)
-np.save("comparison_carrillo_errors", errors)
+
+    for i, d in enumerate(degrees):
+        result = solve(method, subdegree=d)
+        errors[i] = error_Linf(result)
+    np.save("comparison_carrillo_degrees_{}".format(method), degrees)
+    np.save("comparison_carrillo_errors_{}".format(method), errors)
 
 # Plots {{{
-if True:
-    exit(0)
+if args.test_plots:
 
-if args.interactive:
+    result = solve('ode45')
+
+    times = [0, 1, 2, 5]
+    for t in times:
+        i = np.argmin(np.abs(np.asarray(time) - t))
+        fig, ax = plt.subplots()
+        ax.set_xlim(-4, 4)
+        quad_comparison.plot(result[i], ax=ax, bounds=False,
+                             label="Spectral")
+        quad_comparison.plot(rho[i], ax=ax, bounds=False,
+                             label="Finite-volume",
+                             title="Time: " + str(time[i]))
+        plt.legend(loc='upper left')
+        plt.savefig('comparison_carrillo_solution-{}.pdf'.format(t),
+                    bbox_inches='tight')
+        plt.show()
+
     plt.ion()
     fig, ax = plt.subplots(2)
 
+    def plot(i, t, title=None):
 
-def plot(i, t, title=None):
+        ax[0].clear()
+        quad_comparison.plot(t, ax=ax[0], bounds=False, title=title)
+        quad_comparison.plot(rho[i], ax=ax[0], bounds=False, title="Solutions")
+        ax[0].set_xlim(-4, 4)
 
-    if not args.interactive:
-        return
+        ax[1].clear()
+        evalualion = quad_comparison.eval(t)
+        quad_comparison.plot(rho[i] - evalualion, ax=ax[1],
+                             bounds=False, title="Error")
+        # t.plot(ax=ax[1])
 
-    ax[0].clear()
-    quad_comparison.plot(t, ax=ax[0], bounds=False, title=title)
-    quad_comparison.plot(rho[i], ax=ax[0], bounds=False, title="Solutions")
+        plt.draw()
+        plt.pause(0.01)
 
-    ax[1].clear()
-    evalualion = quad_comparison.eval(t)
-    quad_comparison.plot(rho[i] - evalualion, ax=ax[1],
-                         bounds=False, title="Error")
-    # t.plot(ax=ax[1])
-
-    plt.draw()
-    plt.pause(0.01)
-
-
-for i, t in enumerate(result):
-    Δ = quad_comparison.eval(t) - rho[i]
-    Δ = np.sum(np.abs(Δ))*(xs[-1] - xs[0])/(len(Δ) - 1)
-    print(Δ)
-    if args.interactive and i % 1 == 0:
-        plot(i, t)
+    for i, t in enumerate(result):
+        Δ = quad_comparison.eval(t) - rho[i]
+        Δ = np.sum(np.abs(Δ))*(xs[-1] - xs[0])/(len(Δ) - 1)
+        print(Δ)
+        if i % 10 == 0:
+            plot(i, t)
 
 # }}}
