@@ -547,13 +547,12 @@ class Quad:
         elif type(fx) is hm.Series:
 
             if factor is None:
-                factor = self.factor
+                sx, sy = self.eval(fx), self.eval(fy)
 
-            if not isinstance(factor, np.ndarray):
+            elif not isinstance(factor, np.ndarray):
                 factor = hm.Function(factor, dirs=self.position.dirs)
                 factor = self.discretize(factor)
-
-            sx, sy = self.eval(fx)*factor, self.eval(fy)*factor
+                sx, sy = self.eval(fx)*factor, self.eval(fy)*factor
 
         else:
             raise TypeError("Unsupported type: " + str(type(fx)))
