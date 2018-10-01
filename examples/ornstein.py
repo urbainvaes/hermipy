@@ -52,13 +52,12 @@ parser.add_argument('-tb', '--bifurcation', action='store_true',
                     help='Run bifurcation test')
 parser.add_argument('-tt', '--time', action='store_true',
                     help='Run time dependent test')
+parser.add_argument('-tp', '--plots', action='store_true')
 parser.add_argument('-tw', '--white', action='store_true',
                     help='Generate bifurcation diagram for white noise')
 parser.add_argument('-te0', '--epsilon0', action='store_true',
                     help='Study ε --> 0')
 
-parser.add_argument('-p', '--plots', action='store_true',
-                    help='Enable plots')
 parser.add_argument('-v', '--verbose', action='store_true',
                     help='Enable verbose output')
 parser.add_argument('--cache', action='store_true',
@@ -127,11 +126,6 @@ if args.verbose:
     config.misc['verbose'] = args.verbose
 elif 'verbose' not in config.misc:
     config.misc['verbose'] = False
-
-if args.plots:
-    config.misc['plots'] = args.plots
-elif 'plots' not in config.misc:
-    config.misc['plots'] = False
 
 if not args.interactive:
     matplotlib.use('Agg')
@@ -262,11 +256,10 @@ def factors(symbolic, λ):
     elif symbolic == 0:
         Vp, Vq = params['Vp'].eval(), params['Vqx'].eval()
         Vy, Vqy = params['Vy'].eval(), params['Vqy'].eval()
-    factor_x = sym.exp(-Vq/2)
-    # factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
-    factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
     # factor_x = sym.exp(-Vq/2)
     # factor_y = sym.exp(-Vqy/2)
+    factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
+    factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
     factor = factor_x * factor_y
     return factor_x, factor_y, factor
 
@@ -327,7 +320,7 @@ def compute_quads():
     # bounds_x = band_width*np.sqrt(float(σx))
     # bounds_y = band_width*np.sqrt(float(σy))
     bounds_x = 4
-    bounds_y = 3
+    bounds_y = 4
 
     quad_visu = hermipy.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y],
                                           factor=factor)
@@ -349,19 +342,22 @@ if params['m'].value.free_symbols == set() \
     fd = [quad_num.discretize_op(flux, degree, index_set=index_set) for flux in fluxes]
 
 vprint("Solving eigenvalue problem")
-# eig_vals, eig_vecs = (m_mat + r_mat).eigs(k=4, which='LR')
 
 # Make plots {{{
 
 
 def plot():
 
+    fd = [quad_num.discretize_op(flux, degree, index_set=index_set) for flux in fluxes]
+    r_mat = quad_num.discretize_op(r_operator, degree, index_set=index_set)
+    eig_vals, eig_vecs = r_mat.eigs(k=1, which='LR')
     vprint("[plot]")
 
     fig, ax = plt.subplots(1, 1)
     ground_series = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])
+    ground_series = ground_series / quad_num.integrate(ground_series, flat=True)
     cont = quad_visu.plot(ground_series, ax=ax, vmin=0,
-                          extend='min', bounds=True)
+                          extend='min', bounds=False)
     for c in cont.collections:
         c.set_edgecolor("face")
     plt.colorbar(cont, ax=ax)
@@ -441,8 +437,8 @@ def plot():
     plot_comparison_with_asym()
 
 
-# if config.misc['plots']:
-#     plot()
+if args.plots:
+    plot()
 # }}}
 # Test convergence {{{
 
@@ -529,7 +525,7 @@ def convergence_eig():
 
     fig, ax = plt.subplots(1, 1)
     ground_series = eig_vecs[0] * np.sign(eig_vecs[0].coeffs[0])
-    cont = quad_visu.plot(ground_series, factor, ax=ax,
+    cont = quad_visu.plot(ground_series, ax=ax,
                           vmin=0, extend='min', bounds=False)
     plt.colorbar(cont, ax=ax)
     plt.show()
@@ -537,7 +533,7 @@ def convergence_eig():
     def plot_log(x, y, file, lin=True):
         x, y = np.asarray(x), np.asarray(y)
         fig, ax = plt.subplots(1, 1)
-        ax.semilogy(x, y, 'k.')
+        ax.semilogy(x, y, 'k.', label='$|\\lambda_0|$')
         ax.set_yscale('log', basey=2)
         cut_off = 70
         x_poly = x[0:cut_off + 1] if len(x) > cut_off else x
@@ -548,14 +544,20 @@ def convergence_eig():
                         label='$y = {:.2f} \\times 10^{{ {:.2f} \\, x}}$'.
                               format(10**coeffs[1], coeffs[0]))
         plt.legend(loc='upper right')
+        ax.set_xlabel('d')
         plt.savefig(file, bbox_inches='tight')
         plt.show()
 
     # np.save('errors-epsilon-'+str(float(params['ε'].value)), errors_a)
+    degrees = degrees[0:-10]
+    mins = mins[0:-10]
+    errors = errors[0:-10]
+    eig_ground = eig_ground[0:-10]
+
     dir = config.misc['directory']
     plot_log(degrees, errors, dir + 'l1conv.eps')
-    # plot_log(degrees, [max(0, -m) for m in mins], dir + 'min.eps')
-    plot_log(degrees, np.abs(eig_ground), dir + 'eig_val.eps')
+    plot_log(degrees, [max(0, -m) for m in mins], dir + 'min.eps')
+    plot_log(degrees, np.abs(eig_ground), dir + 'eig_val.eps', lin=False)
     # plot_log(degrees, errors_a, dir + 'l1asym.eps', lin=False)
 
     # qy = quad_num.project(1)
@@ -564,14 +566,17 @@ def convergence_eig():
     # quad_num.plot(Iy*eig_vecs[0])
 
     fig, ax = plt.subplots()
-    condition = (np.asarray(degrees) + 1) % 2
-    xplot, yplot = np.extract(condition, degrees), np.extract(condition, errors)
-    ax.semilogy(xplot, yplot, 'b.', label="$\\|\\rho^{{80}} - \\rho^d\\|_1$")
-    coeffs = np.polyfit(xplot, np.log10(yplot), 1)
+    ax.semilogy(degrees, errors, '.', label="$L^1$ error")
+    ax.semilogy(degrees, [max(0, -m) for m in mins], '.', label="- minimum")
+    # ax.semilogy(degrees, np.abs(eig_ground), '.', label="$|\\lambda_0|$")
+    # condition = (np.asarray(degrees) + 1) % 2
+    # xplot, yplot = np.extract(condition, degrees), np.extract(condition, errors)
+    # ax.semilogy(xplot, yplot, 'b.', label="$L^1$ error")
+    # coeffs = np.polyfit(xplot, np.log10(yplot), 1)
     # ax.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'b-')
-    yplot = np.extract(condition, np.abs(eig_ground))
-    ax.semilogy(xplot, yplot, 'r.', label="$|\\lambda_0(d)|$")
-    coeffs = np.polyfit(xplot, np.log10(yplot), 1)
+    # yplot = np.extract(condition, np.abs(eig_ground))
+    # ax.semilogy(xplot, yplot, 'r.', label="$|\\lambda_0(d)|$")
+    # coeffs = np.polyfit(xplot, np.log10(yplot), 1)
     # ax.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'r-')
     plt.legend(loc='upper right')
     ax.set_xlabel('d')
