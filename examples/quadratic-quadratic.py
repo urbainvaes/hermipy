@@ -15,16 +15,16 @@ r = sym.Rational
 # Configuration of numerical method
 num['degree'] = 100  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
-num['μx'] = r(1, 5)
-num['σx'] = r(1, 10)
+num['μx'] = r(0)
 num['μy'] = r(0)
-num['σy'] = r(1)
+num['σx'] = r(1, 10)
+num['σy'] = r(1, 1)
 num['λ'] = r(1, 2)
 num['index_set'] = 'triangle'
 
 # Scalar parameters of the equation
-eq['β'] = r(5)
-eq['ε'] = r(1, 2)
+eq['β'] = r(1)
+eq['ε'] = r(1, 1)
 eq['γ'] = r(0)
 eq['θ'] = r(0)
 
@@ -32,15 +32,14 @@ eq['θ'] = r(0)
 # eq['Vp'] = x**4/4 - x**2/2
 
 sx = sym.symbols('sx', real=True, positive=True)
-eq['sx'] = r(1)
-eq['Vp'] = r(.5)*x*x/sx
+eq['Vp'] = x**2/2
 eq['Vy'] = y**2/2
 
 # Miscellaneous parameters
-misc['cache'] = False
+misc['cache'] = True
 misc['debug'] = False
 misc['parallel'] = False
 misc['tensorize'] = True
 misc['sparse'] = True
-misc['trails'] = True
-misc['symbolic'] = 0  # Values 0, 1, 2
+misc['trails'] = False
+misc['symbolic'] = 1  # Values 0, 1, 2
