@@ -151,7 +151,6 @@ def solve(method, subdegree=degree):
             mat = sub_r_mat.matrix + m*sub_m_mat.matrix
             return_vector = mat.dot(y)
             return return_vector
-
         result = scipy.integrate.solve_ivp(dfdt, [0, 5], t.coeffs, 'RK45',
                                            t_eval=time, max_step=.01,
                                            atol=1e-9, rtol=1e-9)
