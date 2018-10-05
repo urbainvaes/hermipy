@@ -335,13 +335,17 @@ class Langevin:
         return operator
 
     @classmethod
-    def backward(cls, λ):
+    def backward(cls, params):
 
         # Shorthand notations
         d, x, y, f = sym.diff, cls.x, cls.y, cls.f
 
+        # Parameters
+        γ, β, Vy = params['γ'], params['β'], params['Vy']
+
         # Backward Kolmogorov operator
-        operator = (x*d(f, y) - y*d(f, x)) + λ*(- x*d(f, x) + d(f, x, x))
+        operator = (x*d(f, y) - d(Vy, y)*d(f, x))\
+            + γ*(- x*d(f, x) + (1/β)*d(f, x, x))
 
         return operator
 
