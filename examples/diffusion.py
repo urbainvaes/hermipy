@@ -74,15 +74,9 @@ def set_param(arg, default, symbol):
         return r(arg)
     return default
 
-
 ε = set_param(args.epsilon, r(1), 'ε')
-α = set_param(args.alpha, r(1), 'γ') / ε**2
 β = set_param(args.beta, r(1), 'β')
-λ = set_param(args.lamda, r(1), 'λ') / ε
-
 Vy = sym.cos(y)
-params = {'β': β, 'α': α, 'λ': λ, 'Vy': Vy}
-backward = e.backward(params)
 
 # Numerical parameters
 index_set = 'cube'
@@ -92,60 +86,63 @@ degree = args.degree if args.degree else 10
 kwargs0 = {'degree': degree, 'index_set': index_set}
 n_points_num = 2*degree + 1
 
-# Calculate factor {{{
-Vqx = sym.Rational(1/2)*x*x/s2x
-Vqz = sym.Rational(1/2)*z*z/s2z
-
-# Map to appropriate space
-factor_y = sym.exp(- 1/2*Vy)  # Fourier
-factor_x = sym.exp(- 1/2*Vqx + β/2*x*x/2)  # Hermite functions
-factor_z = sym.exp(- 1/2*Vqz + β/2*z*z/2)  # Hermite functions
-factor_xz = factor_x * factor_z
-# }}}
-
-# Definition of quadratures
-new_q = hm.Quad.gauss_hermite
-cov = [[s2x, 0], [0, s2z]]
-qy = hm.Quad.fourier(2*degree + 1, dirs=[1])
-qxz = new_q(2*degree + 1, dirs=[0, 2], mean=[0]*2, cov=cov, factor=factor_xz)
-qf = qy * qxz  # fine
-qy = hm.Quad.fourier(degree + 1, dirs=[1])
-qxz = new_q(degree + 1, dirs=[0, 2], mean=[0]*2, cov=cov, factor=factor_xz)
-qc = qy * qxz  # coarse
-
-# Discretization of operator
-operator = qf.discretize_op(backward, degree=degree)
-rhs = qf.transform('x', degree=degree)
-solution = operator.solve(rhs)
-diffusion = - float(solution*rhs)
-print(diffusion)
-exit(0)
-import ipdb; ipdb.set_trace()
-
-# With 2 auxiliary processes
-del params['α']
-del params['λ']
-λ1, λ2 = set_param(args.lamda, r(5), 'λ') / ε, 0
-A11, A12, A21, A22 = 0, -1/ε, 1/ε, set_param(args.lamda, r(1), 'α')/ε
-
-# Calculate factor {{{
+# Calculate factors {{{
 Vqx = sym.Rational(1/2)*x*x/s2x
 Vqz = sym.Rational(1/2)*z*z/s2z
 Vqw = sym.Rational(1/2)*w*w/s2w
 
 # Map to appropriate space
-factor_y = sym.exp(- 1/2*Vy)  # Fourier
+factor_y = sym.exp(β/2*Vy)  # Fourier
 factor_x = sym.exp(- 1/2*Vqx + β/2*x*x/2)  # Hermite functions
 factor_z = sym.exp(- 1/2*Vqz + β/2*z*z/2)  # Hermite functions
 factor_w = sym.exp(- 1/2*Vqw + β/2*w*w/2)  # Hermite functions
-factor = factor_x * factor_z * factor_w
+factor_1 = factor_x * factor_z             # 1 extra process
+factor_2 = factor_x * factor_z * factor_w  # 2 extra processes
 # }}}
-params = e.params(n_extra=2)
-backward = e.backward(params)
 
-# Fokker Planck for McKean-Vlasov equation
-params.update({'Vp': Vp})
-forward = equation.equation(params)
+# Definition of quadratures
+new_q = hm.Quad.gauss_hermite
+cov_1 = [[s2x, 0], [0, s2z]]
+cov_2 = [[s2x, 0, 0], [0, s2z, 0], [0, 0, s2w]]
+args_f = {'dirs': [1], 'factor': factor_y}
+args_1 = {'dirs': [0, 2], 'mean': [0]*2, 'cov': cov_1, 'factor': factor_1}
+args_2 = {'dirs': [0, 2, 3], 'mean': [0]*3, 'cov': cov_2, 'factor': factor_2}
+qy_fine = hm.Quad.fourier(2*degree + 1, **args_f)
+qxz_fine = hm.Quad.gauss_hermite(2*degree + 1, **args_1)
+qxzw_fine = hm.Quad.gauss_hermite(2*degree + 1, **args_2)
+qy_coarse = hm.Quad.fourier(degree + 1, **args_f)
+qxz_coarse = new_q(degree + 1, **args_1)
+qxzw_coarse = new_q(degree + 1, **args_2)
+
+# Calculation of the diffusion coefficient with one extra process
+α = set_param(args.alpha, r(1), 'γ') / ε**2
+λ = set_param(args.lamda, r(1), 'λ') / ε
+params = {'β': β, 'α': α, 'λ': λ, 'Vy': Vy}
+backward = e.backward(params)
+qf = qy_fine * qxz_fine
+qc = qy_coarse * qxz_coarse
+operator = qf.discretize_op(backward, **kwargs0)
+rhs = qf.transform('x', **kwargs0)
+solution = operator.solve(rhs)
+diffusion = - float(solution*rhs)
+import ipdb; ipdb.set_trace()
+print("With 1 extra process: {}".format(diffusion))
+
+# Calculation of the diffusion coefficient with two extra processes
+del params['α']
+del params['λ']
+λ1 = set_param(args.lamda, r(1), 'λ')/ε
+A22 = set_param(args.alpha, r(1), 'α')/ε
+params = {'β': β, 'Vy': Vy, 'λ1': λ1, 'λ2': 0,
+          'A11': 0, 'A12': -1/ε, 'A21': 1/ε, 'A22': A22, 'Vy': Vy}
+backward = e.backward(params)
+qf = qy_fine * qxzw_fine
+qc = qy_coarse * qxzw_coarse
+rhs = qf.transform('x', **kwargs0)
+operator = qf.discretize_op(backward, **kwargs0)
+solution = operator.solve(rhs, gmres=True)
+diffusion = - float(solution*rhs)
+print("With 2 extra processes: {}".format(diffusion))
 
 # Projections
 qx, qy, qz = quad.project(0), quad.project(1), quad.project(2)
