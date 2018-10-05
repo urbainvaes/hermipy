@@ -23,7 +23,7 @@ import re
 class Function():
 
     # xyz notation
-    xyz = list(sympy.symbols('x y z v w', real=True))
+    xyz = list(sympy.symbols('x y z w v', real=True))
 
     # subscript notation
     x_sub = [sympy.symbols('x{}'.format(i), real=True)
