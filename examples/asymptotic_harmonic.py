@@ -218,6 +218,9 @@ solution_x = func.Function.sanitize(solution_x)\
 print("x-projection of the solution: ")
 sym.pprint(func.Function.sanitize(solution_x).factor())
 
+handle = func.Function.sanitize(solution_x).factor()
+import ipdb; ipdb.set_trace()
+
 # Checks
 solution = solution.subs(unk[0], solution_0).subs(unk[4], solution_4)
 

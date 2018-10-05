@@ -25,10 +25,8 @@ import sympy as sym
 import numpy as np
 import hermipy as hm
 import hermipy.equations as eq
-import matplotlib.pyplot as plt
 import matplotlib
 
-sym.init_printing()
 
 # }}}
 # Parse options {{{
@@ -45,6 +43,14 @@ parser.add_argument('-m', '--mass', type=float)
 parser.add_argument('-d', '--degree', type=int)
 parser.add_argument('--method', type=str)
 args = parser.parse_args()
+
+if not args.interactive:
+    matplotlib.use('Agg')
+
+if True:  # To placate linter
+    import matplotlib.pyplot as plt
+
+sym.init_printing()
 
 # Set hermipy options
 hm.settings['tensorize'] = True
@@ -90,10 +96,12 @@ factor_x = sym.exp(- 1/2 * (Vqx + β*Vp))
 factor_y = sym.exp(- 1/2 * (Vqy + Vy))
 # factor_x = sym.exp(- 1/2 * Vqx)
 # factor_y = sym.exp(- 1/2 * Vqy)
-# factor_x = sym.exp(- β*Vp)
+# factor_x = sym.exp(- β*(Vp + θ*x*x/2))
+# factor_y = sym.exp(- Vy)
+# factor_x = sym.exp(- β*(Vp + θ*x*x/2))
 # factor_y = sym.exp(- Vy)
 factor = factor_x * factor_y
-degree, index_set = args.degree if args.degree else 60, 'cube'
+degree, index_set = args.degree if args.degree else 81, 'cube'
 kwargs0 = {'degree': degree, 'index_set': index_set}
 n_points_num = 2*degree + 1
 
@@ -211,11 +219,30 @@ def error_Linf(result, prefix=""):
 
 
 if args.test_convergence:
-    degrees = list(range(20, degree, 5))
+
+    try:
+        degrees = np.load("data/comparison_exact/comp_exact_gaussian_time_degrees_ode45.npy")
+        errors_ode45 = np.load("data/comparison_exact/comp_exact_gaussian_time_errors_ode45.npy")
+        errors_semi_explicit = np.load("data/comparison_exact/comp_exact_gaussian_time_errors_semi_explicit.npy")
+
+        fig, ax = plt.subplots()
+        plt.semilogy(degrees, errors_ode45, '.', label='RK45')
+        plt.semilogy(degrees, errors_semi_explicit, '.', label='Semi-implicit')
+        ax.set_xlabel("Degree of Hermite functions")
+        ax.set_ylabel("Error (in the $L^\\infty(0, T; L^1(\\mathbf R))$ norm)")
+        plt.legend()
+        plt.savefig('comparison-degree-errors.pdf', bbox_inches='tight')
+        plt.show()
+
+    except IOError:
+        pass
+
+    degrees = list(range(20, degree, 2))
     errors = np.zeros(len(degrees))
     method = args.method if args.method else "ode45"
 
     for i, d in enumerate(degrees):
+        print("\n--> Degree = {}".format(d))
         result = solve(method, subdegree=d)
         errors[i] = error_Linf(result)
     np.save("comp_exact_gaussian_time_degrees_{}".format(method), degrees)
@@ -225,8 +252,9 @@ if args.test_convergence:
 # Plots {{{
 if args.test_plots:
 
-    result = solve('semi_explicit')
+    result = solve('ode45')
 
+    import ipdb; ipdb.set_trace()
     plt.ion()
     fig, ax = plt.subplots(2)
 
@@ -244,14 +272,14 @@ if args.test_plots:
         plt.pause(0.01)
 
     for i, t in enumerate(result):
-        if i % 100 == 0:
+        if i % 10 == 0:
             plot(i, t)
-        exact = (ρt.subs(sym.symbols('t'), time[i]))
-        t_exact = quad.transform(exact, degree=degree, index_set=index_set)
-        Δ = quad.norm(t - t_exact, n=1, flat=True)
-        print('i: {}, Δ: {}'.format(i, Δ))
+        # exact = (ρt.subs(sym.symbols('t'), time[i]))
+        # t_exact = quad.transform(exact, degree=degree, index_set=index_set)
+        # Δ = quad.norm(t - t_exact, n=1, flat=True)
+        # print('i: {}, Δ: {}'.format(i, Δ))
 
-    plot_times = [0, 1, 2, 3]
+    plot_times = [0, .2, .5,  1]
     plt.ioff()
     for t in plot_times:
         i = np.argmin(np.abs(np.asarray(time) - t))
