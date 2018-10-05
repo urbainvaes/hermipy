@@ -157,13 +157,14 @@ class Varf:
         return Varf(matrix, self.position,
                     factor=self.factor, index_set="cross")
 
-    def solve(self, series, **kwargs):
+    def solve(self, series, gmres=False, **kwargs):
         assert self.position == series.position
         assert self.index_set == series.index_set
         solve = cache.cache(quiet=True)(las.spsolve if self.is_sparse
                                         else la.solve)
-        # from scipy.sparse.linalg import gmres as gmres
-        # solve = cache.cache(quiet=True)(gmres)
+        if gmres:
+            from scipy.sparse.linalg import gmres as gmres
+            solve = cache.cache(quiet=True)(gmres)
         solution = solve(self.matrix, series.coeffs, **kwargs)
         return hs.Series(solution, position=self.position,
                          factor=self.factor, index_set=self.index_set)
@@ -209,7 +210,9 @@ class Varf:
         if lines:
             degree = 0
             for i, m in enumerate(self.multi_indices()):
-                if sum(m) > degree:
+                #  FIXME: ONLY WORKS FOR CUBE AND TRIANGLE
+                function = sum if self.index_set == 'triangle' else max
+                if function(m) > degree:
                     degree = degree + 1
                     ax.axvline(x=i, ymin=0, ymax=i)
                     ax.axhline(y=i, xmin=0, xmax=i)
