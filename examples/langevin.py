@@ -25,7 +25,8 @@ import hermipy.series as series
 import numpy as np
 import numpy.linalg as la
 
-backward = eq.Langevin.backward(1)
+params = {'γ': 1, 'β': 1, 'Vy': (eq.Langevin.y)**2/2}
+backward = eq.Langevin.backward(params)
 forward = eq.Langevin.forward(1)
 
 degree, nquad = 10, 20
