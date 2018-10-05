@@ -223,7 +223,7 @@ T varf(
     {
         if (f == 1)
         {
-            cube products_fourier = triple_products_fourier(degree);
+            products_fourier = triple_products_fourier(degree);
             break;
         }
     }

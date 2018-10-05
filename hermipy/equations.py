@@ -120,7 +120,7 @@ class McKean_Vlasov_white:
 
         # Real positive parameters
         options = {'real': True, 'positive': True}
-        for param in ['β', 'γ', 'ε']:
+        for param in ['β']:
             params[param] = sym.symbols(param, **options)
 
         # Real parameters
@@ -345,4 +345,78 @@ class Langevin:
 
         return operator
 
-# vim: foldmethod=indent
+
+class Generalized_Langevin:
+
+    # x = p, y = q, z = z1, w = z2
+    variables = sym.symbols('x y z w', real=True)
+    x, y, z, w = variables
+
+    # Unknown functions
+    f1 = sym.Function('f')(x, y, z)
+    f2 = sym.Function('f')(x, y, z, w)
+
+    @classmethod
+    def params(cls, n_extra):
+        assert n_extra is 1 or n_extra is 2
+        params, functions = {}, {}
+
+        # Real positive parameters
+        options = {'real': True, 'positive': True}
+        params['β'] = sym.symbols('β', **options)
+
+        if n_extra is 1:
+            params['λ'] = sym.symbols('λ', **options)
+            params['α'] = sym.symbols('α', **options)
+
+        elif n_extra is 2:
+            params['λ1'] = sym.symbols('λ1', **options)
+            params['λ2'] = sym.symbols('λ2', **options)
+            for param in ['A11', 'A12', 'A21', 'A22']:
+                params[param] = sym.symbols(param, real=True)
+
+        # Potential function
+        functions['Vy'] = sym.Function('Vy')(cls.y)
+
+        return {**params, **functions}
+
+    @classmethod
+    def backward(cls, params):
+
+        # Common parameters
+        β, Vy = params['β'], params['Vy']
+
+        d, x, y, z, w = sym.diff, cls.x, cls.y, cls.z, cls.w
+
+        # 1 auxiliary process
+        if 'α' in params:
+            f = cls.f1
+            z_vec = sym.Matrix([z])
+            lamb = sym.Matrix([params['λ']])
+            A = sym.Matrix([[params['α']]])
+
+        # 2 auxiliary processes
+        else:
+            f = cls.f2
+            z_vec = sym.Matrix([z, w])
+            lamb = sym.Matrix([params['λ1'], params['λ2']])
+            A = sym.Matrix([[params['A11'], params['A12']],
+                            [params['A21'], params['A22']]])
+
+        # Computation of diffusion matrix
+        # Σ = sym.sqrt((A + A.T)/β).doit()
+
+        # Auxiliary quantities
+        dfdz = sym.Matrix([f.diff(v) for v in z_vec])
+        ddfdzdz = sym.Matrix([dfdz.diff(v).T for v in z_vec])
+
+        # Backward Kolmogorov operator
+        operator = x*d(f, y) - d(Vy, y)*d(f, x)\
+            + (lamb.dot(z_vec))*d(f, x)\
+            - x*lamb.dot(dfdz)\
+            - (A*z_vec).dot(dfdz)\
+            + (1/β)*(A*ddfdzdz).trace()
+
+        return operator
+
+# vim: foldmethod=indent foldnestmax=2
