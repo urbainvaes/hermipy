@@ -421,6 +421,9 @@ class Generalized_Langevin:
             - (A*z_vec).dot(dfdz)\
             + (1/β)*(A*ddfdzdz).trace()
 
+        γ = lamb.dot(A.inv()*lamb)
+        print("Effective friction: {}".format(γ))
+
         return operator
 
 # vim: foldmethod=indent foldnestmax=2

@@ -17,12 +17,14 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import os
+import math
 import argparse
 import sympy as sym
 import numpy as np
 import matplotlib
 import hermipy as hm
 import hermipy.equations as eq
+import scipy.integrate as integrate
 
 hm.settings['tensorize'] = True
 hm.settings['sparse'] = True
@@ -37,8 +39,8 @@ parser.add_argument('-i', '--interactive', action='store_true')
 parser.add_argument('-a', '--alpha', type=str)
 parser.add_argument('-b', '--beta', type=str)
 parser.add_argument('-e', '--epsilon', type=str)
+parser.add_argument('-g', '--gamma', type=str)
 parser.add_argument('-l', '--lamda', type=str)
-parser.add_argument('-g', '--gamma', type=float)
 parser.add_argument('-d', '--degree', type=int)
 args = parser.parse_args()
 
@@ -74,14 +76,14 @@ def set_param(arg, default, symbol):
         return r(arg)
     return default
 
+
 ε = set_param(args.epsilon, r(1), 'ε')
 β = set_param(args.beta, r(1), 'β')
 Vy = sym.cos(y)
 
 # Numerical parameters
 index_set = 'cube'
-s2x, s2z, s2w = r(1, 5), r(1, 5), r(1, 5)
-# s2x, s2z = r(1), r(1)
+s2x, s2z, s2w = r(1, 3), r(1, 3), r(1, 3)
 degree = args.degree if args.degree else 10
 kwargs0 = {'degree': degree, 'index_set': index_set}
 n_points_num = 2*degree + 1
@@ -91,7 +93,17 @@ Vqx = sym.Rational(1/2)*x*x/s2x
 Vqz = sym.Rational(1/2)*z*z/s2z
 Vqw = sym.Rational(1/2)*w*w/s2w
 
+# Normalization constants
+zy = integrate.quad(sym.lambdify(y, sym.exp(-β*Vy)), -math.pi, math.pi)[0]
+zx = integrate.quad(sym.lambdify(x, sym.exp(-β*x*x/2)), -10, 10)[0]
+zz = integrate.quad(sym.lambdify(z, sym.exp(-β*z*z/2)), -10, 10)[0]
+zw = integrate.quad(sym.lambdify(w, sym.exp(-β*w*w/2)), -10, 10)[0]
+
 # Map to appropriate space
+zfx = sym.sqrt(2*sym.pi*s2x)
+zfz = sym.sqrt(2*sym.pi*s2z)
+zfw = sym.sqrt(2*sym.pi*s2w)
+
 factor_y = sym.exp(β/2*Vy)  # Fourier
 factor_x = sym.exp(- 1/2*Vqx + β/2*x*x/2)  # Hermite functions
 factor_z = sym.exp(- 1/2*Vqz + β/2*z*z/2)  # Hermite functions
@@ -102,47 +114,59 @@ factor_2 = factor_x * factor_z * factor_w  # 2 extra processes
 
 # Definition of quadratures
 new_q = hm.Quad.gauss_hermite
-cov_1 = [[s2x, 0], [0, s2z]]
+cov_0, cov_1 = [[s2x]], [[s2x, 0], [0, s2z]]
 cov_2 = [[s2x, 0, 0], [0, s2z, 0], [0, 0, s2w]]
 args_f = {'dirs': [1], 'factor': factor_y}
+args_0 = {'dirs': [0], 'mean': [0]*1, 'cov': cov_0, 'factor': factor_x}
 args_1 = {'dirs': [0, 2], 'mean': [0]*2, 'cov': cov_1, 'factor': factor_1}
 args_2 = {'dirs': [0, 2, 3], 'mean': [0]*3, 'cov': cov_2, 'factor': factor_2}
-qy_fine = hm.Quad.fourier(2*degree + 1, **args_f)
-qxz_fine = hm.Quad.gauss_hermite(2*degree + 1, **args_1)
-qxzw_fine = hm.Quad.gauss_hermite(2*degree + 1, **args_2)
-qy_coarse = hm.Quad.fourier(degree + 1, **args_f)
-qxz_coarse = new_q(degree + 1, **args_1)
-qxzw_coarse = new_q(degree + 1, **args_2)
+qy = hm.Quad.fourier(2*degree + 1, **args_f)
+q0 = hm.Quad.gauss_hermite(2*degree + 1, **args_0)
+q1 = hm.Quad.gauss_hermite(2*degree + 1, **args_1)
+q2 = hm.Quad.gauss_hermite(2*degree + 1, **args_2)
+# qy_coarse = hm.Quad.fourier(degree + 1, **args_f)
+# qxz_coarse = new_q(degree + 1, **args_1)
+# qxzw_coarse = new_q(degree + 1, **args_2)
+
+# Calculation of the diffusion coefficient with 0 extra process
+β = set_param(args.beta, r(1), 'β')
+γ = set_param(args.gamma, r(1), 'γ')
+params = {'β': β, 'γ': γ, 'Vy': Vy}
+backward0 = hm.equations.Langevin.backward(params)
+operator = (qy*q0).discretize_op(backward0, **kwargs0)
+rhs = (qy*q0).transform('x', **kwargs0)
+solution = operator.solve(rhs)
+diffusion = - float(solution*rhs) * float(zfx/(zx*zy))
+print("With 0 extra process: {}".format(diffusion))
 
 # Calculation of the diffusion coefficient with one extra process
-α = set_param(args.alpha, r(1), 'γ') / ε**2
+α = set_param(args.alpha, r(1), 'α') / ε**2
 λ = set_param(args.lamda, r(1), 'λ') / ε
 params = {'β': β, 'α': α, 'λ': λ, 'Vy': Vy}
-backward = e.backward(params)
-qf = qy_fine * qxz_fine
-qc = qy_coarse * qxz_coarse
-operator = qf.discretize_op(backward, **kwargs0)
+backward1 = e.backward(params)
+qf = qy * q1
+operator = qf.discretize_op(backward1, **kwargs0)
 rhs = qf.transform('x', **kwargs0)
 solution = operator.solve(rhs)
-diffusion = - float(solution*rhs)
-import ipdb; ipdb.set_trace()
+diffusion = - float(solution*rhs) * float(zfx*zfz/(zx*zy*zz))
 print("With 1 extra process: {}".format(diffusion))
 
 # Calculation of the diffusion coefficient with two extra processes
 del params['α']
 del params['λ']
-λ1 = set_param(args.lamda, r(1), 'λ')/ε
-A22 = set_param(args.alpha, r(1), 'α')/ε
+λ1 = set_param(args.lamda, r(1), 'λ') / ε
+A22 = set_param(args.alpha, r(1), 'α') / ε**2
 params = {'β': β, 'Vy': Vy, 'λ1': λ1, 'λ2': 0,
-          'A11': 0, 'A12': -1/ε, 'A21': 1/ε, 'A22': A22, 'Vy': Vy}
+          'A11': 0, 'A12': -1/ε**2, 'A21': 1/ε**2, 'A22': A22, 'Vy': Vy}
 backward = e.backward(params)
-qf = qy_fine * qxzw_fine
-qc = qy_coarse * qxzw_coarse
+qf = qy * q2
 rhs = qf.transform('x', **kwargs0)
 operator = qf.discretize_op(backward, **kwargs0)
-solution = operator.solve(rhs, gmres=True)
-diffusion = - float(solution*rhs)
+solution = operator.solve(rhs)
+diffusion = - float(solution*rhs) * float(zfx*zfz*zfw/(zx*zy*zz*zw))
 print("With 2 extra processes: {}".format(diffusion))
+import ipdb; ipdb.set_trace()
+
 
 # Projections
 qx, qy, qz = quad.project(0), quad.project(1), quad.project(2)
