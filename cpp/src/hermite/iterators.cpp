@@ -27,7 +27,7 @@
 #include <boost/math/special_functions/binomial.hpp>
 
 #define MAX(i, j) (i > j ? i : j)
-#define DEGREE_BISSECT_MAX 150
+#define DEGREE_BISSECT_MAX 250
 
 namespace hermite
 {
