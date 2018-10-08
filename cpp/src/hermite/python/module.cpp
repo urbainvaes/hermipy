@@ -93,6 +93,7 @@ BOOST_PYTHON_MODULE(hermite_cpp)
 
     // Triple products and variational formulations
     def("triple_products", triple_products_1d);
+    def("triple_products_fourier", triple_products_fourier);
 
     def("varf", varf<boost_mat>);
     def("varf_sp", varf<spmat>);
