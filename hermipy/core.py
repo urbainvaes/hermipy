@@ -156,11 +156,12 @@ def transform(degree, fgrid, nodes, weights, forward,
                                  do_fourier_cpp, forward, index_set))
 
 
-@cache()
-@debug()
-@log_stats()
 def triple_products(degree):
     return np.array(hm.triple_products(degree))
+
+
+def triple_products_fourier(degree):
+    return np.array(hm.triple_products_fourier(degree))
 
 
 @cache()
