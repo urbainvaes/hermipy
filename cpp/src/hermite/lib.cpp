@@ -87,12 +87,14 @@ u_int pos_bissect(u_int image, std::function<u_int(u_int)> f, u_int max)
 {
     u_int x1 = 0, x2 = max;
 
-    int img_1 = (int) f(x1) - (int) image;
-    int img_2 = (int) f(x2) - (int) image;
+    long img_1 = (long) f(x1) - (long) image;
+    long img_2 = (long) f(x2) - (long) image;
 
     if (img_1 > 0 || img_2 < 0)
     {
         std::cout << "Can't find x, Invalid arguments!" << std::endl;
+        std::cout << "-> x1: " << x1 << ", img_1: " << f(x1) << std::endl;
+        std::cout << "-> x2: " << x2 << ", img_2: " << f(x2) << std::endl;
         exit(0);
     }
 
@@ -105,7 +107,7 @@ u_int pos_bissect(u_int image, std::function<u_int(u_int)> f, u_int max)
     while (true)
     {
         u_int new_x = (x1 + x2)/2;
-        int new_img = (int) f(new_x) - (int) image;
+        long new_img = (long) f(new_x) - (long) image;
 
         if (new_img < 0)
         {
