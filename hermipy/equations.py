@@ -312,6 +312,29 @@ class McKean_Vlasov_harmonic_noise:
         return - fx.diff(x) - fy.diff(y) - fz.diff(z)
 
 
+class Overdamped:
+
+    # Space variable
+    x = sym.symbols('x', real=True)
+
+    # Unknown
+    f = sym.Function('f')(x)
+
+    @classmethod
+    def backward(cls, params):
+
+        # Shorthand notations
+        d, x, f = sym.diff, cls.x, cls.f
+
+        # Parameters
+        β, V = params['β'], params['V']
+
+        # Backward Kolmogorov operator
+        operator = - d(V, x)*d(f, x) + (1/β)*d(f, x, x)
+
+        return operator
+
+
 class Langevin:
 
     # Space variables
