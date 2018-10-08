@@ -129,7 +129,7 @@ cube triple_products_fourier(int degree)
         products[COS(0)][COS(k2)][COS(k2)] = M_PI / normalization;
         products[COS(0)][SIN(k2)][SIN(k2)] = M_PI / normalization;
 
-        // Cases 0 < k2 ≠ k3 < k1
+        // Cases 0 < k2 = k3 < k1
         normalization = sqrt(M_PI)*M_PI;
         products[COS(2*k2)][COS(k2)][COS(k2)] =   M_PI / 2 / normalization;
         products[COS(2*k2)][SIN(k2)][SIN(k2)] = - M_PI / 2 / normalization;
@@ -137,22 +137,24 @@ cube triple_products_fourier(int degree)
         products[SIN(2*k2)][SIN(k2)][COS(k2)] =   M_PI / 2 / normalization;
 
         // Cases 0 < k2 ≠ k3
-        for (u_int k3 = 1; k3 < max_freq; k3++)
+        for (u_int k3 = 1; k3 <= max_freq; k3++)
         {
             if (k2 == k3)
                 continue;
 
+            // cout << "k2, k3: " << k2 << ", " << k3 << endl;
+
             u_int ks = k2 + k3,
                   kd = MAX(k2, k3) - MIN(k2, k3);
 
-            products[COS(ks)][COS(k2)][COS(k3)] =   M_PI / 2;
-            products[COS(kd)][COS(k2)][COS(k3)] =   M_PI / 2;
-            products[COS(ks)][SIN(k2)][SIN(k3)] = - M_PI / 2;
-            products[COS(kd)][SIN(k2)][SIN(k3)] =   M_PI / 2;
-            products[SIN(ks)][COS(k2)][SIN(k3)] =   M_PI / 2;
-            products[SIN(ks)][SIN(k2)][COS(k3)] =   M_PI / 2;
-            products[SIN(kd)][COS(k2)][SIN(k3)] =   M_PI / 2 * ((k3 > k2) - (k2 > k3));
-            products[SIN(kd)][SIN(k2)][COS(k3)] =   M_PI / 2 * ((k2 > k3) - (k3 > k2));
+            products[COS(ks)][COS(k2)][COS(k3)] =   M_PI / 2 / normalization;
+            products[COS(kd)][COS(k2)][COS(k3)] =   M_PI / 2 / normalization;
+            products[COS(ks)][SIN(k2)][SIN(k3)] = - M_PI / 2 / normalization;
+            products[COS(kd)][SIN(k2)][SIN(k3)] =   M_PI / 2 / normalization;
+            products[SIN(ks)][COS(k2)][SIN(k3)] =   M_PI / 2 / normalization;
+            products[SIN(ks)][SIN(k2)][COS(k3)] =   M_PI / 2 / normalization;
+            products[SIN(kd)][COS(k2)][SIN(k3)] =   M_PI / 2 * ((k3 > k2) - (k2 > k3)) / normalization;
+            products[SIN(kd)][SIN(k2)][COS(k3)] =   M_PI / 2 * ((k2 > k3) - (k3 > k2)) / normalization;
         }
     }
 
