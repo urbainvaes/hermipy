@@ -157,15 +157,24 @@ class Varf:
         return Varf(matrix, self.position,
                     factor=self.factor, index_set="cross")
 
-    def solve(self, series, gmres=False, **kwargs):
+    def solve(self, series, gmres=False, remove0=True, **kwargs):
         assert self.position == series.position
         assert self.index_set == series.index_set
         solve = cache.cache(quiet=True)(las.spsolve if self.is_sparse
                                         else la.solve)
+        if remove0:
+            matrix = self.matrix[1:, 1:]
+            vector = series.coeffs[1:]
+        else:
+            matrix = self.matrix
+            vector = series.coeffs
         if gmres:
             from scipy.sparse.linalg import gmres as gmres
             solve = cache.cache(quiet=True)(gmres)
-        solution = solve(self.matrix, series.coeffs, **kwargs)
+
+        solution = solve(matrix, vector, **kwargs)
+        solution = np.array([0, *solution]) if remove0 else solution
+
         return hs.Series(solution, position=self.position,
                          factor=self.factor, index_set=self.index_set)
 
