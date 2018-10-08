@@ -41,7 +41,13 @@ parser.add_argument('-b', '--beta', type=str)
 parser.add_argument('-e', '--epsilon', type=str)
 parser.add_argument('-g', '--gamma', type=str)
 parser.add_argument('-l', '--lamda', type=str)
+parser.add_argument('-s', '--sigma', type=str)
 parser.add_argument('-d', '--degree', type=int)
+parser.add_argument('-n', '--npoints', type=int)
+parser.add_argument('-do', '--overdamped', action='store_true')
+parser.add_argument('-d0', '--diff0', action='store_true')
+parser.add_argument('-d1', '--diff1', action='store_true')
+parser.add_argument('-d2', '--diff2', action='store_true')
 args = parser.parse_args()
 
 # Directory for output files
@@ -61,8 +67,6 @@ if 'DISPLAY' not in os.environ:
 else:
     import matplotlib.pyplot as plt
 
-# Calculate diffusion coefficients
-
 # Equation parameters
 r, s = sym.Rational, sym.symbols
 e = eq.Generalized_Langevin
@@ -79,14 +83,16 @@ def set_param(arg, default, symbol):
 
 ε = set_param(args.epsilon, r(1), 'ε')
 β = set_param(args.beta, r(1), 'β')
+γ = set_param(args.gamma, r(1), 'γ')
+σ = set_param(args.sigma, r(3), 'σ')
 Vy = sym.cos(y)
 
 # Numerical parameters
 index_set = 'cube'
-s2x, s2z, s2w = r(1, 3), r(1, 3), r(1, 3)
+s2x, s2z, s2w = r(1, σ), r(1, σ), r(1, σ)
 degree = args.degree if args.degree else 10
+npoints = args.npoints if args.npoints else 2*degree + 1
 kwargs0 = {'degree': degree, 'index_set': index_set}
-n_points_num = 2*degree + 1
 
 # Calculate factors {{{
 Vqx = sym.Rational(1/2)*x*x/s2x
@@ -120,53 +126,103 @@ args_f = {'dirs': [1], 'factor': factor_y}
 args_0 = {'dirs': [0], 'mean': [0]*1, 'cov': cov_0, 'factor': factor_x}
 args_1 = {'dirs': [0, 2], 'mean': [0]*2, 'cov': cov_1, 'factor': factor_1}
 args_2 = {'dirs': [0, 2, 3], 'mean': [0]*3, 'cov': cov_2, 'factor': factor_2}
-qy = hm.Quad.fourier(2*degree + 1, **args_f)
-q0 = hm.Quad.gauss_hermite(2*degree + 1, **args_0)
-q1 = hm.Quad.gauss_hermite(2*degree + 1, **args_1)
-q2 = hm.Quad.gauss_hermite(2*degree + 1, **args_2)
+qy = hm.Quad.fourier(npoints, **args_f)
+q0 = hm.Quad.gauss_hermite(npoints, **args_0)
+q1 = hm.Quad.gauss_hermite(npoints, **args_1)
+q2 = hm.Quad.gauss_hermite(npoints, **args_2)
 # qy_coarse = hm.Quad.fourier(degree + 1, **args_f)
 # qxz_coarse = new_q(degree + 1, **args_1)
 # qxzw_coarse = new_q(degree + 1, **args_2)
 
+
+def diffo():
+    eq = hm.equations.Overdamped
+    V, factor = Vy.subs(y, x), factor_y.subs(y, x)*sym.sqrt(zy)
+    quad = hm.Quad.fourier(npoints, dirs=[0], factor=factor)
+    f, backward = eq.f, eq.backward({'β': β, 'V': V})
+    operator = quad.discretize_op(backward, **kwargs0)
+    rhs = quad.transform(-V.diff(x), **kwargs0)
+    solution = operator.solve(rhs)*(-1)
+    Ix = quad.transform(1, **kwargs0)
+    derivative = f.diff(x)
+    diff = quad.discretize_op(derivative, **kwargs0)
+    aux = quad.transform(β*V.diff(x), **kwargs0)
+    quad.plot(Ix)
+    # quad.plot(solution)
+    # quad.plot(diff(solution))  # THIS IS NOT CORRECT
+    diffusion = (1/β) + float(solution*rhs) + (2/β)*float(Ix*diff(solution))
+    diffusion = (1/β) + float(solution*rhs) + (2/β)*float(aux*solution)
+    print("Overdamped Langevin: {}".format(diffusion))
+
+
 # Calculation of the diffusion coefficient with 0 extra process
-β = set_param(args.beta, r(1), 'β')
-γ = set_param(args.gamma, r(1), 'γ')
-params = {'β': β, 'γ': γ, 'Vy': Vy}
-backward0 = hm.equations.Langevin.backward(params)
-operator = (qy*q0).discretize_op(backward0, **kwargs0)
-rhs = (qy*q0).transform('x', **kwargs0)
-solution = operator.solve(rhs)
-diffusion = - float(solution*rhs) * float(zfx/(zx*zy))
-print("With 0 extra process: {}".format(diffusion))
+def diff0():
+    params = {'β': β, 'γ': γ, 'Vy': Vy}
+    backward0 = hm.equations.Langevin.backward(params)
+    operator = (qy*q0).discretize_op(backward0, **kwargs0)
+    rhs = (qy*q0).transform('x', **kwargs0)
+    solution = operator.solve(rhs)
+    diffusion = - float(solution*rhs) * float(zfx/(zx*zy))
+    print("With 0 extra process: {}".format(diffusion))
+    if args.interactive:
+        (qy*q0).plot(solution, factor=sym.exp(-β/2*(Vy + x*x/2)))
+    return diffusion
+
 
 # Calculation of the diffusion coefficient with one extra process
-α = set_param(args.alpha, r(1), 'α') / ε**2
-λ = set_param(args.lamda, r(1), 'λ') / ε
-params = {'β': β, 'α': α, 'λ': λ, 'Vy': Vy}
-backward1 = e.backward(params)
-qf = qy * q1
-operator = qf.discretize_op(backward1, **kwargs0)
-rhs = qf.transform('x', **kwargs0)
-solution = operator.solve(rhs)
-diffusion = - float(solution*rhs) * float(zfx*zfz/(zx*zy*zz))
-print("With 1 extra process: {}".format(diffusion))
+def diff1():
+    α = set_param(args.alpha, r(1), 'α') / ε**2 / γ
+    λ = set_param(args.lamda, r(1), 'λ') / ε
+    params = {'β': β, 'α': α, 'λ': λ, 'Vy': Vy}
+    backward1 = e.backward(params)
+    qf = qy * q1
+    operator = qf.discretize_op(backward1, **kwargs0)
+    rhs = qf.transform('x', **kwargs0)
+    solution = operator.solve(rhs)
+    diffusion = - float(solution*rhs) * float(zfx*zfz/(zx*zy*zz))
+    time_rhs, time, diffusion, dt = rhs, 0, 0, 0.0001
+    while True:
+        time_rhs = time_rhs + dt*operator(time_rhs)
+        diffusion = diffusion + dt*float(time_rhs*rhs)
+        time = time + dt
+        print(time, float(time_rhs*rhs), diffusion)
+    print("With 1 extra process: {}".format(diffusion))
+    return diffusion
+
 
 # Calculation of the diffusion coefficient with two extra processes
-del params['α']
-del params['λ']
-λ1 = set_param(args.lamda, r(1), 'λ') / ε
-A22 = set_param(args.alpha, r(1), 'α') / ε**2
-params = {'β': β, 'Vy': Vy, 'λ1': λ1, 'λ2': 0,
-          'A11': 0, 'A12': -1/ε**2, 'A21': 1/ε**2, 'A22': A22, 'Vy': Vy}
-backward = e.backward(params)
-qf = qy * q2
-rhs = qf.transform('x', **kwargs0)
-operator = qf.discretize_op(backward, **kwargs0)
-solution = operator.solve(rhs)
-diffusion = - float(solution*rhs) * float(zfx*zfz*zfw/(zx*zy*zz*zw))
-print("With 2 extra processes: {}".format(diffusion))
-import ipdb; ipdb.set_trace()
+def diff2():
+    λ1 = set_param(args.lamda, r(1), 'λ') / ε
+    A12 = -1/ε**2/γ
+    A21 = 1/ε**2/γ
+    A22 = set_param(args.alpha, r(1), 'α') / ε**2 / γ
+    params = {'β': β, 'Vy': Vy, 'λ1': λ1, 'λ2': 0,
+              'A11': 0, 'A12': A12, 'A21': A21, 'A22': A22, 'Vy': Vy}
+    backward = e.backward(params)
+    qf = qy * q2
+    rhs = qf.transform('x', **kwargs0)
+    operator = qf.discretize_op(backward, **kwargs0)
+    # solution = operator.solve(rhs)
+    import ipdb; ipdb.set_trace()
 
+    solution, time, diffusion, dt = 0*rhs, 0, 0, 0.001
+    while True:
+        solution = solution + dt*(rhs - operator(solution))
+        error = rhs - operator(solution)
+        diffusion = float(solution*rhs)
+        time = time + dt
+        print(time, diffusion, float(error*error))
+
+    # diffusion = - float(solution*rhs) * float(zfx*zfz*zfw/(zx*zy*zz*zw))
+    # print("With 2 extra processes: {}".format(diffusion))
+    return diffusion
+
+
+do = diffo() if args.overdamped else None
+d0 = diff0() if args.diff0 else None
+d1 = diff1() if args.diff1 else None
+d2 = diff2() if args.diff2 else None
+exit(0)
 
 # Projections
 qx, qy, qz = quad.project(0), quad.project(1), quad.project(2)
