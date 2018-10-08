@@ -28,6 +28,7 @@
 namespace hermite {
 
 cube triple_products_1d(int degree);
+cube triple_products_fourier(int degree);
 
 template<typename T>
 T varf(
