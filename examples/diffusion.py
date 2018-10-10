@@ -21,6 +21,8 @@ import math
 import argparse
 import sympy as sym
 import numpy as np
+import numpy.linalg as la
+import scipy.sparse.linalg as las
 import matplotlib
 import hermipy as hm
 import hermipy.equations as eq
@@ -157,15 +159,34 @@ def diffo():
 
 # Calculation of the diffusion coefficient with 0 extra process
 def diff0():
-    params = {'β': β, 'γ': γ, 'Vy': Vy}
+    quad, params = (qy*q0), {'β': β, 'γ': γ, 'Vy': Vy}
     backward0 = hm.equations.Langevin.backward(params)
-    operator = (qy*q0).discretize_op(backward0, **kwargs0)
-    rhs = (qy*q0).transform('x', **kwargs0)
+    operator = quad.discretize_op(backward0, **kwargs0)
+    rhs = quad.transform('x', **kwargs0)
     solution = operator.solve(rhs)
     diffusion = - float(solution*rhs) * float(zfx/(zx*zy))
     print("With 0 extra process: {}".format(diffusion))
     if args.interactive:
-        (qy*q0).plot(solution, factor=sym.exp(-β/2*(Vy + x*x/2)))
+        quad.plot(solution, factor=sym.exp(-β/2*(Vy + x*x/2)))
+
+    # Calculate autocorrelation function
+    def dudt(t, y):
+        print("t: {}".format(t))
+        return_vector = operator.matrix.dot(y)
+        return return_vector
+
+    time = np.linspace(0, 10, 101)
+    result = integrate.solve_ivp(dudt, [time[0], time[-1]], rhs.coeffs,
+                                 'RK45', t_eval=time, max_step=.01)
+    vac = np.zeros(len(time))
+    for i, u in enumerate(result.y.T):
+        u_series = quad.series(u, index_set=index_set)
+        vac[i] = float(rhs*u_series) * float(zfx/(zx*zy))
+
+    fig, ax = plt.subplots()
+    ax.plot(time, vac)
+    plt.show()
+
     return diffusion
 
 
