@@ -235,19 +235,10 @@ def diff2():
     qf = qy * q2
     rhs = qf.transform('x', **kwargs0)
     operator = qf.discretize_op(backward, **kwargs0)
-    # solution = operator.solve(rhs)
-    import ipdb; ipdb.set_trace()
-
-    solution, time, diffusion, dt = 0*rhs, 0, 0, 0.001
-    while True:
-        solution = solution + dt*(rhs - operator(solution))
-        error = rhs - operator(solution)
-        diffusion = float(solution*rhs)
-        time = time + dt
-        print(time, diffusion, float(error*error))
-
-    # diffusion = - float(solution*rhs) * float(zfx*zfz*zfw/(zx*zy*zz*zw))
-    # print("With 2 extra processes: {}".format(diffusion))
+    solution = operator.solve(rhs, gmres=True,
+                              callback=lambda rk: print(la.norm(rk)))
+    diffusion = - float(solution*rhs) * float(zfx*zfz*zfw/(zx*zy*zz*zw))
+    print("With 2 extra processes: {}".format(diffusion))
     return diffusion
 
 
