@@ -194,20 +194,32 @@ def diff0():
 def diff1():
     α = set_param(args.alpha, r(1), 'α') / ε**2 / γ
     λ = set_param(args.lamda, r(1), 'λ') / ε
-    params = {'β': β, 'α': α, 'λ': λ, 'Vy': Vy}
+    params, quad = {'β': β, 'α': α, 'λ': λ, 'Vy': Vy}, qy*q1
     backward1 = e.backward(params)
-    qf = qy * q1
-    operator = qf.discretize_op(backward1, **kwargs0)
-    rhs = qf.transform('x', **kwargs0)
+    operator = quad.discretize_op(backward1, **kwargs0)
+    rhs = quad.transform('x', **kwargs0)
     solution = operator.solve(rhs)
     diffusion = - float(solution*rhs) * float(zfx*zfz/(zx*zy*zz))
-    time_rhs, time, diffusion, dt = rhs, 0, 0, 0.0001
-    while True:
-        time_rhs = time_rhs + dt*operator(time_rhs)
-        diffusion = diffusion + dt*float(time_rhs*rhs)
-        time = time + dt
-        print(time, float(time_rhs*rhs), diffusion)
     print("With 1 extra process: {}".format(diffusion))
+
+    # Calculate autocorrelation function
+    def dudt(t, y):
+        print("t: {}".format(t))
+        return_vector = operator.matrix.dot(y)
+        return return_vector
+
+    time = np.linspace(0, 30, 201)
+    result = integrate.solve_ivp(dudt, [time[0], time[-1]], rhs.coeffs,
+                                 'RK45', t_eval=time, max_step=.01)
+    vac = np.zeros(len(time))
+    for i, u in enumerate(result.y.T):
+        u_series = quad.series(u, index_set=index_set)
+        vac[i] = float(rhs*u_series) * float(zfx*zfz/(zx*zy*zz))
+
+    fig, ax = plt.subplots()
+    ax.plot(time, vac)
+    plt.show()
+
     return diffusion
 
 
