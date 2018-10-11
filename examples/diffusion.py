@@ -22,11 +22,11 @@ import argparse
 import sympy as sym
 import numpy as np
 import numpy.linalg as la
-import scipy.sparse.linalg as las
 import matplotlib
 import hermipy as hm
 import hermipy.equations as eq
 import scipy.integrate as integrate
+# import scipy.sparse.linalg as las
 
 hm.settings['tensorize'] = True
 hm.settings['sparse'] = True
@@ -50,6 +50,7 @@ parser.add_argument('-do', '--overdamped', action='store_true')
 parser.add_argument('-d0', '--diff0', action='store_true')
 parser.add_argument('-d1', '--diff1', action='store_true')
 parser.add_argument('-d2', '--diff2', action='store_true')
+parser.add_argument('-tg', '--test_gammas', action='store_true')
 args = parser.parse_args()
 
 # Directory for output files
@@ -170,22 +171,22 @@ def diff0():
         quad.plot(solution, factor=sym.exp(-β/2*(Vy + x*x/2)))
 
     # Calculate autocorrelation function
-    def dudt(t, y):
-        print("t: {}".format(t))
-        return_vector = operator.matrix.dot(y)
-        return return_vector
+    # def dudt(t, y):
+    #     print("t: {}".format(t))
+    #     return_vector = operator.matrix.dot(y)
+    #     return return_vector
 
-    time = np.linspace(0, 10, 101)
-    result = integrate.solve_ivp(dudt, [time[0], time[-1]], rhs.coeffs,
-                                 'RK45', t_eval=time, max_step=.01)
-    vac = np.zeros(len(time))
-    for i, u in enumerate(result.y.T):
-        u_series = quad.series(u, index_set=index_set)
-        vac[i] = float(rhs*u_series) * float(zfx/(zx*zy))
+    # time = np.linspace(0, 10, 101)
+    # result = integrate.solve_ivp(dudt, [time[0], time[-1]], rhs.coeffs,
+    #                              'RK45', t_eval=time, max_step=.01)
+    # vac = np.zeros(len(time))
+    # for i, u in enumerate(result.y.T):
+    #     u_series = quad.series(u, index_set=index_set)
+    #     vac[i] = float(rhs*u_series) * float(zfx/(zx*zy))
 
-    fig, ax = plt.subplots()
-    ax.plot(time, vac)
-    plt.show()
+    # fig, ax = plt.subplots()
+    # ax.plot(time, vac)
+    # plt.show()
 
     return diffusion
 
@@ -203,22 +204,22 @@ def diff1():
     print("With 1 extra process: {}".format(diffusion))
 
     # Calculate autocorrelation function
-    def dudt(t, y):
-        print("t: {}".format(t))
-        return_vector = operator.matrix.dot(y)
-        return return_vector
+    # def dudt(t, y):
+    #     print("t: {}".format(t))
+    #     return_vector = operator.matrix.dot(y)
+    #     return return_vector
 
-    time = np.linspace(0, 30, 201)
-    result = integrate.solve_ivp(dudt, [time[0], time[-1]], rhs.coeffs,
-                                 'RK45', t_eval=time, max_step=.01)
-    vac = np.zeros(len(time))
-    for i, u in enumerate(result.y.T):
-        u_series = quad.series(u, index_set=index_set)
-        vac[i] = float(rhs*u_series) * float(zfx*zfz/(zx*zy*zz))
+    # time = np.linspace(0, 30, 201)
+    # result = integrate.solve_ivp(dudt, [time[0], time[-1]], rhs.coeffs,
+    #                              'RK45', t_eval=time, max_step=.01)
+    # vac = np.zeros(len(time))
+    # for i, u in enumerate(result.y.T):
+    #     u_series = quad.series(u, index_set=index_set)
+    #     vac[i] = float(rhs*u_series) * float(zfx*zfz/(zx*zy*zz))
 
-    fig, ax = plt.subplots()
-    ax.plot(time, vac)
-    plt.show()
+    # fig, ax = plt.subplots()
+    # ax.plot(time, vac)
+    # plt.show()
 
     return diffusion
 
@@ -242,72 +243,76 @@ def diff2():
     return diffusion
 
 
+γs = np.logspace(-3, 3, 100) if args.test_gammas else [γ]
+diffusion_coefficients = []
 do = diffo() if args.overdamped else None
-d0 = diff0() if args.diff0 else None
-d1 = diff1() if args.diff1 else None
-d2 = diff2() if args.diff2 else None
+for γ in γs:
+    d0 = diff0() if args.diff0 else None
+    d1 = diff1() if args.diff1 else None
+    d2 = diff2() if args.diff2 else None
+    diffusion_coefficients = []
 exit(0)
 
-# Projections
-qx, qy, qz = quad.project(0), quad.project(1), quad.project(2)
-wx = qx.factor * qx.factor / qx.position.weight()
-wy = qy.factor * qy.factor / qy.position.weight()
-wz = qz.factor * qz.factor / qz.position.weight()
-qxy, qxz, qyz = quad.project([0, 1]), quad.project([0, 2]), quad.project([1, 2])
+# # Projections
+# qx, qy, qz = quad.project(0), quad.project(1), quad.project(2)
+# wx = qx.factor * qx.factor / qx.position.weight()
+# wy = qy.factor * qy.factor / qy.position.weight()
+# wz = qz.factor * qz.factor / qz.position.weight()
+# qxy, qxz, qyz = quad.project([0, 1]), quad.project([0, 2]), quad.project([1, 2])
 
-# Integral operators
-Ix = qx.transform(wx, degree=degree, index_set=index_set)
-Iy = qy.transform(wy, degree=degree, index_set=index_set)
-Iz = qz.transform(wz, degree=degree, index_set=index_set)
+# # Integral operators
+# Ix = qx.transform(wx, degree=degree, index_set=index_set)
+# Iy = qy.transform(wy, degree=degree, index_set=index_set)
+# Iz = qz.transform(wz, degree=degree, index_set=index_set)
 
-# Moment operators
-mx1 = qx.transform(wx * x, degree=degree, index_set=index_set)
-my1 = qy.transform(wy * y, degree=degree, index_set=index_set)
-mz1 = qz.transform(wz * z, degree=degree, index_set=index_set)
+# # Moment operators
+# mx1 = qx.transform(wx * x, degree=degree, index_set=index_set)
+# my1 = qy.transform(wy * y, degree=degree, index_set=index_set)
+# mz1 = qz.transform(wz * z, degree=degree, index_set=index_set)
 
-if args.interactive:
-    plt.ion()
-    fig, ax = plt.subplots(2, 2)
+# if args.interactive:
+#     plt.ion()
+#     fig, ax = plt.subplots(2, 2)
 
 
-def plot(t, βplot=β):
+# def plot(t, βplot=β):
 
-    # Retrieve degree
-    d = t.degree
+#     # Retrieve degree
+#     d = t.degree
 
-    # Integral operators
-    Ix_d = Ix.subdegree(d)
-    Iy_d = Iy.subdegree(d)
-    Iz_d = Iz.subdegree(d)
+#     # Integral operators
+#     Ix_d = Ix.subdegree(d)
+#     Iy_d = Iy.subdegree(d)
+#     Iz_d = Iz.subdegree(d)
 
-    # Projection on x-q subspace
-    txy, txz = Iz_d*t, Iy_d*t
+#     # Projection on x-q subspace
+#     txy, txz = Iz_d*t, Iy_d*t
 
-    # Projections
-    tx, ty, tz = Iy_d*(Iz_d*t), Ix_d*(Iz_d*t), Ix_d*(Iy_d*t)
+#     # Projections
+#     tx, ty, tz = Iy_d*(Iz_d*t), Ix_d*(Iz_d*t), Ix_d*(Iy_d*t)
 
-    # Moments
-    mx = str((mx1.subdegree(d)*tx).coeffs[0])
-    my = str((my1.subdegree(d)*ty).coeffs[0])
-    mz = str((mz1.subdegree(d)*tz).coeffs[0])
+#     # Moments
+#     mx = str((mx1.subdegree(d)*tx).coeffs[0])
+#     my = str((my1.subdegree(d)*ty).coeffs[0])
+#     mz = str((mz1.subdegree(d)*tz).coeffs[0])
 
-    ax[0][0].clear()
-    plot_position = True
-    field = txz if plot_position else txy
-    qxz.plot(field, ax=ax[0][0], bounds=False, vmin=0, extend='min')
+#     ax[0][0].clear()
+#     plot_position = True
+#     field = txz if plot_position else txy
+#     qxz.plot(field, ax=ax[0][0], bounds=False, vmin=0, extend='min')
 
-    ax[0][1].clear()
-    qx.plot(tx, ax=ax[0][1], title="1st moment - X: " + mx)
-    if not args.bifurcation:
-        qx.plot(ux, ax=ax[0][1])
+#     ax[0][1].clear()
+#     qx.plot(tx, ax=ax[0][1], title="1st moment - X: " + mx)
+#     if not args.bifurcation:
+#         qx.plot(ux, ax=ax[0][1])
 
-    ax[1][0].clear()
-    qy.plot(uy, ax=ax[1][0])
-    qy.plot(ty, ax=ax[1][0], title="1st moment - P: " + my)
+#     ax[1][0].clear()
+#     qy.plot(uy, ax=ax[1][0])
+#     qy.plot(ty, ax=ax[1][0], title="1st moment - P: " + my)
 
-    ax[1][1].clear()
-    qz.plot(uz, ax=ax[1][1])
-    qz.plot(tz, ax=ax[1][1], title="1st moment - Q: " + mz)
+#     ax[1][1].clear()
+#     qz.plot(uz, ax=ax[1][1])
+#     qz.plot(tz, ax=ax[1][1], title="1st moment - Q: " + mz)
 
-    plt.draw()
-    plt.pause(0.1)
+#     plt.draw()
+#     plt.pause(0.1)

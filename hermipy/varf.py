@@ -29,6 +29,7 @@ import numpy as np
 import numpy.linalg as la
 import scipy.sparse.linalg as las
 import matplotlib
+import types
 
 
 very_small = 1e-10
@@ -157,7 +158,7 @@ class Varf:
         return Varf(matrix, self.position,
                     factor=self.factor, index_set="cross")
 
-    def solve(self, series, gmres=False, remove0=True, **kwargs):
+    def solve(self, series, use_gmres=False, remove0=True, **kwargs):
         assert self.position == series.position
         assert self.index_set == series.index_set
         if remove0:
@@ -167,11 +168,11 @@ class Varf:
             matrix = self.matrix
             vector = series.coeffs
 
-        if gmres:
-            from scipy.sparse.linalg import gmres as gmres
-            solve = gmres if 'callback' in kwargs else \
-                cache.cache(quiet=True)(gmres)
-            solution = solve(matrix, vector, **kwargs)[0]
+        if use_gmres:
+            # Extend hash function to ignore callback
+            from scipy.sparse.linalg import gmres
+            cachefun = cache.cache(quiet=True, hash_extend=lambda arg: '0')
+            solution = cachefun(gmres)(matrix, vector, **kwargs)[0]
         else:
             solve = cache.cache(quiet=True)(las.spsolve if self.is_sparse
                                             else la.solve)
