@@ -50,6 +50,7 @@ parser.add_argument('-do', '--overdamped', action='store_true')
 parser.add_argument('-d0', '--diff0', action='store_true')
 parser.add_argument('-d1', '--diff1', action='store_true')
 parser.add_argument('-d2', '--diff2', action='store_true')
+parser.add_argument('-v', '--verbose', action='store_true')
 parser.add_argument('-tg', '--test_gammas', action='store_true')
 args = parser.parse_args()
 
@@ -236,7 +237,8 @@ def diff2():
     qf = qy * q2
     rhs = qf.transform('x', **kwargs0)
     operator = qf.discretize_op(backward, **kwargs0)
-    solution = operator.solve(rhs, gmres=True,
+
+    solution = operator.solve(rhs, use_gmres=True,
                               callback=lambda rk: print(la.norm(rk)))
     diffusion = - float(solution*rhs) * float(zfx*zfz*zfw/(zx*zy*zz*zw))
     print("With 2 extra processes: {}".format(diffusion))
@@ -247,6 +249,7 @@ def diff2():
 diffusion_coefficients = []
 do = diffo() if args.overdamped else None
 for γ in γs:
+    print("Value of γ: {}".format(γ))
     d0 = diff0() if args.diff0 else None
     d1 = diff1() if args.diff1 else None
     d2 = diff2() if args.diff2 else None
