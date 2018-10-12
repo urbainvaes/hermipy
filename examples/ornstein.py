@@ -50,8 +50,6 @@ parser.add_argument('-tce', '--convergence_eig', action='store_true',
                     help='Run convergence test with eig')
 parser.add_argument('-tb', '--bifurcation', action='store_true',
                     help='Run bifurcation test')
-parser.add_argument('-tt', '--time', action='store_true',
-                    help='Run time dependent test')
 parser.add_argument('-tp', '--plots', action='store_true')
 parser.add_argument('-tw', '--white', action='store_true',
                     help='Generate bifurcation diagram for white noise')
@@ -256,10 +254,11 @@ def factors(symbolic, λ):
     elif symbolic == 0:
         Vp, Vq = params['Vp'].eval(), params['Vqx'].eval()
         Vy, Vqy = params['Vy'].eval(), params['Vqy'].eval()
-    # factor_x = sym.exp(-Vq/2)
-    # factor_y = sym.exp(-Vqy/2)
-    factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
-    factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
+    if args.bifurcation:
+        factor_x = sym.exp(-Vq/2)
+        factor_y = sym.exp(-Vqy/2)
+    # factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
+    # factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
     factor = factor_x * factor_y
     return factor_x, factor_y, factor
 
@@ -821,7 +820,7 @@ def time_dependent():
     np.save(dir + "epsilon=" + str(ε).replace('/', 'o') + "-m0=" + str(args.m0) + "-ms", np.asarray(ms))
 
 
-if args.time:
+if args.bifurcation:
     time_dependent()
 
 
