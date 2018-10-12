@@ -158,7 +158,7 @@ class Varf:
         return Varf(matrix, self.position,
                     factor=self.factor, index_set="cross")
 
-    def solve(self, series, use_gmres=False, remove0=True, **kwargs):
+    def solve(self, series, use_gmres=False, remove0=False, **kwargs):
         assert self.position == series.position
         assert self.index_set == series.index_set
         if remove0:
