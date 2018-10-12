@@ -22,7 +22,6 @@
 import pdb
 import argparse
 import math
-import json
 import os
 import sympy as sym
 import importlib
@@ -70,6 +69,7 @@ parser.add_argument('-e', '--epsilon', type=str, help='Value of ε')
 parser.add_argument('-g', '--gamma', type=str, help='Value of γ')
 parser.add_argument('-m', '--mass', type=str, help='Value of m')
 parser.add_argument('-m0', '--m0', type=str, help='Initial value of m')
+parser.add_argument('-b0', '--b0', type=str, help='Initial value of β')
 parser.add_argument('-d', '--directory', type=str, help='Directory of output')
 
 args = parser.parse_args()
@@ -257,8 +257,9 @@ def factors(symbolic, λ):
     if args.bifurcation:
         factor_x = sym.exp(-Vq/2)
         factor_y = sym.exp(-Vqy/2)
-    # factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
-    # factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
+    else:
+        factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
+        factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
     factor = factor_x * factor_y
     return factor_x, factor_y, factor
 
@@ -655,8 +656,7 @@ def time_dependent():
     m_operator = forward.diff(params['m'].symbol)
     r_operator = (forward - params['m'].symbol*m_operator).cancel()
     m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
-
-    βmin, βmax, sstep = 0.4, 10, .1
+    sstep, βmin, βmax = .1, 0.4, sym.Rational(args.b0) if args.b0 else 10
 
     # Calculate projections
     qx, qy = quad_num.project(0), quad_num.project(1)
@@ -703,10 +703,6 @@ def time_dependent():
         if use_translate:
             t_operator_this = translate_op.subs(t_sym, translation)
             r_mat = r_mat + quad_num.discretize_op(t_operator_this, **kwargs)
-
-        # data = {'dt': dt, 'scheme': 'backward'}
-        # with open('parameters.json', 'w') as f:
-        #     json.dump(data, f)
 
         Vx = params['Vp'].eval().subs(x, x + translation)
         θ = params['θ'].value
