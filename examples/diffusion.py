@@ -26,6 +26,7 @@ import matplotlib
 import hermipy as hm
 import hermipy.equations as eq
 import scipy.integrate as integrate
+import scipy.sparse as sparse
 # import scipy.sparse.linalg as las
 
 hm.settings['tensorize'] = True
@@ -146,17 +147,19 @@ def diffo():
     f, backward = eq.f, eq.backward({'β': β, 'V': V})
     operator = quad.discretize_op(backward, **kwargs0)
     rhs = quad.transform(-V.diff(x), **kwargs0)
-    solution = operator.solve(rhs)*(-1)
+    solution = (-operator).solve(rhs)
     Ix = quad.transform(1, **kwargs0)
     derivative = f.diff(x)
     diff = quad.discretize_op(derivative, **kwargs0)
     aux = quad.transform(β*V.diff(x), **kwargs0)
-    quad.plot(Ix)
+    # quad.plot(Ix)
     # quad.plot(solution)
     # quad.plot(diff(solution))  # THIS IS NOT CORRECT
-    diffusion = (1/β) + float(solution*rhs) + (2/β)*float(Ix*diff(solution))
-    diffusion = (1/β) + float(solution*rhs) + (2/β)*float(aux*solution)
-    print("Overdamped Langevin: {}".format(diffusion))
+    diffusion1 = (1/β) + float(solution*rhs) + (2/β)*float(Ix*diff(solution))
+    diffusion2 = (1/β) + float(solution*rhs) + (2/β)*float(aux*solution)
+    assert abs(diffusion1 - diffusion2) < 1e-8
+    print("Overdamped Langevin: {}".format(diffusion1))
+    return diffusion1
 
 
 # Calculation of the diffusion coefficient with 0 extra process
@@ -165,8 +168,8 @@ def diff0():
     backward0 = hm.equations.Langevin.backward(params)
     operator = quad.discretize_op(backward0, **kwargs0)
     rhs = quad.transform('x', **kwargs0)
-    solution = operator.solve(rhs)
-    diffusion = - float(solution*rhs) * float(zfx/(zx*zy))
+    solution = (- operator).solve(rhs)
+    diffusion = float(solution*rhs) * float(zfx/(zx*zy))
     print("With 0 extra process: {}".format(diffusion))
     if args.interactive:
         quad.plot(solution, factor=sym.exp(-β/2*(Vy + x*x/2)))
@@ -200,8 +203,8 @@ def diff1():
     backward1 = e.backward(params)
     operator = quad.discretize_op(backward1, **kwargs0)
     rhs = quad.transform('x', **kwargs0)
-    solution = operator.solve(rhs)
-    diffusion = - float(solution*rhs) * float(zfx*zfz/(zx*zy*zz))
+    solution = (- operator).solve(rhs)
+    diffusion = float(solution*rhs) * float(zfx*zfz/(zx*zy*zz))
     print("With 1 extra process: {}".format(diffusion))
 
     # Calculate autocorrelation function
@@ -226,7 +229,7 @@ def diff1():
 
 
 # Calculation of the diffusion coefficient with two extra processes
-def diff2():
+def diff2(x0=None):
     λ1 = set_param(args.lamda, r(1), 'λ') / ε
     A12 = -1/ε**2/γ
     A21 = 1/ε**2/γ
@@ -237,22 +240,22 @@ def diff2():
     qf = qy * q2
     rhs = qf.transform('x', **kwargs0)
     operator = qf.discretize_op(backward, **kwargs0)
-
-    solution = operator.solve(rhs, use_gmres=True,
-                              callback=lambda rk: print(la.norm(rk)))
-    diffusion = - float(solution*rhs) * float(zfx*zfz*zfw/(zx*zy*zz*zw))
+    solution = (-operator).solve(rhs, use_gmres=True, x0=x0, tol=5e-2,
+                                 callback=lambda rk: print(la.norm(rk)))
+    diffusion = float(solution*rhs) * float(zfx*zfz*zfw/(zx*zy*zz*zw))
     print("With 2 extra processes: {}".format(diffusion))
-    return diffusion
+    return diffusion, solution.coeffs
 
 
 γs = np.logspace(-3, 3, 100) if args.test_gammas else [γ]
 diffusion_coefficients = []
 do = diffo() if args.overdamped else None
-for γ in γs:
+guess = None
+for γ in np.flip(γs):
     print("Value of γ: {}".format(γ))
     d0 = diff0() if args.diff0 else None
     d1 = diff1() if args.diff1 else None
-    d2 = diff2() if args.diff2 else None
+    d2, guess = diff2(guess) if args.diff2 else (None, None)
     diffusion_coefficients = []
 exit(0)
 
@@ -267,55 +270,3 @@ exit(0)
 # Ix = qx.transform(wx, degree=degree, index_set=index_set)
 # Iy = qy.transform(wy, degree=degree, index_set=index_set)
 # Iz = qz.transform(wz, degree=degree, index_set=index_set)
-
-# # Moment operators
-# mx1 = qx.transform(wx * x, degree=degree, index_set=index_set)
-# my1 = qy.transform(wy * y, degree=degree, index_set=index_set)
-# mz1 = qz.transform(wz * z, degree=degree, index_set=index_set)
-
-# if args.interactive:
-#     plt.ion()
-#     fig, ax = plt.subplots(2, 2)
-
-
-# def plot(t, βplot=β):
-
-#     # Retrieve degree
-#     d = t.degree
-
-#     # Integral operators
-#     Ix_d = Ix.subdegree(d)
-#     Iy_d = Iy.subdegree(d)
-#     Iz_d = Iz.subdegree(d)
-
-#     # Projection on x-q subspace
-#     txy, txz = Iz_d*t, Iy_d*t
-
-#     # Projections
-#     tx, ty, tz = Iy_d*(Iz_d*t), Ix_d*(Iz_d*t), Ix_d*(Iy_d*t)
-
-#     # Moments
-#     mx = str((mx1.subdegree(d)*tx).coeffs[0])
-#     my = str((my1.subdegree(d)*ty).coeffs[0])
-#     mz = str((mz1.subdegree(d)*tz).coeffs[0])
-
-#     ax[0][0].clear()
-#     plot_position = True
-#     field = txz if plot_position else txy
-#     qxz.plot(field, ax=ax[0][0], bounds=False, vmin=0, extend='min')
-
-#     ax[0][1].clear()
-#     qx.plot(tx, ax=ax[0][1], title="1st moment - X: " + mx)
-#     if not args.bifurcation:
-#         qx.plot(ux, ax=ax[0][1])
-
-#     ax[1][0].clear()
-#     qy.plot(uy, ax=ax[1][0])
-#     qy.plot(ty, ax=ax[1][0], title="1st moment - P: " + my)
-
-#     ax[1][1].clear()
-#     qz.plot(uz, ax=ax[1][1])
-#     qz.plot(tz, ax=ax[1][1], title="1st moment - Q: " + mz)
-
-#     plt.draw()
-#     plt.pause(0.1)
