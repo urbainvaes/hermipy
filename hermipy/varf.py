@@ -118,6 +118,9 @@ class Varf:
     def __sub__(self, other):
         return self + (other*(-1))
 
+    def __neg__(self):
+        return self * (-1)
+
     def __call__(self, series):
         assert self.position == series.position
         assert self.index_set == series.index_set
