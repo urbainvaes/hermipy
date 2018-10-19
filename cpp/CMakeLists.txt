@@ -15,13 +15,13 @@ set (CMAKE_CXX_STANDARD 14)
 #   cmake -D CMAKE_BUILD_TYPE=debug ...
 if (CMAKE_BUILD_TYPE STREQUAL "")
     set (CMAKE_BUILD_TYPE release)
-endif ()
+endif (CMAKE_BUILD_TYPE STREQUAL "")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 # Default library output directory
 if (CMAKE_LIBRARY_OUTPUT_DIRECTORY STREQUAL "")
     set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/..)
-endif ()
+endif (CMAKE_LIBRARY_OUTPUT_DIRECTORY STREQUAL "")
 message(STATUS "Library output directory: ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
 
 # Alternative to target only a specific library
@@ -54,6 +54,9 @@ include_directories("src")
 # Build our library
 add_library(hermite_cpp SHARED ${Sources})
 target_link_libraries(hermite_cpp ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} ${CMAKE_DL_LIBS})
+
+# Remove prefix
+set_target_properties(hermite_cpp PROPERTIES PREFIX "")
 
 # Tests
 include(CTest)
