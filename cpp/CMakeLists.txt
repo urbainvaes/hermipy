@@ -9,10 +9,24 @@ set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -Wall -Wextra -W
 set (CMAKE_CXX_LINKER_FLAGS  "${CMAKE_CXX_LINKER_FLAGS} -Wl,--no-undefined")
 set (CMAKE_CXX_STANDARD 14)
 
-# set (CMAKE_BUILD_TYPE release)
-# Use command-line argument instead:
-#   cmake -D CMAKE_BUILD_TYPE=debug ..
+# Default build type
+#
+# Use command-line argument to change:
+#   cmake -D CMAKE_BUILD_TYPE=debug ...
+if (CMAKE_BUILD_TYPE STREQUAL "")
+    set (CMAKE_BUILD_TYPE release)
+endif ()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
+# Default library output directory
+if (CMAKE_LIBRARY_OUTPUT_DIRECTORY STREQUAL "")
+    set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/..)
+endif ()
+message(STATUS "Library output directory: ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+
+# Alternative to target only a specific library
+# set_target_properties(hermite_cpp PROPERTIES PREFIX ""
+#     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/..)
 
 # Find Python
 find_package(PythonLibs 3 REQUIRED)
@@ -40,10 +54,6 @@ include_directories("src")
 # Build our library
 add_library(hermite_cpp SHARED ${Sources})
 target_link_libraries(hermite_cpp ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} ${CMAKE_DL_LIBS})
-
-# Don't prepend library name with lib
-set_target_properties(hermite_cpp PROPERTIES PREFIX ""
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/..)
 
 # Tests
 include(CTest)
