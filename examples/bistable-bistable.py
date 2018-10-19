@@ -20,13 +20,12 @@ num['μy'] = r(0, 4)
 num['σx'] = r(1, 40)
 num['σy'] = r(1, 10)
 num['λ'] = r(1, 2)
-num['index_set'] = 'rectangle'
+num['index_set'] = 'cube'
 
 # Scalar parameters of the equation
-eq['β'] = r(1)
 eq['ε'] = r(1, 4)
 eq['γ'] = r(0)
-eq['θ'] = r(0)
+eq['θ'] = r(1)
 
 # Functional parameters of the equation
 eq['Vp'] = x**4/4 - x**2/2

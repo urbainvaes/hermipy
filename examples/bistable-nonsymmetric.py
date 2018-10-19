@@ -7,6 +7,16 @@ import hermipy
 # Configuration dicionaries
 misc, eq, num = {}, {}, {}
 
+# Miscellaneous parameters
+misc['cache'] = True
+misc['parallel'] = False
+misc['tensorize'] = True
+misc['sparse'] = True
+misc['trails'] = False
+misc['verbose'] = False
+misc['symbolic'] = 0  # Values 0, 1, 2
+misc['plots'] = False
+
 # Variables and function
 x, y, f = equation.x, equation.y, equation.f
 
@@ -18,47 +28,40 @@ num['degree'] = 80  # degree of approximation
 num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
 num['μx'] = r(0, 4)
 num['μy'] = r(0, 4)
-num['σx'] = r(1, 40)
+num['σx'] = r(1, 30)
 num['σy'] = r(1, 10)
 num['λ'] = r(1, 2)
-num['index_set'] = 'rectangle'
+num['index_set'] = 'cube'
 
 # Scalar parameters of the equation
 eq['ε'] = r(1, 20)
-eq['γ'] = r(0)
 eq['θ'] = r(1)
+eq['γ'] = r(0)
 
 # Functional parameters of the equation
-eq['Vp'] = x**4/4 - x**2/2
-
-# Mean-zero
 Z, m = 6.301119049538182, 0.8852269357209047
-m = m + 0.152235
-m = 0
 m = r(m).limit_denominator(1e16)
+eq['Vp'] = x**4/4 - x**2/2
 eq['Vy'] = (y-m)**4/4 - (y-m)**2/2 + (y-m)
 
-eq['Vy'] = y**4/4 - y**2/2
-# eq['Vy'] = y**2/2
+# Vy = eq['Vy']
+# ny, μy, σy = num['n_points_num'], [num['μy']], [[num['σy']]]
+# qy = hermipy.Quad.gauss_hermite(ny, mean=μy, cov=σy, dirs=[1])
+# factor = sym.sqrt(qy.position.weight() * sym.exp(-Vy))
+# qy.factor = hermipy.Function(factor, dirs=[1])
 
-Vy = eq['Vy']
-ny, μy, σy = num['n_points_num'], [num['μy']], [[num['σy']]]
-qy = hermipy.Quad.gauss_hermite(ny, mean=μy, cov=σy, dirs=[1])
-factor = sym.sqrt(qy.position.weight() * sym.exp(-Vy))
-qy.factor = hermipy.Function(factor, dirs=[1])
+# fy = sym.Function('f')(y)
+# index_set, degree = num['index_set'], num['degree']
+# gen = (Vy.diff(y)*fy).diff(y) + fy.diff(y, y)
 
-fy = sym.Function('f')(y)
-index_set, degree = num['index_set'], num['degree']
-gen = (Vy.diff(y)*fy).diff(y) + fy.diff(y, y)
+# qy.factor = hermipy.Function(factor, dirs=[1])
+# L0 = qy.discretize_op(gen, degree=degree, index_set=index_set)
+# l, [e] = L0.eigs(k=1, which='LR')
+# vy = qy.varf('y', degree=degree, index_set=index_set)
+# coeff_noise = 1/sym.sqrt(sym.Rational(37243868, 52597017))
 
-qy.factor = hermipy.Function(factor, dirs=[1])
-L0 = qy.discretize_op(gen, degree=degree, index_set=index_set)
-l, [e] = L0.eigs(k=1, which='LR')
-vy = qy.varf('y', degree=degree, index_set=index_set)
-coeff_noise = 1/sym.sqrt(sym.Rational(37243868, 52597017))
-
-drift = - r((vy(e)*e).coeffs[0]).limit_denominator(1e16) * coeff_noise
-num['drift_correction'] = drift
+# drift = - r((vy(e)*e).coeffs[0]).limit_denominator(1e16) * coeff_noise
+# num['drift_correction'] = drift
 
 # import matplotlib.pyplot as plt
 # import matplotlib
@@ -90,13 +93,3 @@ num['drift_correction'] = drift
 
 # qx.norm(qx.transform(rx, degree=d).eval(), qx.discretize(yx))
 # qy.plot(sym.exp(-eq['Vy']))
-
-# Miscellaneous parameters
-misc['cache'] = True
-misc['parallel'] = False
-misc['tensorize'] = True
-misc['sparse'] = True
-misc['trails'] = False
-misc['verbose'] = False
-misc['symbolic'] = 0  # Values 0, 1, 2
-misc['plots'] = False
