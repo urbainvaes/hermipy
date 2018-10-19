@@ -260,6 +260,8 @@ def factors(symbolic, λ):
     else:
         factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
         factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
+    factor_x = sym.exp(-Vq/2)
+    factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
     factor = factor_x * factor_y
     return factor_x, factor_y, factor
 
@@ -656,7 +658,7 @@ def time_dependent():
     m_operator = forward.diff(params['m'].symbol)
     r_operator = (forward - params['m'].symbol*m_operator).cancel()
     m_mat = quad_num.discretize_op(m_operator, degree, index_set=index_set)
-    sstep, βmin, βmax = .1, 0.4, sym.Rational(args.b0) if args.b0 else 10
+    sstep, βmin, βmax = .05, 0.4, sym.Rational(args.b0) if args.b0 else 10
 
     # Calculate projections
     qx, qy = quad_num.project(0), quad_num.project(1)
@@ -672,6 +674,7 @@ def time_dependent():
     assert 'm0' in config.num
     β, m, betas, ms = βmax, config.num['m0'], [], []
     for i in range(20):
+        print("m = {}".format(m))
         Vp = params['θ'].value*(x - m)**2/2
         Vp = Vp + params['Vp'].eval()
         u = sym.exp(-β*Vp)
@@ -772,7 +775,7 @@ def time_dependent():
                 dt = dt * 2.
             t, m = new_t, new_m
 
-            if difference < 1e-7:
+            if difference < 5e-8:
                 betas.append(β)
                 ms.append(m + translation)
 
