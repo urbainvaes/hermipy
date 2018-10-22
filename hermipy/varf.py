@@ -29,8 +29,7 @@ import numpy as np
 import numpy.linalg as la
 import scipy.sparse.linalg as las
 import matplotlib
-import types
-
+import scipy.sparse as sparse
 
 very_small = 1e-10
 
@@ -165,8 +164,15 @@ class Varf:
         assert self.position == series.position
         assert self.index_set == series.index_set
         if remove0:
-            matrix = self.matrix[1:, 1:]
-            vector = series.coeffs[1:]
+            [e], [s] = self.eigs(k=1, which='SM')
+            if not self.is_sparse:
+                vstack, hstack = np.vstack, np.hstack
+            else:
+                vstack, hstack = sparse.vstack, sparse.hstack
+            assert abs(e) < 1e-7
+            matrix = vstack((self.matrix, s.coeffs))
+            matrix = hstack((matrix, np.array([[*s.coeffs, 0]]).T))
+            vector = np.array([*series.coeffs, 0])
         else:
             matrix = self.matrix
             vector = series.coeffs
@@ -181,7 +187,7 @@ class Varf:
                                             else la.solve)
             solution = solve(matrix, vector, **kwargs)
 
-        solution = np.array([0, *solution]) if remove0 else solution
+        solution = np.array(solution[0:-1]) if remove0 else solution
         return hs.Series(solution, position=self.position,
                          factor=self.factor, index_set=self.index_set)
 
