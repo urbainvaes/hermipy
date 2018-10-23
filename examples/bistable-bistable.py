@@ -40,3 +40,21 @@ misc['trails'] = False
 misc['verbose'] = False
 misc['symbolic'] = 0
 misc['plots'] = False
+
+# Asymptotic solution
+degree, Vy = 150, eq['Vy']
+hermipy.settings['cache'] = True
+fy = sym.Function('f')(y)
+qy = hermipy.Quad.gauss_hermite(2*degree+1, mean=[0], cov=[[.05]], dirs=[1])
+integral = qy.integrate(sym.exp(-Vy), flat=True)
+factor = sym.sqrt(qy.position.weight() / (sym.exp(-Vy) / integral))
+qy.factor = hermipy.Function(factor, dirs=[1])
+gen = -Vy.diff(y)*fy.diff(y) + fy.diff(y, y)
+L0 = qy.discretize_op(gen, degree=degree)
+ty = qy.transform('y', degree=degree)
+vy = qy.varf('y', degree=degree)
+A = ty*((-L0).solve(vy((-L0).solve(vy((-L0).solve(ty, remove0=True)), remove0=True)), remove0=True))
+B = ty*((-L0).solve((-L0).solve(ty, remove0=True), remove0=True))
+C = ty*(-L0).solve(ty)
+A, B, C = float(A), float(B), float(C)
+print(A/C**2, B/C)
