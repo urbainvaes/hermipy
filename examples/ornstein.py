@@ -254,14 +254,14 @@ def factors(symbolic, λ):
     elif symbolic == 0:
         Vp, Vq = params['Vp'].eval(), params['Vqx'].eval()
         Vy, Vqy = params['Vy'].eval(), params['Vqy'].eval()
+    # factor_x = sym.exp(-Vq/2)
+    # factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
     if args.bifurcation:
         factor_x = sym.exp(-Vq/2)
         factor_y = sym.exp(-Vqy/2)
     else:
         factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
         factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
-    factor_x = sym.exp(-Vq/2)
-    factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
     factor = factor_x * factor_y
     return factor_x, factor_y, factor
 
@@ -782,7 +782,7 @@ def time_dependent():
                 gmm, dsdβ = 20, 1
                 if len(ms) > 1:
                     Δm, Δβ = ms[-1] - ms[-2], betas[-1] - betas[-2]
-                    dsdβ = np.sqrt(gmm*Δm*Δm + Δβ*Δβ) / abs(Δβ)
+                    dsdβ = np.sqrt(float(gmm*Δm*Δm + Δβ*Δβ)) / abs(Δβ)
                 newβ = β - sstep/dsdβ
 
                 if math.floor(β) != math.floor(newβ):
