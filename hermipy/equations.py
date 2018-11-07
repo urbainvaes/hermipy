@@ -217,10 +217,10 @@ class McKean_Vlasov:
             L0 = qy.discretize_op(gen, degree, sparse=False,
                                   index_set="triangle")
             rhs = qy.transform('y', degree)
-            solution = la.solve(L0.matrix[1:, 1:], rhs.coeffs[1:])
-            coeff_noise = np.dot(solution, rhs.coeffs[1:])
+            solution = la.solve(L0.matrix, rhs.coeffs)
+            coeff_noise = np.dot(solution, rhs.coeffs)
             coeff_noise = sym.Rational(coeff_noise).limit_denominator(1e8)
-            print("Effective noise: " + str(float(coeff_noise)))
+            print("Effective noise: " + str(float(1/sym.sqrt(2*coeff_noise))))
             coeff_noise = sym.sqrt(1/β/coeff_noise)
 
         else:
