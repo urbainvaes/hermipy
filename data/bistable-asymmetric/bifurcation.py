@@ -16,13 +16,13 @@ ax.set_ylabel("$m$")
 # ms_zoom_up = np.load("ms-zoom-up.npy")[0:-remove_zoom]
 # ax.plot(betas_zoom_up, ms_zoom_up, 'g.', markersize=.5)
 
-# ε = 1/10
-# betas_up = np.load("epsilon=1o10-betas-up.npy")
-# betas_down = np.load("epsilon=1o10-betas-down.npy")
-# ms_up = np.load("epsilon=1o10-ms-up.npy")
-# ms_down = np.load("epsilon=1o10-ms-down.npy")
-# ax.plot(betas_up, ms_up, 'g.', markersize=.5)
-# ax.plot(betas_down, ms_down, 'g.', markersize=.5)
+ε = 1/10
+betas_up = np.load("epsilon=1o10-betas-up.npy")
+betas_down = np.load("epsilon=1o10-betas-down.npy")
+ms_up = np.load("epsilon=1o10-ms-up.npy")
+ms_down = np.load("epsilon=1o10-ms-down.npy")
+ax.plot(betas_up, ms_up, 'g.', markersize=.5)
+ax.plot(betas_down, ms_down, 'g.', markersize=.5)
 
 betas_up = np.load("white-noise-betas-up.npy")
 betas_down = np.load("white-noise-betas-down.npy")
