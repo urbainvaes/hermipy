@@ -171,7 +171,13 @@ def diff0():
     solution = (- operator).solve(rhs)
     diffusion = float(solution*rhs) * float(zfx/(zx*zy))
     print("With 0 extra process: {}".format(diffusion))
+    [e], [l] = operator.eigs(which='LR', k=1)
+    print(e)
+    I = quad.transform(1, **kwargs0)
+    matrix = sparse.vstack(((- operator).matrix, I.coeffs))
+    matrix = sparse.hstack((matrix, I.coeffs))
     if args.interactive:
+        quad.plot(I, bounds=True)
         quad.plot(solution, factor=sym.exp(-β/2*(Vy + x*x/2)))
 
     # Calculate autocorrelation function
