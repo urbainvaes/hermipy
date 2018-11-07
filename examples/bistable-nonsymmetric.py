@@ -44,14 +44,13 @@ m = r(m).limit_denominator(1e16)
 eq['Vp'] = x**4/4 - x**2/2
 eq['Vy'] = (y-m)**4/4 - (y-m)**2/2 + (y-m)
 
-# Vy = eq['Vy']
+Vy = eq['Vy']
 # ny, μy, σy = num['n_points_num'], [num['μy']], [[num['σy']]]
 # qy = hermipy.Quad.gauss_hermite(ny, mean=μy, cov=σy, dirs=[1])
 # factor = sym.sqrt(qy.position.weight() * sym.exp(-Vy))
 # qy.factor = hermipy.Function(factor, dirs=[1])
 
 # fy = sym.Function('f')(y)
-# index_set, degree = num['index_set'], num['degree']
 # gen = (Vy.diff(y)*fy).diff(y) + fy.diff(y, y)
 
 # qy.factor = hermipy.Function(factor, dirs=[1])
@@ -62,6 +61,27 @@ eq['Vy'] = (y-m)**4/4 - (y-m)**2/2 + (y-m)
 
 # drift = - r((vy(e)*e).coeffs[0]).limit_denominator(1e16) * coeff_noise
 # num['drift_correction'] = drift
+
+# Computation of coefficient is asymptotic expansion
+degree = 150
+hermipy.settings['cache'] = True
+fy = sym.Function('f')(y)
+qy = hermipy.Quad.gauss_hermite(2*degree+1, mean=[0], cov=[[.05]], dirs=[1])
+integral = qy.integrate(sym.exp(-Vy), flat=True)
+factor = sym.sqrt(qy.position.weight() / (sym.exp(-Vy) / integral))
+qy.factor = hermipy.Function(factor, dirs=[1])
+gen = -Vy.diff(y)*fy.diff(y) + fy.diff(y, y)
+L0 = qy.discretize_op(gen, degree=degree)
+I = qy.transform(1, degree=degree)
+# matrix = sparse.vstack(((- operator).matrix, I.coeffs))
+# matrix = sparse.hstack((matrix, I.coeffs))
+constant = qy.transform('1', degree=degree)
+ty = qy.transform('y', degree=degree)
+vy = qy.varf('y', degree=degree)
+coeff = float(ty*((-L0).solve(vy((-L0).solve(ty, remove0=True)), remove0=True)))/(float(ty*(-L0).solve(ty, remove0=True)))**(3/2)
+print(coeff)
+# import ipdb; ipdb.set_trace()
+# constant = qy.transform('1', degree=degree, index_set=index_set)
 
 # import matplotlib.pyplot as plt
 # import matplotlib
