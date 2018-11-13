@@ -375,11 +375,13 @@ class Langevin:
 
 class Generalized_Langevin:
 
-    # x = p, y = q, z = z1, w = z2
+    # Order different than in Langevin!
+    # x = q, y = p, z = z1, w = z2 (velocities are y and z2)
     variables = sym.symbols('x y z w', real=True)
     x, y, z, w = variables
 
     # Unknown functions
+    fL = sym.Function('f')(x, y)
     f1 = sym.Function('f')(x, y, z)
     f2 = sym.Function('f')(x, y, z, w)
 
@@ -403,7 +405,7 @@ class Generalized_Langevin:
                 params[param] = sym.symbols(param, real=True)
 
         # Potential function
-        functions['Vy'] = sym.Function('Vy')(cls.y)
+        functions['Vx'] = sym.Function('Vx')(cls.x)
 
         return {**params, **functions}
 
@@ -411,7 +413,7 @@ class Generalized_Langevin:
     def backward(cls, params):
 
         # Common parameters
-        β, Vy = params['β'], params['Vy']
+        β, Vx = params['β'], params['Vx']
 
         d, x, y, z, w = sym.diff, cls.x, cls.y, cls.z, cls.w
 
@@ -423,12 +425,23 @@ class Generalized_Langevin:
             A = sym.Matrix([[params['α']]])
 
         # 2 auxiliary processes
-        else:
+        elif 'A11' in params:
             f = cls.f2
             z_vec = sym.Matrix([z, w])
             lamb = sym.Matrix([params['λ1'], params['λ2']])
             A = sym.Matrix([[params['A11'], params['A12']],
                             [params['A21'], params['A22']]])
+
+        # Usual Langevin equation
+        else:
+            assert 'γ' in params
+            f, γ = cls.fL, params['γ']
+
+            # Backward Kolmogorov operator
+            operator = (y*d(f, x) - d(Vx, x)*d(f, y))\
+                + γ*(- y*d(f, y) + (1/β)*d(f, y, y))
+
+            return operator
 
         # Computation of diffusion matrix
         # Σ = sym.sqrt((A + A.T)/β).doit()
@@ -438,9 +451,9 @@ class Generalized_Langevin:
         ddfdzdz = sym.Matrix([dfdz.diff(v).T for v in z_vec])
 
         # Backward Kolmogorov operator
-        operator = x*d(f, y) - d(Vy, y)*d(f, x)\
-            + (lamb.dot(z_vec))*d(f, x)\
-            - x*lamb.dot(dfdz)\
+        operator = y*d(f, x) - d(Vx, x)*d(f, y)\
+            + (lamb.dot(z_vec))*d(f, y)\
+            - y*lamb.dot(dfdz)\
             - (A*z_vec).dot(dfdz)\
             + (1/β)*(A*ddfdzdz).trace()
 
