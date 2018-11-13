@@ -443,7 +443,7 @@ class Quad:
             return plot
 
     def plot(self, arg, factor=None, ax=None,
-             bounds=False, title=None, **kwargs):
+             contours=0, bounds=False, title=None, **kwargs):
 
         assert self.position.is_diag
 
@@ -512,6 +512,8 @@ class Quad:
             plot = ax.contourf(*r_nodes, solution, 100, **kwargs)
             for c in plot.collections:
                 c.set_edgecolor("face")
+            if contours > 0:
+                ax.contour(*r_nodes, solution, levels=contours, colors='k')
 
         min, max = np.min(solution), np.max(solution)
 
