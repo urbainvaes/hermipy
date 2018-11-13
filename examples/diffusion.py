@@ -90,68 +90,69 @@ def set_param(arg, default, symbol):
 β = set_param(args.beta, r(1), 'β')
 γ = set_param(args.gamma, r(1), 'γ')
 σ = set_param(args.sigma, r(3), 'σ')
-Vy = sym.cos(y)
+Vx = 1 - sym.cos(x)
 
 # Numerical parameters
 index_set = 'cube'
-s2x, s2z, s2w = r(1, σ), r(1, σ), r(1, σ)
+s2y, s2z, s2w = r(1, σ), r(1, σ), r(1, σ)
 degree = args.degree if args.degree else 10
 npoints = args.npoints if args.npoints else 2*degree + 1
 kwargs0 = {'degree': degree, 'index_set': index_set}
 
 # Calculate factors {{{
-Vqx = sym.Rational(1/2)*x*x/s2x
+Vqy = sym.Rational(1/2)*y*y/s2y
 Vqz = sym.Rational(1/2)*z*z/s2z
 Vqw = sym.Rational(1/2)*w*w/s2w
 
 # Normalization constants
-zy = integrate.quad(sym.lambdify(y, sym.exp(-β*Vy)), -math.pi, math.pi)[0]
-zx = integrate.quad(sym.lambdify(x, sym.exp(-β*x*x/2)), -10, 10)[0]
+zx = integrate.quad(sym.lambdify(x, sym.exp(-β*Vx)), -math.pi, math.pi)[0]
+zy = integrate.quad(sym.lambdify(y, sym.exp(-β*y*y/2)), -10, 10)[0]
 zz = integrate.quad(sym.lambdify(z, sym.exp(-β*z*z/2)), -10, 10)[0]
 zw = integrate.quad(sym.lambdify(w, sym.exp(-β*w*w/2)), -10, 10)[0]
 
 # Map to appropriate space
-zfx = sym.sqrt(2*sym.pi*s2x)
+zfy = sym.sqrt(2*sym.pi*s2y)
 zfz = sym.sqrt(2*sym.pi*s2z)
 zfw = sym.sqrt(2*sym.pi*s2w)
 
-factor_y = sym.exp(β/2*Vy)  # Fourier
-factor_x = sym.exp(- 1/2*Vqx + β/2*x*x/2)  # Hermite functions
+factor_x = sym.exp(β/2*Vx)  # Fourier
+factor_y = sym.exp(- 1/2*Vqy + β/2*y*y/2)  # Hermite functions
 factor_z = sym.exp(- 1/2*Vqz + β/2*z*z/2)  # Hermite functions
 factor_w = sym.exp(- 1/2*Vqw + β/2*w*w/2)  # Hermite functions
-factor_1 = factor_x * factor_z             # 1 extra process
-factor_2 = factor_x * factor_z * factor_w  # 2 extra processes
+factor_1 = factor_y * factor_z             # 1 extra process
+factor_2 = factor_y * factor_z * factor_w  # 2 extra processes
 # }}}
 
 # Definition of quadratures
 new_q = hm.Quad.gauss_hermite
-cov_0, cov_1 = [[s2x]], [[s2x, 0], [0, s2z]]
-cov_2 = [[s2x, 0, 0], [0, s2z, 0], [0, 0, s2w]]
-args_f = {'dirs': [1], 'factor': factor_y}
-args_0 = {'dirs': [0], 'mean': [0]*1, 'cov': cov_0, 'factor': factor_x}
-args_1 = {'dirs': [0, 2], 'mean': [0]*2, 'cov': cov_1, 'factor': factor_1}
-args_2 = {'dirs': [0, 2, 3], 'mean': [0]*3, 'cov': cov_2, 'factor': factor_2}
-qy = hm.Quad.fourier(npoints, **args_f)
+cov_0, cov_1 = [[s2y]], [[s2y, 0], [0, s2z]]
+cov_2 = [[s2y, 0, 0], [0, s2z, 0], [0, 0, s2w]]
+args_f = {'dirs': [0], 'factor': factor_x}
+args_0 = {'dirs': [1], 'mean': [0]*1, 'cov': cov_0, 'factor': factor_y}
+args_1 = {'dirs': [1, 2], 'mean': [0]*2, 'cov': cov_1, 'factor': factor_1}
+args_2 = {'dirs': [1, 2, 3], 'mean': [0]*3, 'cov': cov_2, 'factor': factor_2}
+qx = hm.Quad.fourier(npoints, **args_f)
 q0 = hm.Quad.gauss_hermite(npoints, **args_0)
 q1 = hm.Quad.gauss_hermite(npoints, **args_1)
 q2 = hm.Quad.gauss_hermite(npoints, **args_2)
 # qy_coarse = hm.Quad.fourier(degree + 1, **args_f)
 # qxz_coarse = new_q(degree + 1, **args_1)
 # qxzw_coarse = new_q(degree + 1, **args_2)
+qy_visu = hm.Quad.newton_cotes(n_points=[npoints], extrema=[5],
+                               dirs=[1], factor=factor_y)
 
 
 def diffo():
     eq = hm.equations.Overdamped
-    V, factor = Vy.subs(y, x), factor_y.subs(y, x)*sym.sqrt(zy)
+    factor = factor_x*sym.sqrt(zx)
     quad = hm.Quad.fourier(npoints, dirs=[0], factor=factor)
-    f, backward = eq.f, eq.backward({'β': β, 'V': V})
+    f, backward = eq.f, eq.backward({'β': β, 'V': Vx})
     operator = quad.discretize_op(backward, **kwargs0)
-    rhs = quad.transform(-V.diff(x), **kwargs0)
+    rhs = quad.transform(-Vx.diff(x), **kwargs0)
     solution = (-operator).solve(rhs)
     Ix = quad.transform(1, **kwargs0)
-    derivative = f.diff(x)
-    diff = quad.discretize_op(derivative, **kwargs0)
-    aux = quad.transform(β*V.diff(x), **kwargs0)
+    diff = quad.discretize_op(f.diff(x), **kwargs0)
+    aux = quad.transform(β*Vx.diff(x), **kwargs0)
     # quad.plot(Ix)
     # quad.plot(solution)
     # quad.plot(diff(solution))  # THIS IS NOT CORRECT
@@ -164,21 +165,31 @@ def diffo():
 
 # Calculation of the diffusion coefficient with 0 extra process
 def diff0():
-    quad, params = (qy*q0), {'β': β, 'γ': γ, 'Vy': Vy}
-    backward0 = hm.equations.Langevin.backward(params)
+    quad, params = (qx*q0), {'β': β, 'γ': γ, 'Vx': Vx}
+    backward0 = hm.equations.Generalized_Langevin.backward(params)
     operator = quad.discretize_op(backward0, **kwargs0)
-    rhs = quad.transform('x', **kwargs0)
+    rhs = quad.transform('y', **kwargs0)
+    one = quad.transform(1, **kwargs0)
+
     solution = (- operator).solve(rhs)
-    diffusion = float(solution*rhs) * float(zfx/(zx*zy))
+    diffusion = float(solution*rhs) * float(zfy/(zx*zy))
     print("With 0 extra process: {}".format(diffusion))
-    [e], [l] = operator.eigs(which='LR', k=1)
-    print(e)
-    I = quad.transform(1, **kwargs0)
-    matrix = sparse.vstack(((- operator).matrix, I.coeffs))
-    matrix = sparse.hstack((matrix, I.coeffs))
+
+    solution = (- operator).solve(rhs, remove_vec=one)
+    diffusion = float(solution*rhs) * float(zfy/(zx*zy))
+    print("With 0 extra process: {}".format(diffusion))
+
     if args.interactive:
-        quad.plot(I, bounds=True)
-        quad.plot(solution, factor=sym.exp(-β/2*(Vy + x*x/2)))
+        fig, ax = plt.subplots()
+        plot = (qx*qy_visu).plot(solution, ax=ax, contours=20)
+        plt.colorbar(plot, ax=ax)
+        ax.set_xlabel('q')
+        ax.set_ylabel('p')
+        ax.set_title('$\\gamma = {}$'.format(γ))
+        plt.savefig("solution.eps", bbox_inches='tight')
+        plt.show()
+
+        # quad.plot(solution, ax=ax, vmin=-200, vmax=200)
 
     # Calculate autocorrelation function
     # def dudt(t, y):
@@ -192,7 +203,7 @@ def diff0():
     # vac = np.zeros(len(time))
     # for i, u in enumerate(result.y.T):
     #     u_series = quad.series(u, index_set=index_set)
-    #     vac[i] = float(rhs*u_series) * float(zfx/(zx*zy))
+    #     vac[i] = float(rhs*u_series) * float(zfy/(zx*zy))
 
     # fig, ax = plt.subplots()
     # ax.plot(time, vac)
@@ -205,12 +216,12 @@ def diff0():
 def diff1():
     α = set_param(args.alpha, r(1), 'α') / ε**2 / γ
     λ = set_param(args.lamda, r(1), 'λ') / ε
-    params, quad = {'β': β, 'α': α, 'λ': λ, 'Vy': Vy}, qy*q1
+    params, quad = {'β': β, 'α': α, 'λ': λ, 'Vx': Vx}, qx*q1
     backward1 = e.backward(params)
     operator = quad.discretize_op(backward1, **kwargs0)
-    rhs = quad.transform('x', **kwargs0)
+    rhs = quad.transform('y', **kwargs0)
     solution = (- operator).solve(rhs)
-    diffusion = float(solution*rhs) * float(zfx*zfz/(zx*zy*zz))
+    diffusion = float(solution*rhs) * float(zfy*zfz/(zx*zy*zz))
     print("With 1 extra process: {}".format(diffusion))
 
     # Calculate autocorrelation function
@@ -225,7 +236,7 @@ def diff1():
     # vac = np.zeros(len(time))
     # for i, u in enumerate(result.y.T):
     #     u_series = quad.series(u, index_set=index_set)
-    #     vac[i] = float(rhs*u_series) * float(zfx*zfz/(zx*zy*zz))
+    #     vac[i] = float(rhs*u_series) * float(zfy*zfz/(zx*zy*zz))
 
     # fig, ax = plt.subplots()
     # ax.plot(time, vac)
@@ -240,15 +251,15 @@ def diff2(x0=None):
     A12 = -1/ε**2/γ
     A21 = 1/ε**2/γ
     A22 = set_param(args.alpha, r(1), 'α') / ε**2 / γ
-    params = {'β': β, 'Vy': Vy, 'λ1': λ1, 'λ2': 0,
-              'A11': 0, 'A12': A12, 'A21': A21, 'A22': A22, 'Vy': Vy}
+    params = {'β': β, 'Vx': Vx, 'λ1': λ1, 'λ2': 0,
+              'A11': 0, 'A12': A12, 'A21': A21, 'A22': A22}
     backward = e.backward(params)
-    qf = qy * q2
-    rhs = qf.transform('x', **kwargs0)
+    qf = qx * q2
+    rhs = qf.transform('y', **kwargs0)
     operator = qf.discretize_op(backward, **kwargs0)
     solution = (-operator).solve(rhs, use_gmres=True, x0=x0, tol=5e-2,
                                  callback=lambda rk: print(la.norm(rk)))
-    diffusion = float(solution*rhs) * float(zfx*zfz*zfw/(zx*zy*zz*zw))
+    diffusion = float(solution*rhs) * float(zfy*zfz*zfw/(zx*zy*zz*zw))
     print("With 2 extra processes: {}".format(diffusion))
     return diffusion, solution.coeffs
 
