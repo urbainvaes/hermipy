@@ -160,19 +160,33 @@ class Varf:
         return Varf(matrix, self.position,
                     factor=self.factor, index_set="cross")
 
-    def solve(self, series, use_gmres=False, remove0=False, **kwargs):
+    def solve(self, series, use_gmres=False,\
+              remove0=False, remove_vec=None, **kwargs):
         assert self.position == series.position
         assert self.index_set == series.index_set
-        if remove0:
-            [e], [s] = self.eigs(k=1, which='SM')
-            if not self.is_sparse:
-                vstack, hstack = np.vstack, np.hstack
+
+        if remove0 or remove_vec is not None:
+            vstack, hstack = (np.vstack, np.hstack) if not self.is_sparse \
+                    else (sparse.vstack, sparse.hstack)
+
+            if remove0:
+                [e], [s] = self.eigs(k=1, which='SM')
+                print("Removing eigenspace with eigenvalue {}.".format(abs(e)))
+                remove_vec = s
+
             else:
-                vstack, hstack = sparse.vstack, sparse.hstack
-            assert abs(e) < 1e-7
-            matrix = vstack((self.matrix, s.coeffs))
-            matrix = hstack((matrix, np.array([[*s.coeffs, 0]]).T))
+                remove_vec = remove_vec / np.sqrt(float(remove_vec*remove_vec))
+                e = float(remove_vec*self(remove_vec))
+                print("Removing vector with value {}.".format(abs(e)))
+
+            assert abs(e) < 0.01
+            matrix = vstack((self.matrix, remove_vec.coeffs))
+            matrix = hstack((matrix, np.array([[*remove_vec.coeffs, 0]]).T))
             vector = np.array([*series.coeffs, 0])
+
+            if self.is_sparse:
+                matrix = matrix.tocsr()
+
         else:
             matrix = self.matrix
             vector = series.coeffs
@@ -187,7 +201,9 @@ class Varf:
                                             else la.solve)
             solution = solve(matrix, vector, **kwargs)
 
-        solution = np.array(solution[0:-1]) if remove0 else solution
+        if remove0 or remove_vec:
+            solution = np.array(solution[0:-1])
+
         return hs.Series(solution, position=self.position,
                          factor=self.factor, index_set=self.index_set)
 
