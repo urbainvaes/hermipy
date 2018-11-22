@@ -131,7 +131,7 @@ vec inner(const vec & s1,
         return result;
     }
 
-    if (dim_result == 0) 
+    if (dim_result == 0)
     {
         Iterator m_inner(dim_inner, degree);
         vec result(1, 0.);
