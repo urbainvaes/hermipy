@@ -179,7 +179,8 @@ class Varf:
                 e = float(remove_vec*self(remove_vec))
                 print("Removing vector with value {}.".format(abs(e)))
 
-            assert abs(e) < 0.01
+            if abs(e) > 0.01:
+                print("[Hermipy:varf:solve warning] Value of e: {}".format(e))
             matrix = vstack((self.matrix, remove_vec.coeffs))
             matrix = hstack((matrix, np.array([[*remove_vec.coeffs, 0]]).T))
             vector = np.array([*series.coeffs, 0])
