@@ -8,6 +8,7 @@ hermite_cpp.so
 /*.eps
 /*.npy
 data/*.eps
+/bdata
 
 # Cache files
 /.cache/*
