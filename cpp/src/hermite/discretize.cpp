@@ -103,7 +103,9 @@ void intern_function(string const & function_body)
 
         // Compile file
         string command = "c++ " + cpp_file + " -o " + so_file + " -O3 -Ofast -shared -fPIC";
-        system(command.c_str());
+        int return_value = system(command.c_str());
+        if (return_value != 0) 
+            std::cout << "Error compiling file in /tmp" << std::endl;
     }
 }
 
