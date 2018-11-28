@@ -1,8 +1,13 @@
 install:
 	python setup.py install --prefix ~/.local
 
-documentation:
-	make -C doc
+doc:
+	make -C docs
 
 push:
 	rsync -rvut --exclude='/.git' --filter="dir-merge,- .gitignore" . urbain@fenec:phd/code/hermite
+
+test:
+	coverage run --source=hermipy -m unittest discover -v -f tests
+	coverage report > tests/.coverage
+	coverage-badge -o tests/.coverage.svg

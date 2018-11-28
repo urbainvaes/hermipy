@@ -1,17 +1,17 @@
 # Build files
 hermite_cpp.so
-/doc/build/*
+/docs/build/*
 /build/*
 
 # Test and output files
-/test*
+/test.*
 /*.eps
 /*.npy
-data/*.eps
+data/**/*.eps
 /bdata
 
 # Cache files
-/.cache/*
+**/.cache/*
 /examples/.cache/*
 __pycache__
 __init__.pyc
@@ -20,6 +20,9 @@ __init__.pyc
 /doc/source/modules.rst
 /doc/source/hermipy.rst
 tags
+
+# Coverage
+/.coverage
 
 !*.gitkeep
 Session.vim

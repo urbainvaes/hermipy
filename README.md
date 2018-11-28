@@ -1,20 +1,19 @@
 # Hermipy
 
 [![Documentation Status](https://readthedocs.org/projects/hermipy/badge/?version=latest)](https://hermipy.readthedocs.io/en/latest/?badge=latest)
+[![Test coverage](./tests/.coverage.svg)](./tests/.coverage)
 
 Read the [documentation](https://hermipy.readthedocs.io/en/latest/).
 
 # Todo
 
-- Make asymptotic into tests
+- Use third-party library to compute FFTs;
 
-- Improve documentation
+- Implement composite quadrature;
 
-- Implement composite quadrature
+- Clean up data conversion between C++ and Python;
 
-- Improve data conversion
-
-- Inherit sympy.function / sympy.operator instead?
+- Inherit sympy.function / sympy.operator instead of custom classes.
 
 # License
 
