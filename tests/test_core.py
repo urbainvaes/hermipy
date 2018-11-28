@@ -21,8 +21,7 @@ def timeit(function):
 class TestConverters(unittest.TestCase):
 
     def test_conversions(self):
-        n = 10000
-
+        n = 5000
         a = rand.rand(n, n)
 
         b1, t_to_cpp_1 = timeit(cpp.to_mat)(a)
@@ -54,3 +53,7 @@ class TestConverters(unittest.TestCase):
         spmat = core.convert_to_cpp_sparse(csr_mat)
         cpp_mat = cpp.full(spmat)
         self.assertTrue(la.norm(cpp.to_numpy(cpp_mat) - matrix) < 1e-10)
+
+
+if __name__ == '__main__':
+    unittest.main()

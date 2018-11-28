@@ -327,3 +327,7 @@ class TestSparseFunctions(unittest.TestCase):
         bk_ou = mat1 - mat2
         off_diag = bk_ou - sp.diags(bk_ou.diagonal())
         self.assertAlmostEqual(las.norm(off_diag), 0)
+
+
+if __name__ == '__main__':
+    unittest.main()

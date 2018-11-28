@@ -72,3 +72,7 @@ class TestFunction(unittest.TestCase):
             if split[i][-1] == 3:
                 self.assertTrue(len(split[i]) == 2)
                 self.assertTrue(split[i][0] == newf('log(x*z)', dim=3))
+
+
+if __name__ == '__main__':
+    unittest.main()

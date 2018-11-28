@@ -197,3 +197,7 @@ class TestTensorize(unittest.TestCase):
         self.assertTrue(varf1 == varf2)
         self.assertTrue(varf1 == varf3)
         self.assertTrue(varf1 == varf4)
+
+
+if __name__ == '__main__':
+    unittest.main()

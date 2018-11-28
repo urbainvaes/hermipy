@@ -37,14 +37,14 @@ class TestSeries(unittest.TestCase):
         hm.settings.update(settings)
 
     def test_inner_positions(self):
-        m1, m2 = [1, 2], [2, 4, 5]
+        m1, m2 = [1, 2], [2, 3, 4]
         c1, c2 = np.diag([1, 2]), np.diag([2, 3, 4])
         p1 = hm.Position(mean=m1, cov=c1, dirs=[0, 1])
         p2 = hm.Position(mean=m2, cov=c2, dirs=[1, 3, 4])
         result = hm.Position.tensorize([p1, p2])
         self.assertTrue(result.dirs == [0, 3, 4])
-        self.assertAlmostEqual(la.norm(result.mean - [1, 4, 5]), 0)
-        self.assertAlmostEqual(la.norm(result.cov - np.diag([1, 4, 5])), 0)
+        self.assertAlmostEqual(la.norm(result.mean - [1, 3, 4]), 0)
+        self.assertAlmostEqual(la.norm(result.cov - np.diag([1, 3, 4])), 0)
 
     def aux_test_simple(self, index_set):
         # import ipdb; ipdb.set_trace()
@@ -54,7 +54,7 @@ class TestSeries(unittest.TestCase):
         quad_y = hm.Quad.gauss_hermite(n_points, dim=1, dirs=[1])
         series_xy = quad_xy.transform(fx, degree, index_set=index_set)
         series_y = quad_y.transform(fy, degree, index_set=index_set)
-        inner = hm.Series.inner(series_xy, series_y)
+        inner = series_xy * series_y
         self.assertTrue(series_xy.position.dirs == [0, 1])
         self.assertTrue(series_y.position.dirs == [1])
         self.assertTrue(inner.position.dirs == [0])
@@ -101,3 +101,7 @@ class TestSeries(unittest.TestCase):
         error_triangle = quad.norm(exact - eval_triangle)
         self.assertTrue(error_triangle < 1e-10)
         self.assertTrue(error_cross < 1e-3)
+
+
+if __name__ == '__main__':
+    unittest.main()
