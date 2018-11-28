@@ -53,7 +53,6 @@ quad_num = quad.Quad.gauss_hermite(nquad, dirs=[1, 2], mean=[0, 0],
 # Discretization in Hermite space
 fyz = sym.Function('fyz')(y, z)
 
-# import ipdb; ipdb.set_trace()
 op = quad_num.discretize_op(L0.subs(f, fyz), degree,
                             sparse=False, index_set="triangle")
 # }}}
@@ -219,7 +218,6 @@ print("x-projection of the solution: ")
 sym.pprint(func.Function.sanitize(solution_x).factor())
 
 handle = func.Function.sanitize(solution_x).factor()
-import ipdb; ipdb.set_trace()
 
 # Checks
 solution = solution.subs(unk[0], solution_0).subs(unk[4], solution_4)
@@ -265,7 +263,7 @@ for i, p in enumerate(proj_xz):
 
 import matplotlib
 import matplotlib.pyplot as plt
-matplotlib.rc('font', size=14)
+matplotlib.rc('font', size=22)
 matplotlib.rc('font', family='serif')
 matplotlib.rc('text', usetex=True)
 
@@ -273,7 +271,10 @@ quad_visu = quad.Quad.newton_cotes([n_points, n_points], [2, 2], dirs=[0, 2])
 
 for i in range(5):
     fig, ax = plt.subplots()
-    cont = quad_visu.plot(proj_xz_n[i], ax=ax, title="")
+    exponent = '^' + str(i) if i is not 1 else ''
+    cont = quad_visu.plot(proj_xz_n[i], ax=ax, title='$\\varepsilon{}$'.format(exponent))
+    ax.set_xlabel('$x$')
+    ax.set_ylabel('$\\eta$')
     plt.colorbar(cont, ax=ax, pad=.01)
     for c in cont.collections:
         c.set_edgecolor("face")

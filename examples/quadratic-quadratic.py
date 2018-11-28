@@ -29,9 +29,6 @@ eq['γ'] = r(0)
 eq['θ'] = r(0)
 
 # Functional parameters of the equation
-# eq['Vp'] = x**4/4 - x**2/2
-
-sx = sym.symbols('sx', real=True, positive=True)
 eq['Vp'] = x**2/2
 eq['Vy'] = y**2/2
 
