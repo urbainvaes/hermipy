@@ -1,13 +1,13 @@
 # Build files
 hermite_cpp.so
-/doc/build/*
+/docs/build/*
 /build/*
 
 # Test and output files
 /test*
 /*.eps
 /*.npy
-data/*.eps
+data/**/*.eps
 /bdata
 
 # Cache files
