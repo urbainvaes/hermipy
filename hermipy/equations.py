@@ -220,8 +220,9 @@ class McKean_Vlasov:
             solution = la.solve(L0.matrix, rhs.coeffs)
             coeff_noise = np.dot(solution, rhs.coeffs)
             coeff_noise = sym.Rational(coeff_noise).limit_denominator(1e8)
-            print("Effective noise: " + str(float(1/sym.sqrt(2*coeff_noise))))
             coeff_noise = sym.sqrt(1/β/coeff_noise)
+            # effective_noise = float(1/sym.sqrt(2*coeff_noise))
+            # print("Effective noise (ζ): " + str(effective_noise))
 
         else:
             # Assume Vy is y*y/2
