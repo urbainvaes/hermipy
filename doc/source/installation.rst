@@ -20,7 +20,6 @@ The module can then be installed::
     $ python setup.py install --prefix ~/.local
 
 To install globally, prepend ``sudo`` to this command and omit the prefix.
-
 In addition to the two dependencies above,
 at runtime the module depends on the following python packages:
 
