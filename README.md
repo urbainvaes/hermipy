@@ -8,25 +8,15 @@ $ python -m unittest discover -v tests
 
 # Todo
 
-- Implement Einstein convention tensorize/inner series
-
 - Make asymptotic into tests
 
 - Improve documentation
 
 - Implement composite quadrature
 
-- Auto conversion from triangle, cube -> cross when appropriate?
-
-- Add support for Hermite Fourier
-
-- Improve split to minimize number of terms?
-
 - Improve data conversion
 
 - Inherit sympy.function / sympy.operator instead?
-
-- Store factor somewhere?
 
 # License
 

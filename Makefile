@@ -1,5 +1,8 @@
 install:
 	python setup.py install --prefix ~/.local
 
+documentation:
+	make -C doc
+
 push:
-	rsync -rvut --exclude='/.git' --filter="dir-merge,- .gitignore" . urbain@155.198.193.89:phd/code/hermite
+	rsync -rvut --exclude='/.git' --filter="dir-merge,- .gitignore" . urbain@fenec:phd/code/hermite
