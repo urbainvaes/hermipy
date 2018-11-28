@@ -7,9 +7,6 @@ To compile it, the following dependencies are required:
 - The Boost_ library, including the *Boost Python* and *Boost Numpy* components;
 - The CMake_ cross-platform build system.
 
-.. _Boost: https://en.wikipedia.org/wiki/Boost_(C%2B%2B_libraries)
-.. _CMake: https://en.wikipedia.org/wiki/CMake
-
 With the dependencies present,
 the C++ component can be compiled by running the following command from the root directory of the repository::
 
@@ -27,13 +24,20 @@ at runtime the module depends on the following python packages:
 - SymPy_, for symbolic calculations;
 - matplotlib_, for plots and visualization.
 
+Once installed,
+tests can be run with the following command::
+
+    $ python -m unittest discover -v tests
+
+A package automating the installation for users of the `Arch Linux`_ distribution is available on the `Arch User Repository`_,
+under the name *python-hermipy-git*.
+
+.. _Boost: https://en.wikipedia.org/wiki/Boost_(C%2B%2B_libraries)
+.. _CMake: https://en.wikipedia.org/wiki/CMake
 .. _NumPy: https://en.wikipedia.org/wiki/NumPy
 .. _SciPy: https://en.wikipedia.org/wiki/SciPy
 .. _SymPy: https://en.wikipedia.org/wiki/SymPy
 .. _matplotlib: https://en.wikipedia.org/wiki/Matplotlib
-
-A package automating the installation for users of the `Arch Linux`_ distribution is available on the `Arch User Repository`_ under the name *python-hermipy-git*.
-
 .. _Arch Linux: https://en.wikipedia.org/wiki/Arch_Linux
 .. _Arch User Repository: https://aur.archlinux.org/packages/python-hermipy-git/
 

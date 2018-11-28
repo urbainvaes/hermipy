@@ -1,10 +1,8 @@
-# Testing
+# Hermipy
 
-Run the following command in the root directory.
+[![Documentation Status](https://readthedocs.org/projects/hermipy/badge/?version=latest)](https://hermipy.readthedocs.io/en/latest/?badge=latest)
 
-```bash
-$ python -m unittest discover -v tests
-```
+Read the [documentation](https://hermipy.readthedocs.io/en/latest/).
 
 # Todo
 
