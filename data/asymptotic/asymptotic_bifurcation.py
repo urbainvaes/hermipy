@@ -7,7 +7,7 @@ import scipy.optimize as optimize
 import matplotlib
 import matplotlib.pyplot as plt
 
-matplotlib.rc('font', size=14)
+matplotlib.rc('font', size=18)
 matplotlib.rc('font', family='serif')
 matplotlib.rc('text', usetex=True)
 x = sym.symbols('x')

@@ -146,7 +146,7 @@ def vprint(*args, **kwargs):
 hermipy.settings.update(config.misc)
 vprint(hermipy.settings)
 
-matplotlib.rc('font', size=14)
+matplotlib.rc('font', size=22)
 matplotlib.rc('font', family='serif')
 matplotlib.rc('text', usetex=True)
 
@@ -254,14 +254,20 @@ def factors(symbolic, λ):
     elif symbolic == 0:
         Vp, Vq = params['Vp'].eval(), params['Vqx'].eval()
         Vy, Vqy = params['Vy'].eval(), params['Vqy'].eval()
-    # factor_x = sym.exp(-Vq/2)
-    # factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
     if args.bifurcation:
         factor_x = sym.exp(-Vq/2)
         factor_y = sym.exp(-Vqy/2)
+    elif args.convergence_eig and \
+             args.config == 'examples.quadratic-quadratic':
+        factor_x = sym.exp(-Vq/2)
+        factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
     else:
         factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
         factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
+
+    factor_x = sym.exp(-Vq/2)
+    factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
+
     factor = factor_x * factor_y
     return factor_x, factor_y, factor
 
@@ -360,6 +366,10 @@ def plot():
     ground_series = ground_series / quad_num.integrate(ground_series, flat=True)
     cont = quad_visu.plot(ground_series, ax=ax, vmin=0,
                           extend='min', bounds=False)
+    ax.set_xlabel('$x$')
+    ax.set_ylabel('$\\eta$')
+    ax.set_title('')
+
     for c in cont.collections:
         c.set_edgecolor("face")
     plt.colorbar(cont, ax=ax)
@@ -372,6 +382,9 @@ def plot():
     plt.show()
     fig, ax = plt.subplots(1, 1)
     scatter = ground_series.subdegree(10).plot(ax=ax)
+    ax.set_xlabel('$x$')
+    ax.set_ylabel('$\\eta$')
+    ax.set_title('')
     plt.colorbar(scatter, ax=ax)
     output = config.misc['directory'] + 'coefficients.eps'
     plt.savefig(output, bbox_inches='tight')
@@ -490,7 +503,7 @@ def convergence_eig():
         norm_sol = quad_num.integrate(solution_eval, flat=True)
         assert abs(norm_sol - 1) < 1e-6
     else:
-        eig_vals, eig_vecs = r_mat.eigs(k=4, which='LR')
+        eig_vals, eig_vecs = r_mat.eigs(k=4, which='SM')
         argmin = np.argmin(np.abs(eig_vals))
         solution_eval = get_ground_state(eig_vecs[argmin])
         norm_sol = quad_num.integrate(solution_eval, flat=True)
@@ -499,7 +512,7 @@ def convergence_eig():
     quad_num.plot(solution_eval)
 
     v0, degrees, errors, errors_a, mins, eig_ground = None, [], [], [], [], []
-    for d in range(20, degree):
+    for d in range(20, degree, 2):
         print("-- Solving for degree = " + str(d))
         npolys = core.iterator_size(2, d, index_set=index_set)
         sub_varf = r_mat.subdegree(d)
@@ -509,7 +522,9 @@ def convergence_eig():
             for i in range(len(v0)):
                 actual_v0[i] = v0[i]
             v0 = actual_v0
-        eig_vals, eig_vecs = sub_varf.eigs(v0=v0, k=1, which='LR')
+        eig_vals, eig_vecs = sub_varf.eigs(v0=v0, k=1, which='SM')
+        if (la.norm(np.imag(eig_vecs[0].coeffs))) > 1e-12:
+            __import__('ipdb').set_trace()
         v0 = eig_vecs[0].coeffs.copy(order='C')
         ground_state_eval = get_ground_state(eig_vecs[0])
         # if d > 60:
@@ -536,7 +551,7 @@ def convergence_eig():
         x, y = np.asarray(x), np.asarray(y)
         fig, ax = plt.subplots(1, 1)
         ax.semilogy(x, y, 'k.', label='$|\\lambda_0|$')
-        ax.set_yscale('log', basey=2)
+        # ax.set_yscale('log', basey=2)
         cut_off = 70
         x_poly = x[0:cut_off + 1] if len(x) > cut_off else x
         y_poly = y[0:cut_off + 1] if len(y) > cut_off else y
@@ -551,15 +566,15 @@ def convergence_eig():
         plt.show()
 
     # np.save('errors-epsilon-'+str(float(params['ε'].value)), errors_a)
-    degrees = degrees[0:-10]
-    mins = mins[0:-10]
-    errors = errors[0:-10]
-    eig_ground = eig_ground[0:-10]
+    # degrees = degrees[0:-10]
+    # mins = mins[0:-10]
+    # errors = errors[0:-10]
+    # eig_ground = eig_ground[0:-10]
 
     dir = config.misc['directory']
-    plot_log(degrees, errors, dir + 'l1conv.eps')
-    plot_log(degrees, [max(0, -m) for m in mins], dir + 'min.eps')
-    plot_log(degrees, np.abs(eig_ground), dir + 'eig_val.eps', lin=False)
+    # plot_log(degrees, errors, dir + 'l1conv.eps')
+    # plot_log(degrees, [max(0, -m) for m in mins], dir + 'min.eps')
+    # plot_log(degrees, np.abs(eig_ground), dir + 'eig_val.eps', lin=False)
     # plot_log(degrees, errors_a, dir + 'l1asym.eps', lin=False)
 
     # qy = quad_num.project(1)
@@ -569,8 +584,8 @@ def convergence_eig():
 
     fig, ax = plt.subplots()
     ax.semilogy(degrees, errors, '.', label="$L^1$ error")
-    ax.semilogy(degrees, [max(0, -m) for m in mins], '.', label="- minimum")
-    # ax.semilogy(degrees, np.abs(eig_ground), '.', label="$|\\lambda_0|$")
+    # ax.semilogy(degrees, [-m for m in mins], '.', label="$- \\min_{x, \\eta} \\rho(x, \\eta)$")
+    ax.semilogy(degrees, np.abs(eig_ground), '.', label="$|\\lambda_0|$")
     # condition = (np.asarray(degrees) + 1) % 2
     # xplot, yplot = np.extract(condition, degrees), np.extract(condition, errors)
     # ax.semilogy(xplot, yplot, 'b.', label="$L^1$ error")
@@ -775,7 +790,7 @@ def time_dependent():
                 dt = dt * 2.
             t, m = new_t, new_m
 
-            if difference < 5e-8:
+            if difference < 1e-8:
                 betas.append(β)
                 ms.append(m + translation)
 
@@ -790,7 +805,19 @@ def time_dependent():
 
                     fig, ax = plt.subplots(1, 1)
                     quad_visu.plot(t, bounds=False, ax=ax, title="$\\rho(x, \\eta)$")
+                    ax.set_xlabel('$x$')
+                    ax.set_ylabel('$\\eta$')
+                    ax.set_title('$\\rho(x, \\eta)$')
                     plt.savefig(dir + 'solution-beta=' + str(β) + '.eps',
+                                bbox_inches='tight')
+                    plt.close()
+
+                    fig, ax = plt.subplots(1, 1)
+                    t.plot(ax=ax)
+                    ax.set_xlabel('$x$')
+                    ax.set_ylabel('$\\eta$')
+                    ax.set_title('Hermite coefficients')
+                    plt.savefig(dir + 'coefficients-beta=' + str(β) + '.eps',
                                 bbox_inches='tight')
                     plt.close()
 
@@ -945,7 +972,12 @@ def convergence():
 
                 d = d - 1
                 break
-    import ipdb; ipdb.set_trace()
+    plt.close('all')
+    fig, ax = plt.subplots()
+    ax.semilogy(degrees, errors, 'b.')
+    plt.savefig('convergence.eps', bbox_inches='tight')
+    plt.show()
+    __import__('ipdb').set_trace()
 
 
 if args.convergence:
@@ -1071,6 +1103,8 @@ def convergence_epsilon():
                 fig, ax = plt.subplots(1, 1)
                 quad_visu.plot(t, ax=ax, vmin=0, extend='min')
                 ax.set_title("$\\varepsilon = {}$".format(ε))
+                ax.set_xlabel('$x$')
+                ax.set_ylabel('$\\eta$')
                 plt.savefig(dir + 'solution-epsilon=' + str(ε) + '.eps',
                             bbox_inches='tight')
                 plt.close()
@@ -1088,13 +1122,14 @@ def convergence_epsilon():
     fig, ax = plt.subplots()
     cmap = matplotlib.cm.get_cmap('viridis_r')
     for i, (ε, txε) in enumerate(zip(εs, tx)):
-        if i % 2 is not 0:
+        if i % 2 is not 0 or ε < .99 * 2**-3:
             continue
         label = "$\\varepsilon = 2^{{ -{} }} $".format(i/4)
         kwargs = {'color': cmap(ε), 'label': label}
         quad_visu.project(0).plot(txε, ax=ax, **kwargs)
     ax.set_title("")
-    plt.legend()
+    ax.set_xlabel("$x$")
+    plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
     plt.savefig("convergence-epsilon.eps", bbox_inches='tight')
 
     fig, ax = plt.subplots()
@@ -1112,7 +1147,9 @@ def convergence_epsilon():
     ax.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'r-',
              label='$y = {:.2f} \\, \\times \\, \\varepsilon^{{ {:.2f} }}$'.
                               format(2**coeffs[1], coeffs[0]))
-    plt.legend(loc='lower right')
+    ax.set_xlabel("$\\varepsilon$")
+    plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+    # plt.legend()
     plt.savefig("errors.eps", bbox_inches='tight')
     plt.show()
 

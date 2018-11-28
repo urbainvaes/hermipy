@@ -37,7 +37,7 @@ if args.directory:
     os.makedirs(dir, exist_ok=True)
 
 # Matplotlib configuration
-matplotlib.rc('font', size=14)
+matplotlib.rc('font', size=20)
 matplotlib.rc('font', family='serif')
 matplotlib.rc('text', usetex=True)
 
@@ -102,7 +102,7 @@ if args.test_eigs:
     ax.plot(degrees, eigvals, 'k.')
     ax.set_yscale('symlog', linthreshy=1e-5)
     ax.set_xlabel('Number of Hermite functions')
-    ax.set_ylabel('$\\lambda_0$')
+    ax.set_title('$\\lambda_0$')
     plt.savefig('eigen.pdf', bbox_inches='tight')
     plt.show()
 
@@ -187,24 +187,25 @@ def solve(method, subdegree=degree):
     return result
 
 
-try:
-    degrees = np.load("data/comparison_carillo/comparison_carrillo_degrees_ode45_80.npy")
-    errors_ode45 = np.load("data/comparison_carillo/comparison_carrillo_errors_ode45_80.npy")
-    errors_semi_explicit = np.load("data/comparison_carillo/comparison_carrillo_errors_semi_explicit_80.npy")
-
-    fig, ax = plt.subplots()
-    plt.semilogy(degrees, errors_ode45, '.', label='RK45')
-    plt.semilogy(degrees, errors_semi_explicit, '.', label='Semi-implicit')
-    ax.set_xlabel("Number of Hermite functions")
-    ax.set_ylabel("Difference (in the $L^\\infty(0, T; L^1(\\mathbf R))$ norm)")
-    plt.legend()
-    plt.savefig('comparison-degree-errors.pdf', bbox_inches='tight')
-    plt.show()
-
-except IOError:
-    pass
-
 if args.test_convergence:
+
+    try:
+        degrees = np.load("data/comparison_carillo/comparison_carrillo_degrees_ode45_80.npy")
+        errors_ode45 = np.load("data/comparison_carillo/comparison_carrillo_errors_ode45_80.npy")
+        errors_semi_explicit = np.load("data/comparison_carillo/comparison_carrillo_errors_semi_explicit_80.npy")
+
+        fig, ax = plt.subplots()
+        plt.semilogy(degrees, errors_ode45, '.', label='RK45')
+        plt.semilogy(degrees, errors_semi_explicit, '.', label='Semi-implicit')
+        ax.set_xlabel("Number of Hermite functions")
+        ax.set_title("Difference (in the $L^\\infty(0, T; L^1(\\mathbf R))$ norm)")
+        plt.legend()
+        plt.savefig('comparison-degree-errors.pdf', bbox_inches='tight')
+        plt.show()
+
+    except IOError:
+        pass
+
     degrees = list(range(80, degree))
     errors = np.zeros(len(degrees))
     method = args.method if args.method else "ode45"
@@ -229,8 +230,10 @@ if args.test_plots:
                              label="Spectral")
         quad_comparison.plot(rho[i], ax=ax, bounds=False,
                              label="Finite-volume",
-                             title="Time: " + str(time[i]))
-        plt.legend(loc='upper left')
+                             title="Time: {0:.2f}".format(time[i]))
+        ax.set_xlabel('$x$')
+        if t == 5:
+            plt.legend(loc='lower left')
         plt.savefig('comparison_carrillo_solution-{}.pdf'.format(t),
                     bbox_inches='tight')
         plt.show()

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 
-matplotlib.rc('font', size=14)
+matplotlib.rc('font', size=20)
 matplotlib.rc('font', family='serif')
 matplotlib.rc('text', usetex=True)
 
@@ -16,8 +16,7 @@ epsilon, errors = np.array(epsilon), np.array(errors)
 for i, y in enumerate(v):
     plt.semilogy(range(5, 5 + len(y)), y, '.', basey=2, 
                  label='$\\varepsilon = {}$'.format(epsilon[i]))
-plt.legend()
-plt.legend(loc='upper right')
+plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
 plt.xlabel("Degree of approximation")
 plt.savefig('degree-difference.eps', bbox_inches='tight')
 plt.show()

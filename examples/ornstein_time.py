@@ -59,7 +59,7 @@ hm.settings['trails'] = False
 hm.settings['cache'] = True
 
 # Set matplotlib options
-matplotlib.rc('font', size=14)
+matplotlib.rc('font', size=18)
 matplotlib.rc('font', family='serif')
 matplotlib.rc('text', usetex=True)
 # }}}
@@ -229,10 +229,11 @@ if args.test_convergence:
         plt.semilogy(degrees, errors_ode45, '.', label='RK45')
         plt.semilogy(degrees, errors_semi_explicit, '.', label='Semi-implicit')
         ax.set_xlabel("Degree of Hermite functions")
-        ax.set_ylabel("Error (in the $L^\\infty(0, T; L^1(\\mathbf R))$ norm)")
+        ax.set_title("Error (in the $L^\\infty(0, T; L^1(\\mathbf R))$ norm)")
         plt.legend()
         plt.savefig('comparison-degree-errors.pdf', bbox_inches='tight')
         plt.show()
+        exit(0)
 
     except IOError:
         pass
@@ -254,7 +255,6 @@ if args.test_plots:
 
     result = solve('ode45')
 
-    import ipdb; ipdb.set_trace()
     plt.ion()
     fig, ax = plt.subplots(2)
 
@@ -286,6 +286,8 @@ if args.test_plots:
         fig, ax = plt.subplots()
         quad_visu.plot(result[i], ax=ax, bounds=False,
                        title="Time: " + str(time[i]))
+        ax.set_xlabel('$x$')
+        ax.set_ylabel('$\\eta$')
         plt.savefig('solution_time_dependent_gaussian_case_time={}.pdf'.format(t),
                     bbox_inches='tight')
         plt.show()
