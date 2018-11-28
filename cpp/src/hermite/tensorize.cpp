@@ -121,7 +121,7 @@ vec tensorize(const mat & inputs, const imat & dirs)
     return results;
 }
 
-vec tensorize_vecs_dirs(const mat & inputs, const imat & dirs, std::string index_set)
+vec tensorize_vecs_dirs(const mat & inputs, const imat & dirs, std::string const & index_set)
 {
     auto function = tensorize<Triangle_iterator>;
     if (index_set == "triangle");
@@ -133,7 +133,7 @@ vec tensorize_vecs_dirs(const mat & inputs, const imat & dirs, std::string index
     return function(inputs, dirs);
 }
 
-vec tensorize_vecs_axes(const mat & inputs, std::string index_set)
+vec tensorize_vecs_axes(const mat & inputs, std::string const & index_set)
 {
     u_int dim = inputs.size();
     imat dirs(dim, ivec(1, 0));
@@ -142,7 +142,7 @@ vec tensorize_vecs_axes(const mat & inputs, std::string index_set)
     return tensorize_vecs_dirs(inputs, dirs, index_set);
 }
 
-vec tensorize_vec_id(const vec & input, u_int dim, u_int dir, std::string index_set)
+vec tensorize_vec_id(const vec & input, u_int dim, u_int dir, std::string const & index_set)
 {
     u_int degree = input.size() - 1;
     vec cst(degree + 1, 0.); cst[0] = 1;
@@ -345,7 +345,7 @@ T _tensorize_mats_axes(const vector<S> & inputs)
 }
 
 template <typename T, typename S>
-T tensorize_mats_dirs(const vector<S> & inputs, const imat & dirs, std::string index_set)
+T tensorize_mats_dirs(const vector<S> & inputs, const imat & dirs, std::string const & index_set)
 {
     auto function = _tensorize_mats_dirs<Triangle_iterator,T,S>;
     if (index_set == "triangle");
@@ -358,7 +358,7 @@ T tensorize_mats_dirs(const vector<S> & inputs, const imat & dirs, std::string i
 }
 
 template <typename T, typename S>
-T tensorize_mats_axes(const vector<S> & inputs, std::string index_set)
+T tensorize_mats_axes(const vector<S> & inputs, std::string const & index_set)
 {
     auto function = _tensorize_mats_axes<Triangle_iterator,T,S>;
     if (index_set == "triangle");
@@ -371,7 +371,7 @@ T tensorize_mats_axes(const vector<S> & inputs, std::string index_set)
 }
 
 template<typename T, typename S>
-T tensorize_mat_id(const S & input, u_int dim, u_int dir, std::string index_set)
+T tensorize_mat_id(const S & input, u_int dim, u_int dir, std::string const & index_set)
 {
     u_int degree = matrix::size1(input) - 1;
     T eye = matrix::eye<T>(degree + 1);
@@ -396,20 +396,20 @@ template boost_mat _tensorize_mats_axes<Cross_iterator>(const std::vector<mat> &
 template boost_mat _tensorize_mats_axes<Cross_iterator_nc>(const std::vector<mat> & input);
 template boost_mat _tensorize_mats_axes<Triangle_iterator>(const std::vector<mat> & input);
 
-template mat tensorize_mats_dirs(const std::vector<mat> & inputs, const imat & dir, std::string index_sets);
-template mat tensorize_mats_dirs(const std::vector<spmat> & inputs, const imat & dir, std::string index_sets);
-template spmat tensorize_mats_dirs(const std::vector<mat> & inputs, const imat & dir, std::string index_sets);
-template spmat tensorize_mats_dirs(const std::vector<spmat> & inputs, const imat & dir, std::string index_sets);
+template mat tensorize_mats_dirs(const std::vector<mat> & inputs, const imat & dir, std::string const & index_sets);
+template mat tensorize_mats_dirs(const std::vector<spmat> & inputs, const imat & dir, std::string const & index_sets);
+template spmat tensorize_mats_dirs(const std::vector<mat> & inputs, const imat & dir, std::string const & index_sets);
+template spmat tensorize_mats_dirs(const std::vector<spmat> & inputs, const imat & dir, std::string const & index_sets);
 
-template mat tensorize_mats_axes(const std::vector<mat> & input, std::string index_sets);
-template mat tensorize_mats_axes(const std::vector<spmat> & input, std::string index_sets);
-template spmat tensorize_mats_axes(const std::vector<mat> & input, std::string index_sets);
-template spmat tensorize_mats_axes(const std::vector<spmat> & input, std::string index_sets);
+template mat tensorize_mats_axes(const std::vector<mat> & input, std::string const & index_sets);
+template mat tensorize_mats_axes(const std::vector<spmat> & input, std::string const & index_sets);
+template spmat tensorize_mats_axes(const std::vector<mat> & input, std::string const & index_sets);
+template spmat tensorize_mats_axes(const std::vector<spmat> & input, std::string const & index_sets);
 
-template mat tensorize_mat_id(const mat & input, u_int dim, u_int dir, std::string index_set);
-template mat tensorize_mat_id(const spmat & input, u_int dim, u_int dir, std::string index_set);
-template spmat tensorize_mat_id(const mat & input, u_int dim, u_int dir, std::string index_set);
-template spmat tensorize_mat_id(const spmat & input, u_int dim, u_int dir, std::string index_set);
+template mat tensorize_mat_id(const mat & input, u_int dim, u_int dir, std::string const & index_set);
+template mat tensorize_mat_id(const spmat & input, u_int dim, u_int dir, std::string const & index_set);
+template spmat tensorize_mat_id(const mat & input, u_int dim, u_int dir, std::string const & index_set);
+template spmat tensorize_mat_id(const spmat & input, u_int dim, u_int dir, std::string const & index_set);
 
 // }}}
 

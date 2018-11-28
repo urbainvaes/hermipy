@@ -19,7 +19,6 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 # IMPORT MODULES {{{
-import pdb
 import argparse
 import math
 import os
@@ -27,7 +26,6 @@ import sympy as sym
 import importlib
 import numpy as np
 import numpy.linalg as la
-import scipy.sparse.linalg as las
 
 import hermipy
 import hermipy.stats

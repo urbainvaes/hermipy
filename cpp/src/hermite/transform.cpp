@@ -155,7 +155,7 @@ vec transform(
         mat const & weights,
         ivec const & do_fourier,
         bool forward,
-        std::string index_set)
+        std::string const & index_set)
 {
     auto function = transform<Triangle_iterator>;
     if (index_set == "triangle");

@@ -33,7 +33,7 @@ vec inner(const vec & s1,
           const vec & s2,
           const ivec & dirs1,
           const ivec & dirs2,
-          std::string index_set);
+          std::string const & index_set);
 }
 
 #endif

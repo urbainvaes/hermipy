@@ -57,7 +57,7 @@ vec project(const vec & input, u_int dim, const ivec & dirs)
     return results;
 }
 
-vec project_vec_nd(const vec & input, u_int dim, const ivec & dirs, std::string index_set)
+vec project_vec_nd(const vec & input, u_int dim, const ivec & dirs, std::string const & index_set)
 {
     auto function = project<Triangle_iterator>;
     if (index_set == "triangle");
@@ -69,7 +69,7 @@ vec project_vec_nd(const vec & input, u_int dim, const ivec & dirs, std::string 
     return function(input, dim, dirs);
 }
 
-vec project_vec_1d(const vec & input, u_int dim, u_int dir, std::string index_set)
+vec project_vec_1d(const vec & input, u_int dim, u_int dir, std::string const & index_set)
 {
     ivec dirs(1, dir);
     return project_vec_nd(input, dim, dirs, index_set);
@@ -109,7 +109,7 @@ M project(const M & input, u_int dim, const ivec & dirs)
 }
 
 template<typename M>
-M project_mat_nd(const M & input, u_int dim, const ivec & dirs, std::string index_set)
+M project_mat_nd(const M & input, u_int dim, const ivec & dirs, std::string const & index_set)
 {
     auto function = project<Triangle_iterator,M>;
     if (index_set == "triangle");
@@ -122,15 +122,15 @@ M project_mat_nd(const M & input, u_int dim, const ivec & dirs, std::string inde
 }
 
 template <typename M>
-M project_mat_1d(const M & input, u_int dim, u_int dir, std::string index_set)
+M project_mat_1d(const M & input, u_int dim, u_int dir, std::string const & index_set)
 {
     ivec dirs(1, dir);
     return project_mat_nd(input, dim, dirs, index_set);
 }
 
-template mat project_mat_1d(const mat & input, u_int dim, u_int dir, std::string index_set);
-template spmat project_mat_1d(const spmat & input, u_int dim, u_int dir, std::string index_set);
-template mat project_mat_nd(const mat & input, u_int dim, const ivec & dirs, std::string index_set);
-template spmat project_mat_nd(const spmat & input, u_int dim, const ivec & dirs, std::string index_set);
+template mat project_mat_1d(const mat & input, u_int dim, u_int dir, std::string const & index_set);
+template spmat project_mat_1d(const spmat & input, u_int dim, u_int dir, std::string const & index_set);
+template mat project_mat_nd(const mat & input, u_int dim, const ivec & dirs, std::string const & index_set);
+template spmat project_mat_nd(const spmat & input, u_int dim, const ivec & dirs, std::string const & index_set);
 
 }
