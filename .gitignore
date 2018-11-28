@@ -21,5 +21,8 @@ __init__.pyc
 /doc/source/hermipy.rst
 tags
 
+# Coverage
+.coverage
+
 !*.gitkeep
 Session.vim
