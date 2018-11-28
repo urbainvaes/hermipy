@@ -14,6 +14,7 @@ Welcome to hermipy's documentation!
    introduction
    quickstart
    modules
+   license
 
 
 Indices and tables
