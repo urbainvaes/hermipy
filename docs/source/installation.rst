@@ -25,9 +25,10 @@ at runtime the module depends on the following python packages:
 - matplotlib_, for plots and visualization.
 
 Once installed,
-tests can be run with the following command::
+tests can be run and the test coverage can be calculated with the following command::
 
     $ python -m unittest discover -v tests
+    $ coverage run --source=hermipy -m unittest discover -v tests
 
 A package automating the installation for users of the `Arch Linux`_ distribution is available on the `Arch User Repository`_,
 under the name *python-hermipy-git*.

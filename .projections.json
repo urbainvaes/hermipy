@@ -1,6 +1,6 @@
 {
   "hermipy/*.py": {"type": "py"},
-  "test/test_*.py": {"type": "test"},
+  "tests/test_*.py": {"type": "test"},
   "cpp/src/hermite/*.cpp": {"type": "cpp"},
   "doc/source/*.rst": {"type": "doc"}
 }
