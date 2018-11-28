@@ -228,10 +228,10 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         params = self.eq.params()
         β, γ, ε, θ, m = (params[x] for x in ['β', 'γ', 'ε', 'θ', 'm'])
         d, x, y, f = sym.diff, self.x, self.y, self.f
-        Vp = params['Vp']
+        Vp, Vy = params['Vp'], params['Vy']
         explicit = d(d(Vp, x)*f + θ*(x-m)*f - (1-γ)*sym.sqrt(1/β)*y*f/ε, x) \
             + γ**2/β * d(d(f, x), x) \
-            + (1/ε**2) * d(y * f, y) \
+            + (1/ε**2) * d(Vy.diff(y) * f, y) \
             + (1/ε**2) * d(d(f, y), y)
         self.assertTrue((explicit - self.eq.equation(params)).cancel() == 0)
 
@@ -260,7 +260,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         Vqy = sym.Rational(1/2)*y*y/s2y
 
         # Fokker Planck for McKean-Vlasov equation
-        parameters.update({'Vp': Vp})
+        parameters.update({'Vp': Vp, 'Vy': y*y/2})
         forward = equation.equation(parameters)
 
         # Map to appropriate space
@@ -338,8 +338,8 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         solutions, finest = self.solve(backward, quad, factor, degrees)
 
         # Plot of the finest solution
-        fig, ax = plt.subplots(1, 1)
-        quad.plot(finest, factor, ax=ax)
+        # fig, ax = plt.subplots(1, 1)
+        # quad.plot(finest, factor, ax=ax)
         # plt.show()
 
         # Associated errors
@@ -426,185 +426,185 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         self.test_bistable()
 
 
-class TestConvergenceFokkerPlanck3d(unittest.TestCase):
+# class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
-    def setUp(self):
+#     def setUp(self):
 
-        # Equation parameters
-        self.eq = eq.McKean_Vlasov_harmonic_noise
-        self.x, self.y, self.z = self.eq.x, self.eq.y, self.eq.z
-        self.f = self.eq.f
-        self.dim = 3
+#         # Equation parameters
+#         self.eq = eq.McKean_Vlasov_harmonic_noise
+#         self.x, self.y, self.z = self.eq.x, self.eq.y, self.eq.z
+#         self.f = self.eq.f
+#         self.dim = 3
 
-    def test_correctness_operator(self):
-        params = self.eq.params()
-        d, x, y, z, f = sym.diff, self.x, self.y, self.z, self.f
-        β, γ, ε, θ, m = (params[x] for x in ['β', 'γ', 'ε', 'θ', 'm'])
-        λ = 1
-        Vp = params['Vp']
-        explicit = d(d(Vp, x)*f + θ*(x-m)*f - (1-γ)*sym.sqrt(1/β)*z*f/ε, x) \
-            + γ**2/β * d(d(f, x), x) \
-            + (1/ε**2) * (-y*d(f, z) + z*d(f, y)) \
-            + (1/ε**2) * λ*d(f*y + d(f, y), y)
-        self.assertTrue((explicit - self.eq.equation(params)).cancel() == 0)
+#     def test_correctness_operator(self):
+#         params = self.eq.params()
+#         d, x, y, z, f = sym.diff, self.x, self.y, self.z, self.f
+#         β, γ, ε, θ, m = (params[x] for x in ['β', 'γ', 'ε', 'θ', 'm'])
+#         λ = 1
+#         Vp = params['Vp']
+#         explicit = d(d(Vp, x)*f + θ*(x-m)*f - (1-γ)*sym.sqrt(1/β)*z*f/ε, x) \
+#             + γ**2/β * d(d(f, x), x) \
+#             + (1/ε**2) * (-y*d(f, z) + z*d(f, y)) \
+#             + (1/ε**2) * λ*d(f*y + d(f, y), y)
+#         self.assertTrue((explicit - self.eq.equation(params)).cancel() == 0)
 
-    def sym_calc(self, Vp, parameters, s2x, s2y, s2z, degree=10):
+#     def sym_calc(self, Vp, parameters, s2x, s2y, s2z, degree=10):
 
-        # Number of quadrature points
-        n_points_num = 2*degree + 1
+#         # Number of quadrature points
+#         n_points_num = 2*degree + 1
 
-        # Equation parameters
-        β = parameters['β']
+#         # Equation parameters
+#         β = parameters['β']
 
-        equation = eq.McKean_Vlasov_harmonic_noise
-        x, y, z, f = self.x, self.y, self.z, self.f
+#         equation = eq.McKean_Vlasov_harmonic_noise
+#         x, y, z, f = self.x, self.y, self.z, self.f
 
-        # Calculation of the solution
-        new_q = hm.Quad.gauss_hermite
-        cov = [[s2x, 0, 0], [0, s2y, 0], [0, 0, s2z]]
-        quad = new_q(n_points_num, dim=3, mean=[0]*3, cov=cov)
+#         # Calculation of the solution
+#         new_q = hm.Quad.gauss_hermite
+#         cov = [[s2x, 0, 0], [0, s2y, 0], [0, 0, s2z]]
+#         quad = new_q(n_points_num, dim=3, mean=[0]*3, cov=cov)
 
-        # Potential for approximation
-        Vqx = sym.Rational(1/2)*x*x/(β*s2x)
-        Vqy = sym.Rational(1/2)*y*y/s2y
-        Vqz = sym.Rational(1/2)*z*z/s2z
+#         # Potential for approximation
+#         Vqx = sym.Rational(1/2)*x*x/(β*s2x)
+#         Vqy = sym.Rational(1/2)*y*y/s2y
+#         Vqz = sym.Rational(1/2)*z*z/s2z
 
-        # Fokker Planck for McKean-Vlasov equation
-        parameters.update({'Vp': Vp})
-        forward = equation.equation(parameters)
+#         # Fokker Planck for McKean-Vlasov equation
+#         parameters.update({'Vp': Vp})
+#         forward = equation.equation(parameters)
 
-        # Map to appropriate space
-        factor_x = sym.exp(- β / 2 * (Vqx + Vp))
-        factor_y = sym.exp(- 1/2 * (y*y/2 + Vqy))
-        factor_z = sym.exp(- 1/2 * (z*z/2 + Vqz))
-        factor = factor_x * factor_y * factor_z
-        factors = [factor_x, factor_y, factor_z]
+#         # Map to appropriate space
+#         factor_x = sym.exp(- β / 2 * (Vqx + Vp))
+#         factor_y = sym.exp(- 1/2 * (y*y/2 + Vqy))
+#         factor_z = sym.exp(- 1/2 * (z*z/2 + Vqz))
+#         factor = factor_x * factor_y * factor_z
+#         factors = [factor_x, factor_y, factor_z]
 
-        # Mapped operator
-        backward = eq.map_operator(forward, f, factor)
+#         # Mapped operator
+#         backward = eq.map_operator(forward, f, factor)
 
-        # Probability density fluxes
-        fluxes = eq.McKean_Vlasov_harmonic_noise.fluxes(parameters)
-        fluxes = [eq.map_operator(flux, f, factor) for flux in fluxes]
+#         # Probability density fluxes
+#         fluxes = eq.McKean_Vlasov_harmonic_noise.fluxes(parameters)
+#         fluxes = [eq.map_operator(flux, f, factor) for flux in fluxes]
 
-        return quad, backward, fluxes, factor, factors
+#         return quad, backward, fluxes, factor, factors
 
-    def check_consistency_varf(self, sparse=True):
-        r = sym.Rational
-        Vp, degree = self.x**4/4 - self.x**2/2, 10
-        s2x, s2y, s2z = r(1, 2), 1, 1
-        params = {'β': 5, 'ε': 0.5, 'γ': 0, 'θ': 0, 'm': 0}
-        args = [Vp, params, s2x, s2y, s2z, degree]
-        quad, backward, _, _, _ = self.sym_calc(*args)
+#     def check_consistency_varf(self, sparse=True):
+#         r = sym.Rational
+#         Vp, degree = self.x**4/4 - self.x**2/2, 10
+#         s2x, s2y, s2z = r(1, 2), 1, 1
+#         params = {'β': 5, 'ε': 0.5, 'γ': 0, 'θ': 0, 'm': 0}
+#         args = [Vp, params, s2x, s2y, s2z, degree]
+#         quad, backward, _, _, _ = self.sym_calc(*args)
 
-        varf_cross = quad.discretize_op(backward, degree,
-                                        sparse=sparse, index_set="cross")
-        varf_trian = quad.discretize_op(backward, degree + 2,
-                                        sparse=sparse, index_set="triangle")
-        self.assertTrue(varf_trian.to_cross(degree) == varf_cross)
+#         varf_cross = quad.discretize_op(backward, degree,
+#                                         sparse=sparse, index_set="cross")
+#         varf_trian = quad.discretize_op(backward, degree + 2,
+#                                         sparse=sparse, index_set="triangle")
+#         self.assertTrue(varf_trian.to_cross(degree) == varf_cross)
 
-    def test_consistency_varf_dense(self):
-        hm.settings['tensorize'] = True
-        self.check_consistency_varf(sparse=False)
+#     def test_consistency_varf_dense(self):
+#         hm.settings['tensorize'] = True
+#         self.check_consistency_varf(sparse=False)
 
-    def test_consistency_varf_sparse(self):
-        hm.settings['tensorize'] = True
-        self.check_consistency_varf(sparse=True)
+#     def test_consistency_varf_sparse(self):
+#         hm.settings['tensorize'] = True
+#         self.check_consistency_varf(sparse=True)
 
-    def solve(self, backward, quad, factors, degrees,
-              index_set="triangle", fluxes=None):
+#     def solve(self, backward, quad, factors, degrees,
+#               index_set="triangle", fluxes=None):
 
-        # Discretization of the operator
-        hm.settings['tensorize'] = True
-        hm.settings['cache'] = True
-        hm.settings['cachedir'] = '/tmp/test_fp_3d'
-        hm.settings['trails'] = True
-        hm.settings['debug'] = False
+#         # Discretization of the operator
+#         hm.settings['tensorize'] = True
+#         hm.settings['cache'] = True
+#         hm.settings['cachedir'] = '/tmp/test_fp_3d'
+#         hm.settings['trails'] = True
+#         hm.settings['debug'] = False
 
-        kwargs = {'sparse': True, 'index_set': index_set}
-        var = quad.discretize_op(backward, degrees[-1], **kwargs)
-        fd = [quad.discretize_op(flux, degrees[-1], **kwargs) for flux in fluxes]
-        mat = var.matrix
+#         kwargs = {'sparse': True, 'index_set': index_set}
+#         var = quad.discretize_op(backward, degrees[-1], **kwargs)
+#         fd = [quad.discretize_op(flux, degrees[-1], **kwargs) for flux in fluxes]
+#         mat = var.matrix
 
-        solutions = []
-        dirs_removed = [1]
-        factor_removed, weight_removed = 1, 1
-        for d in dirs_removed:
-            factor_removed *= factors[d]
-            weight_removed *= quad.position.weights()[d]
-        f_projection = factor_removed / weight_removed
-        f_projection = sym.Rational(1)
-        s_projection = quad.project(dirs_removed).\
-            transform(f_projection, degrees[-1], index_set=index_set)
-        dirs_visu = [i for i in range(3) if i not in dirs_removed]
-        factor_visu = 1
-        for d in dirs_visu:
-            factor_visu *= factors[d]
+#         solutions = []
+#         dirs_removed = [1]
+#         factor_removed, weight_removed = 1, 1
+#         for d in dirs_removed:
+#             factor_removed *= factors[d]
+#             weight_removed *= quad.position.weights()[d]
+#         f_projection = factor_removed / weight_removed
+#         f_projection = sym.Rational(1)
+#         s_projection = quad.project(dirs_removed).\
+#             transform(f_projection, degrees[-1], index_set=index_set)
+#         dirs_visu = [i for i in range(3) if i not in dirs_removed]
+#         factor_visu = 1
+#         for d in dirs_visu:
+#             factor_visu *= factors[d]
 
-        # Quadrature for vizualization
-        nv, bx, by, bz = 200, 3, 5, 5
-        quad_visu = hm.Quad.newton_cotes([nv, nv, nv], [bx, by, bz])
-        quad_visu = quad_visu.project(dirs_visu)
+#         # Quadrature for vizualization
+#         nv, bx, by, bz = 200, 3, 5, 5
+#         quad_visu = hm.Quad.newton_cotes([nv, nv, nv], [bx, by, bz])
+#         quad_visu = quad_visu.project(dirs_visu)
 
-        import ipdb
-        ipdb.set_trace()
+#         import ipdb
+#         ipdb.set_trace()
 
-        v0, eig_vec = None, None
-        for d in degrees:
-            npolys = core.iterator_size(self.dim, d, index_set=index_set)
-            if d is not degrees[0]:
-                v0 = np.zeros(npolys)
-                for i in range(len(eig_vec)):
-                    v0[i] = eig_vec[i]
-            sub_mat = (mat[0:npolys, 0:npolys])
+#         v0, eig_vec = None, None
+#         for d in degrees:
+#             npolys = core.iterator_size(self.dim, d, index_set=index_set)
+#             if d is not degrees[0]:
+#                 v0 = np.zeros(npolys)
+#                 for i in range(len(eig_vec)):
+#                     v0[i] = eig_vec[i]
+#             sub_mat = (mat[0:npolys, 0:npolys])
 
-            if type(sub_mat) is np.ndarray:
-                sub_mat = sub_mat.copy(order='C')
-            eigs = stats.log_stats()(cache.cache(quiet=True)(las.eigs))
-            eig_vals, eig_vecs = eigs(sub_mat, k=1, v0=v0, which='LR')
-            eig_vec = np.real(eig_vecs.T[0])
-            ground_state = eig_vec * np.sign(eig_vec[0])
-            ground_state_series = quad.series(ground_state,
-                                              index_set=index_set)
-            # ground_state_eval = quad.eval(ground_state_series)*factor
-            # norm = quad.norm(ground_state_eval, n=1, flat=True)
-            # ground_state_eval = ground_state_eval / norm
-            # solutions.append(ground_state_eval)
+#             if type(sub_mat) is np.ndarray:
+#                 sub_mat = sub_mat.copy(order='C')
+#             eigs = stats.log_stats()(cache.cache(quiet=True)(las.eigs))
+#             eig_vals, eig_vecs = eigs(sub_mat, k=1, v0=v0, which='LR')
+#             eig_vec = np.real(eig_vecs.T[0])
+#             ground_state = eig_vec * np.sign(eig_vec[0])
+#             ground_state_series = quad.series(ground_state,
+#                                               index_set=index_set)
+#             # ground_state_eval = quad.eval(ground_state_series)*factor
+#             # norm = quad.norm(ground_state_eval, n=1, flat=True)
+#             # ground_state_eval = ground_state_eval / norm
+#             # solutions.append(ground_state_eval)
 
-            fluxes_eq = [flux.subdegree(d)(ground_state_series) for flux in fd]
-            sub_projection = s_projection.subdegree(d)
-            inner_series = ground_state_series.inner(sub_projection)
-            flux_proj = [flux.inner(sub_projection) for flux in fluxes_eq]
+#             fluxes_eq = [flux.subdegree(d)(ground_state_series) for flux in fd]
+#             sub_projection = s_projection.subdegree(d)
+#             inner_series = ground_state_series.inner(sub_projection)
+#             flux_proj = [flux.inner(sub_projection) for flux in fluxes_eq]
 
-            fig, ax = plt.subplots(1, 2)
-            cont = quad_visu.plot(inner_series, factor_visu, ax=ax[0])
-            streams = quad_visu.\
-                streamlines(flux_proj[0], flux_proj[1], factor_visu, ax=ax[0],
-                            colors='k', vmax=-.2, vmin=.2)
-            inner_series.plot(ax=ax[1])
-            plt.colorbar(cont, ax=ax[0])
+#             fig, ax = plt.subplots(1, 2)
+#             cont = quad_visu.plot(inner_series, factor_visu, ax=ax[0])
+#             streams = quad_visu.\
+#                 streamlines(flux_proj[0], flux_proj[1], factor_visu, ax=ax[0],
+#                             colors='k', vmax=-.2, vmin=.2)
+#             inner_series.plot(ax=ax[1])
+#             plt.colorbar(cont, ax=ax[0])
 
-            fig, ax = plt.subplots(1, 2)
-            # factor_visu_d = quad_visu.discretize(factor_visu)
-            # fx, fy = quad_visu.eval(flux_proj[0]), quad_visu.eval(flux_proj[1])
-            cont1 = quad_visu.plot(flux_proj[0], factor_visu, ax=ax[0])
-            cont2 = quad_visu.plot(flux_proj[1], factor_visu, ax=ax[1])
-            plt.colorbar(cont1, ax=ax[0])
-            plt.colorbar(cont2, ax=ax[1])
-            plt.show()
+#             fig, ax = plt.subplots(1, 2)
+#             # factor_visu_d = quad_visu.discretize(factor_visu)
+#             # fx, fy = quad_visu.eval(flux_proj[0]), quad_visu.eval(flux_proj[1])
+#             cont1 = quad_visu.plot(flux_proj[0], factor_visu, ax=ax[0])
+#             cont2 = quad_visu.plot(flux_proj[1], factor_visu, ax=ax[1])
+#             plt.colorbar(cont1, ax=ax[0])
+#             plt.colorbar(cont2, ax=ax[1])
+#             plt.show()
 
-            # quad_visu.quiver(flux_proj[0], flux_proj[1],
-            #                  factor=factor_visu, ax=ax)
-            fig, ax = plt.subplots(1)
-            streams = quad_visu.streamlines(flux_proj[0], flux_proj[1],
-                                            factor_visu, ax)
-            plt.colorbar(streams, ax=ax)
-            plt.show()
+#             # quad_visu.quiver(flux_proj[0], flux_proj[1],
+#             #                  factor=factor_visu, ax=ax)
+#             fig, ax = plt.subplots(1)
+#             streams = quad_visu.streamlines(flux_proj[0], flux_proj[1],
+#                                             factor_visu, ax)
+#             plt.colorbar(streams, ax=ax)
+#             plt.show()
 
-            import ipdb
-            ipdb.set_trace()
+#             import ipdb
+#             ipdb.set_trace()
 
-        return solutions, quad.series(ground_state)
+#         return solutions, quad.series(ground_state)
 
 #     def test_bistable_cross(self):
 
@@ -658,3 +658,7 @@ class TestConvergenceFokkerPlanck3d(unittest.TestCase):
 
 #         self.assertTrue(errors[-1] < 1e-3)
 #         self.assertTrue(error < 1)
+
+
+if __name__ == '__main__':
+    unittest.main()
