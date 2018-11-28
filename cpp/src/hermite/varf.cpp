@@ -275,7 +275,7 @@ T varf(
         mat const & nodes,
         mat const & weights,
         ivec const & do_fourier,
-        std::string index_set)
+        std::string const & index_set)
 {
     auto function = varf<Triangle_iterator,T>;
     if (index_set == "triangle");
@@ -294,7 +294,7 @@ T varfd(
         u_int direction,
         T const & var,
         u_int do_fourier,
-        std::string index_set)
+        std::string const & index_set)
 {
     #ifdef DEBUG
     cout << "Entering varfd with sparse matrix and degree = " << degree << endl;
@@ -382,7 +382,7 @@ mat varfd(
         u_int direction,
         const mat & var,
         u_int do_fourier,
-        std::string index_set)
+        std::string const & index_set)
 {
     std::unique_ptr<Multi_index_iterator> m2;
     if (index_set == "cross")
@@ -455,11 +455,11 @@ mat varfd(
     return results;
 }
 
-template mat varf(u_int degree, vec const & input, mat const & nodes, mat const & weights, ivec const & do_fourier, std::string index_set);
-template spmat varf(u_int degree, vec const & input, mat const & nodes, mat const & weights, ivec const & do_fourier, std::string index_set);
-template boost_mat varf(u_int degree, vec const & input, mat const & nodes, mat const & weights, ivec const & do_fourier, std::string index_set);
+template mat varf(u_int degree, vec const & input, mat const & nodes, mat const & weights, ivec const & do_fourier, std::string const & index_set);
+template spmat varf(u_int degree, vec const & input, mat const & nodes, mat const & weights, ivec const & do_fourier, std::string const & index_set);
+template boost_mat varf(u_int degree, vec const & input, mat const & nodes, mat const & weights, ivec const & do_fourier, std::string const & index_set);
 
-template spmat varfd( u_int dim, u_int degree, u_int direction, const spmat & var, u_int do_fourier, std::string index_set);
-template boost_mat varfd( u_int dim, u_int degree, u_int direction, const boost_mat & var, u_int do_fourier, std::string index_set);
+template spmat varfd( u_int dim, u_int degree, u_int direction, const spmat & var, u_int do_fourier, std::string const & index_set);
+template boost_mat varfd( u_int dim, u_int degree, u_int direction, const boost_mat & var, u_int do_fourier, std::string const & index_set);
 
 }

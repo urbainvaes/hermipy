@@ -33,7 +33,7 @@ vec transform(
         mat const & weights,
         ivec const & do_fourier,
         bool forward,
-        std::string index_set = "triangle");
+        std::string const & index_set = "triangle");
 
 double integrate(
         vec const & f_grid,
