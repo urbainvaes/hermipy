@@ -325,7 +325,7 @@ def compute_quads():
     # band_width = np.sqrt(2) * np.sqrt(2*degree + 1)
     # bounds_x = band_width*np.sqrt(float(σx))
     # bounds_y = band_width*np.sqrt(float(σy))
-    bounds_x = 4
+    bounds_x = 3
     bounds_y = 4
 
     quad_visu = hermipy.Quad.newton_cotes([nv, nv], [bounds_x, bounds_y],
@@ -508,9 +508,13 @@ def convergence_eig():
         solution_eval = solution_eval / norm_sol
 
     quad_num.plot(solution_eval)
+    qy = quad_num.project(1)
+    wy = qy.factor * qy.factor / qy.position.weight()
+    Iy = qy.transform(wy, degree=degree, index_set=index_set)
+    qy.plot(Iy*eig_vecs[0])
 
     v0, degrees, errors, errors_a, mins, eig_ground = None, [], [], [], [], []
-    for d in range(20, degree, 2):
+    for d in range(20, 202, 2):
         print("-- Solving for degree = " + str(d))
         npolys = core.iterator_size(2, d, index_set=index_set)
         sub_varf = r_mat.subdegree(d)
@@ -525,6 +529,8 @@ def convergence_eig():
             __import__('ipdb').set_trace()
         v0 = eig_vecs[0].coeffs.copy(order='C')
         ground_state_eval = get_ground_state(eig_vecs[0])
+        if d < 50:
+            continue
         # if d > 60:
         #     quad_num.plot(eig_vecs[0], title=str(eig_vals[0]))
         # error_consistency =
@@ -548,7 +554,7 @@ def convergence_eig():
     def plot_log(x, y, file, lin=True):
         x, y = np.asarray(x), np.asarray(y)
         fig, ax = plt.subplots(1, 1)
-        ax.semilogy(x, y, 'k.', label='$|\\lambda_0|$')
+        ax.semilogy(x, y, 'k.', label='$|\\lambda_0(d)|$')
         # ax.set_yscale('log', basey=2)
         cut_off = 70
         x_poly = x[0:cut_off + 1] if len(x) > cut_off else x
@@ -575,15 +581,11 @@ def convergence_eig():
     # plot_log(degrees, np.abs(eig_ground), dir + 'eig_val.eps', lin=False)
     # plot_log(degrees, errors_a, dir + 'l1asym.eps', lin=False)
 
-    # qy = quad_num.project(1)
-    # wy = qy.factor * qy.factor / qy.position.weight()
-    # Iy = qy.transform(wy, degree=degree, index_set=index_set)
-    # quad_num.plot(Iy*eig_vecs[0])
-
     fig, ax = plt.subplots()
-    ax.semilogy(degrees, errors, '.', label="$L^1$ error")
+    # ax.semilogy(degrees, errors, '.', label="$L^1$ error")
+    ax.semilogy(degrees, errors, '.', label="$\\|\\rho_d - \\rho_{250} \\|_{L^1}$")
     # ax.semilogy(degrees, [-m for m in mins], '.', label="$- \\min_{x, \\eta} \\rho(x, \\eta)$")
-    ax.semilogy(degrees, np.abs(eig_ground), '.', label="$|\\lambda_0|$")
+    ax.semilogy(degrees, np.abs(eig_ground), '.', label="$|\\lambda_0(d)|$")
     # condition = (np.asarray(degrees) + 1) % 2
     # xplot, yplot = np.extract(condition, degrees), np.extract(condition, errors)
     # ax.semilogy(xplot, yplot, 'b.', label="$L^1$ error")
@@ -826,6 +828,7 @@ def time_dependent():
                     ε = params['ε'].value
                     quad_visu.project(0).plot(Iy*t, bounds=False, ax=ax, label="$\\varepsilon = " + str(ε) + "$")
                     plt.legend()
+                    ax.set_xlabel('$x$')
                     ax.set_title("$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$")
                     plt.savefig(dir + 'solution-proj-beta=' + str(β) + '.eps',
                                 bbox_inches='tight')
@@ -1134,9 +1137,9 @@ def convergence_epsilon():
     xplot, yplot1 = logε = np.asarray(εs), np.asarray(e2)
     ax.set_xscale('log', basex=2)
     ax.set_yscale('log', basey=2)
-    ax.plot(xplot, yplot1, 'b.', label="$|\\rho - \\rho_0|_1$")
+    ax.plot(xplot, yplot1, 'b.', label="$\\|\\rho - \\rho_{\\varepsilon=0}\\|_{L^1}$")
     yplot2 = np.asarray(ex)
-    ax.plot(xplot, yplot2, 'r.', label="$|\\rho^x - \\rho^x_0|_1$")
+    ax.plot(xplot, yplot2, 'r.', label="$\\|\\rho^x - \\rho^x_{\\varepsilon=0}\\|_{L^1}$")
     coeffs = np.polyfit(np.log2(xplot), np.log2(yplot1), 1)
     ax.plot(xplot, 2**coeffs[1] * xplot**coeffs[0], 'b-',
             label='$y = {:.2f} \\, \\times \\, \\varepsilon^{{ {:.2f} }}$'.

@@ -14,7 +14,7 @@ degree = 40
 fig, ax = plt.subplots()
 xplot, yplot = degrees, error_l1
 ax.semilogy(xplot, yplot, 'b.',
-            label="$\\|\\rho_{{ {} }} - \\rho_d\\|_1$".format(degree))
+            label="$\\|\\rho_{{ {} }} - \\rho_d\\|_{{L^1}}$".format(degree))
 coeffs = np.polyfit(xplot, np.log10(yplot), 1)
 ax.semilogy(xplot, 10**coeffs[1] * 10**(coeffs[0]*xplot), 'b-')
 xplot, yplot = degrees, error_eig
