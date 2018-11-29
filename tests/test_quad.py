@@ -122,7 +122,7 @@ class TestHermiteTransform(unittest.TestCase):
         degree = 10
         n_points = 10
         quad = hm.Quad.gauss_hermite(n_points)
-        nodes_scipy, weights_scipy = herm.hermegauss(n_points)
+        nodes_scipy, _ = herm.hermegauss(n_points)
         for i in range(degree):
             coeffs = np.zeros(degree + 1)
             coeffs[i] = 1

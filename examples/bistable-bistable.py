@@ -23,15 +23,15 @@ r = sym.Rational
 # num['λ'] = r(1, 2)
 # num['index_set'] = 'rectangle'
 
-# Configuration of numerical method
-num['degree'] = 150  # degree of approximation
-num['n_points_num'] = 2*num['degree'] + 1  # (*2 for varf)
+# For convergence
+num['degree'] = 200  # Or 250
+num['n_points_num'] = 350
 num['μx'] = r(0, 4)
 num['μy'] = r(0, 4)
-num['σx'] = r(1, 40)
+num['σx'] = r(1, 100)
 num['σy'] = r(1, 10)
 num['λ'] = r(1, 2)
-num['index_set'] = 'cube'
+num['index_set'] = 'rectangle'
 
 # Scalar parameters of the equation
 eq['ε'] = r(1, 4)
