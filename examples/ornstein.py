@@ -263,8 +263,8 @@ def factors(symbolic, λ):
         factor_x = sym.exp(-(λ*Vq + β*(1-λ)*Vp))
         factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
 
-    factor_x = sym.exp(-Vq/2)
-    factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
+    # factor_x = sym.exp(-Vq/2)
+    # factor_y = sym.exp(-(λ*Vqy + (1-λ)*Vy))
 
     factor = factor_x * factor_y
     return factor_x, factor_y, factor
@@ -514,7 +514,7 @@ def convergence_eig():
     qy.plot(Iy*eig_vecs[0])
 
     v0, degrees, errors, errors_a, mins, eig_ground = None, [], [], [], [], []
-    for d in range(20, 202, 2):
+    for d in range(20, 160, 2):
         print("-- Solving for degree = " + str(d))
         npolys = core.iterator_size(2, d, index_set=index_set)
         sub_varf = r_mat.subdegree(d)
