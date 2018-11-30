@@ -9,5 +9,6 @@ push:
 
 test:
 	coverage run --source=hermipy -m unittest discover -v -f tests
+	rm -f tests/.coverage tests/.coverage.svg
 	coverage report > tests/.coverage
 	coverage-badge -o tests/.coverage.svg
