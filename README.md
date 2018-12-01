@@ -2,7 +2,7 @@
 
 [![Documentation Status](https://readthedocs.org/projects/hermipy/badge/?version=latest)](https://hermipy.readthedocs.io/en/latest/?badge=latest)
 [![Build Status](http://vaes.uk:8090/buildStatus/icon?job=hermipy)](http://vaes.uk:8090/job/hermipy/lastBuild/consoleText)
-[![Test coverage](http://vaes.uk:8090/job/hermipy/ws/coverage.svg)](http://vaes.uk:8090/job/hermipy/ws/coverage.txt)
+[![](http://vaes.uk:8090/job/hermipy/ws/coverage.svg)](http://vaes.uk:8090/job/hermipy/ws/coverage.txt)
 
 Read the [documentation](https://hermipy.readthedocs.io/en/latest/).
 
