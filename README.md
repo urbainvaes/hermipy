@@ -3,6 +3,7 @@
 [![Documentation Status](https://readthedocs.org/projects/hermipy/badge/?version=latest)](https://hermipy.readthedocs.io/en/latest/?badge=latest)
 [![Build Status](http://vaes.uk:8090/buildStatus/icon?job=hermipy)](http://vaes.uk:8090/job/hermipy/lastBuild/consoleText)
 [![](http://vaes.uk:8090/job/hermipy/ws/coverage.svg)](http://vaes.uk:8090/job/hermipy/ws/coverage.txt)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/a1588a65d35340959ecb5ca500e14121)](https://app.codacy.com/app/urbainvaes/hermipy?utm_source=github.com&utm_medium=referral&utm_content=urbainvaes/hermipy&utm_campaign=Badge_Grade_Dashboard)
 
 Read the [documentation](https://hermipy.readthedocs.io/en/latest/).
 
