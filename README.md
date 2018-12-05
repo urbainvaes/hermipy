@@ -5,7 +5,14 @@
 [![](http://vaes.uk:8090/job/hermipy/ws/coverage.svg)](http://vaes.uk:8090/job/hermipy/ws/coverage.txt)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a1588a65d35340959ecb5ca500e14121)](https://app.codacy.com/app/urbainvaes/hermipy?utm_source=github.com&utm_medium=referral&utm_content=urbainvaes/hermipy&utm_campaign=Badge_Grade_Dashboard)
 
-Read the [documentation](https://hermipy.readthedocs.io/en/latest/).
+Hermipy is a thin Python library that allows automating most of the operations involved in implementing a Hermite spectral method.
+The library uses the data structures provided by the [NumPy](https://en.wikipedia.org/wiki/NumPy) library for linear algebra,
+and it also depends on [SymPy](https://en.wikipedia.org/wiki/SymPy) for symbolic calculations.
+Computationally intensive parts of the computations,
+such as Hermite transforms,
+are handed over to a C++ compiled component,
+and [Boost](https://en.wikipedia.org/wiki/Boost_(C%2B%2B_libraries)) is used for efficient exchange of data with Python.
+For more information, read the [documentation](https://hermipy.readthedocs.io/en/latest/).
 
 # Todo
 
