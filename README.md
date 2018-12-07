@@ -18,7 +18,7 @@ For more information, read the [documentation](https://hermipy.readthedocs.io/en
 
 - Use third-party library to compute FFTs;
 
-- Implement composite quadrature;
+- Implement Smolyak composite quadrature;
 
 - Clean up data conversion between C++ and Python;
 

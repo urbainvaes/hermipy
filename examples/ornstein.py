@@ -822,15 +822,23 @@ def time_dependent():
                     plt.close()
 
                     fig, ax = plt.subplots(1, 1)
+                    ε = params['ε'].value
+                    quad_visu.project(0).plot(Iy*t, bounds=False, ax=ax, label="$\\varepsilon = " + str(ε) + "$")
                     density = sym.exp(-β*(Vx + θ*(x - m)**2/2))
                     density = density / qx.integrate(density, flat=True)
                     quad_visu.project(0).plot(density, ax=ax, label="White noise")
-                    ε = params['ε'].value
-                    quad_visu.project(0).plot(Iy*t, bounds=False, ax=ax, label="$\\varepsilon = " + str(ε) + "$")
-                    plt.legend()
+                    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=2)
                     ax.set_xlabel('$x$')
                     ax.set_title("$\\int \\rho(x, \\eta) \\, \\mathrm d \\eta$")
                     plt.savefig(dir + 'solution-proj-beta=' + str(β) + '.eps',
+                                bbox_inches='tight')
+                    plt.close()
+
+                    fig, ax = plt.subplots(1, 1)
+                    quad_visu.project(1).plot(Ix*t, bounds=False, ax=ax, label="$\\varepsilon = " + str(ε) + "$")
+                    ax.set_xlabel('$\\eta$')
+                    ax.set_title("$\\int \\rho(x, \\eta) \\, \\mathrm d x$")
+                    plt.savefig(dir + 'solution-projy-beta=' + str(β) + '.eps',
                                 bbox_inches='tight')
                     plt.close()
 
