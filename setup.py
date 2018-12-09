@@ -21,9 +21,9 @@
 from setuptools import setup
 from distutils.core import Extension
 from distutils.command.build_ext import build_ext as build_ext_orig
-
-import unittest
 import os
+import shutil
+
 
 
 class build_ext(build_ext_orig):
@@ -36,16 +36,17 @@ class build_ext(build_ext_orig):
         cwd = os.getcwd()
         os.makedirs(self.build_temp, exist_ok=True)
         os.chdir(self.build_temp)
-        cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY='
-                      + cwd + '/' + self.build_lib]
+        dest = cwd + '/' + self.build_lib
+        cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + dest]
         self.spawn(['cmake', cwd + '/cpp'] + cmake_args)
         if not self.dry_run:
             self.spawn(['make', '-j4'])
+            shutil.copyfile(dest + '/hermite_cpp.so', '../../hermite_cpp.so')
         os.chdir(str(cwd))
 
 
 setup(name='Hermipy',
-      version='v0.1',
+      version='v0.3.1',
       description='Library for the Hermite spectral method',
       author='Urbain Vaes',
       author_email='urbain@vaes.uk',

@@ -31,14 +31,14 @@ message(STATUS "Library output directory: ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
 # Find Python
 find_package(PythonLibs 3 REQUIRED)
 include_directories(SYSTEM ${PYTHON_INCLUDE_DIRS})
+message(STATUS "Python include directory: ${PYTHON_INCLUDE_DIRS}")
 
 # Link Boost statically
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+set (BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/boost/lib)
+
 if (NOT EXISTS /usr/include/boost/python/numpy)
     set (BOOST_INCLUDEDIR /usr/local/lib/R/site-library/BH/include)
-    set (BOOST_LIBRARYDIR ${CMAKE_HOME_DIRECTORY}/boost/lib)
 endif (NOT EXISTS /usr/include/boost/python/numpy)
-include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 
 find_package(Boost COMPONENTS python3 numpy3)
 
@@ -46,6 +46,10 @@ find_package(Boost COMPONENTS python3 numpy3)
 if (NOT Boost_FOUND)
     find_package(Boost COMPONENTS python37 numpy37 REQUIRED)
 endif (NOT Boost_FOUND)
+
+message(STATUS "Boost include directory: ${Boost_INCLUDE_DIRS}")
+message(STATUS "Boost library directory: ${Boost_LIBRARY_DIRS}")
+# include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 # Find sources and add include directory of sources
 file(GLOB_RECURSE Sources "src/hermite/*.cpp")
