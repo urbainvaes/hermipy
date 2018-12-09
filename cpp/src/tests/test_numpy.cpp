@@ -23,8 +23,8 @@
 
 #include <boost/python.hpp>
 #include <boost/python/numpy.hpp>
-#include "boost/multi_array.hpp"
-#include "boost/multi_array.hpp"
+#include <boost/multi_array.hpp>
+#include <boost/multi_array.hpp>
 
 #include "hermite/python/converters.hpp"
 #include "hermite/types.hpp"

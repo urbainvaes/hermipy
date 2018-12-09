@@ -23,7 +23,7 @@
 
 #include <string>
 #include "hermite/types.hpp"
-#include "boost/multi_array.hpp"
+#include <boost/multi_array.hpp>
 
 namespace hermite {
 

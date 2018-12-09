@@ -18,8 +18,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-from distutils.core import setup, Extension
+from setuptools import setup
+from distutils.core import Extension
 from distutils.command.build_ext import build_ext as build_ext_orig
+
+import unittest
 import os
 
 
@@ -49,5 +52,6 @@ setup(name='Hermipy',
       url='https://github.com/urbainvaes/hermite',
       packages=['hermipy'],
       ext_modules=[Extension('hermite_cpp', sources=[])],
-      cmdclass={'build_ext': build_ext}
+      cmdclass={'build_ext': build_ext},
+      test_suite='tests',
       )
