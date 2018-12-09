@@ -135,8 +135,8 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
         errors_approx = np.exp(np.polyval(poly_approx, degrees))
         error = la.norm(log_errors - np.log(errors_approx), 2)
 
-        plt.semilogy(degrees, errors, 'k.')
-        plt.semilogy(degrees, errors_approx)
+        # plt.semilogy(degrees, errors, 'k.')
+        # plt.semilogy(degrees, errors_approx)
         # plt.show()
 
         self.assertTrue(errors[-1] < 1e-12)
@@ -185,8 +185,8 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
         errors_approx = np.exp(np.polyval(poly_approx, degrees))
         error = la.norm(log_errors - np.log(errors_approx), 2)
 
-        plt.semilogy(degrees, errors, 'k.')
-        plt.semilogy(degrees, errors_approx)
+        # plt.semilogy(degrees, errors, 'k.')
+        # plt.semilogy(degrees, errors_approx)
         # plt.show()
 
         self.assertTrue(errors[-1] < 1e-10)
@@ -354,8 +354,8 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         errors_approx = np.exp(np.polyval(poly_approx, degrees))
         error = la.norm(log_errors - np.log(errors_approx), 2)
 
-        plt.semilogy(degrees, errors, 'k.')
-        plt.semilogy(degrees, errors_approx)
+        # plt.semilogy(degrees, errors, 'k.')
+        # plt.semilogy(degrees, errors_approx)
         # plt.show()
 
         self.assertTrue(errors[-1] < 1e-6)
