@@ -92,7 +92,7 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
         solutions = []
         for d in degrees:
             sub_mat = (mat[0:d+1, 0:d+1])
-            if type(sub_mat) is np.ndarray:
+            if isinstance(sub_mat, np.ndarray):
                 sub_mat = sub_mat.copy(order='C')
             eig_vals, eig_vecs = las.eigs(sub_mat, k=1, which='LR')
             ground_state = np.real(eig_vecs.T[0])
@@ -294,7 +294,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
                 for i in range(len(eig_vec)):
                     v0[i] = eig_vec[i]
             sub_mat = (mat[0:npolys, 0:npolys])
-            if type(sub_mat) is np.ndarray:
+            if isinstance(sub_mat, np.ndarray):
                 sub_mat = sub_mat.copy(order='C')
             # import ipdb; ipdb.set_trace()
             eig_vals, eig_vecs = las.eigs(sub_mat, k=1, v0=v0, which='LR')

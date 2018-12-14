@@ -41,7 +41,7 @@ class Varf:
 
         for a in args:
             if __debug__:
-                assert type(a) is Varf
+                assert isinstance(a, Varf)
 
         if len(args) == 1:
             return args[0]
@@ -52,7 +52,7 @@ class Varf:
         factor = 1
         for a in args:
             if __debug__:
-                assert type(a) is Varf
+                assert isinstance(a, Varf)
                 assert a.index_set == index_set
                 assert a.degree == degree
             key = frozenset(a.position.dirs)
@@ -79,7 +79,7 @@ class Varf:
 
     def __eq__(self, other):
         if __debug__:
-            assert type(other) is Varf
+            assert isinstance(other, Varf)
         norm_func = las.norm if self.is_sparse and other.is_sparse else la.norm
         return self.position == other.position \
             and norm_func(self.matrix - other.matrix) < very_small
@@ -89,7 +89,7 @@ class Varf:
         if isinstance(other, (int, float, np.float64)):
             new_matrix = self.matrix + other
 
-        elif type(other) is Varf:
+        elif isinstance(other, Varf):
             if __debug__:
                 assert self.position == other.position
                 assert self.index_set == other.index_set
@@ -109,7 +109,7 @@ class Varf:
             return Varf(new_matrix, self.position,
                         factor=self.factor, index_set=self.index_set)
 
-        elif type(other) is Varf:
+        elif isinstance(other, Varf):
             if __debug__:
                 assert self.index_set == other.index_set
             return Varf.tensorize([self, other])
@@ -130,13 +130,13 @@ class Varf:
         if __debug__:
             assert self.position == series.position
             assert self.index_set == series.index_set
-            assert type(series) is hs.Series
+            assert isinstance(series, hs.Series)
         coeffs = self.matrix.dot(series.coeffs)
         return hs.Series(coeffs, self.position,
                          factor=self.factor, index_set=self.index_set)
 
     def project(self, directions):
-        if type(directions) is int:
+        if isinstance(directions, int):
             directions = [directions]
         rel_dirs = [self.dirs.index(d) for d in directions]
         p_matrix = core.project(self.matrix, self.position.dim, rel_dirs,

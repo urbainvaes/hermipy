@@ -38,8 +38,8 @@ class Series:
 
         def _tensorize(s1, s2):
             if __debug__:
-                assert type(s1) is Series
-                assert type(s2) is Series
+                assert isinstance(s1, Series)
+                assert isinstance(s2, Series)
 
             if s1.position.dim == 0:
                 return Series(s1.coeffs[0]*s2.coeffs, s2.position,
@@ -102,7 +102,7 @@ class Series:
 
     def __eq__(self, other):
         if __debug__:
-            assert type(other) is Series
+            assert isinstance(other, Series)
         return self.position == other.position \
             and self.factor == other.factor \
             and la.norm(self.coeffs - other.coeffs) < very_small
@@ -112,7 +112,7 @@ class Series:
         if isinstance(other, (int, float, np.float64)):
             new_coeffs = self.coeffs + other
 
-        elif type(other) is Series:
+        elif isinstance(other, Series):
             if __debug__:
                 assert self.position == other.position
                 assert self.index_set == other.index_set
@@ -134,7 +134,7 @@ class Series:
             return Series(new_coeffs, self.position,
                           factor=self.factor, index_set=self.index_set)
 
-        elif type(other) is Series:
+        elif isinstance(other, Series):
             if __debug__:
                 assert self.index_set == other.index_set
             return Series.tensorize([self, other])
@@ -175,7 +175,7 @@ class Series:
         return self.coeffs[index]
 
     def project(self, directions):
-        if type(directions) is not list:
+        if not isinstance(directions, list):
             directions = [directions]
         rel_dirs = [self.position.dirs.index(d) for d in directions]
         p_coeffs = core.project(self.coeffs, self.position.dim, rel_dirs,

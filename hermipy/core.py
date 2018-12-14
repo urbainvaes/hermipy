@@ -51,11 +51,11 @@ def to_cpp_array(*args):
     if len(args) > 1:
         return (to_cpp_array(arg) for arg in args)
     array, dim = args[0], 0
-    if type(array) in (list, np.ndarray):
+    if isinstance(array, (list, np.ndarray)):
         dim = 1
-        if type(array[0]) in (list, np.ndarray):
+        if isinstance(array[0], (list, np.ndarray)):
             dim = 2
-            if type(array[0][0]) in (list, np.ndarray):
+            if isinstance(array[0][0], (list, np.ndarray):
                 dim = 3
     if dim is 1:
         array = convert_to_cpp_vec(array)
@@ -69,7 +69,7 @@ def to_cpp_array(*args):
 @log_stats()
 def convert_to_cpp_sparse(mat):
     if __debug__:
-        assert type(mat) is ss.csr_matrix
+        assert isinstance(mat, ss.csr_matrix)
     data = hm.double_vec()
     indices = hm.int_vec()
     indptr = hm.int_vec()
@@ -94,11 +94,11 @@ def to_cpp(*args):
     if len(args) > 1:
         return (to_cpp(arg) for arg in args)
     arg = args[0]
-    if type(arg) is list:
+    if isinstance(arg, list):
         return to_cpp(np.asarray(arg, dtype=float))
-    if type(arg) is np.ndarray:
+    if isinstance(arg, np.ndarray):
         return to_cpp_array(arg)
-    elif type(arg) is ss.csr_matrix:
+    elif isinstance(arg, ss.csr_matrix):
         return convert_to_cpp_sparse(arg)
     else:
         return arg
@@ -106,15 +106,15 @@ def to_cpp(*args):
 
 @log_stats()
 def to_numpy(arg):
-    if type(arg) == hm.double_vec:
+    if isinstance(arg, hm.double_vec):
         return np.array(arg)
-    if type(arg) == hm.double_mat:
+    if isinstance(arg, hm.double_mat):
         return hm.to_numpy(arg)
-    elif type(arg) == hm.boost_mat:
+    elif isinstance(arg, hm.boost_mat):
         return hm.to_numpy(arg)
-    elif type(arg) == hm.double_cube:
+    elif isinstance(arg, hm.double_cube):
         return np.array(arg)
-    elif type(arg) == hm.sparse_matrix:
+    elif isinstance(arg, hm.sparse_matrix):
         return to_csr(arg)
 
 
@@ -186,9 +186,9 @@ def varf(degree, fgrid, nodes, weights, sparse=False,
 @log_stats()
 def varfd(dim, degree, direction, var,
           do_fourier=0, index_set="triangle"):
-    if type(var) is np.ndarray:
+    if isinstance(var, np.ndarray):
         var = hm.to_boost_mat(var)
-    elif type(var) is ss.csr_matrix:
+    elif isinstance(var, ss.csr_matrix):
         var = convert_to_cpp_sparse(var)
     result = log_stats()(hm.varfd)(dim, degree, direction, var,
                                    do_fourier, index_set)
@@ -201,7 +201,7 @@ def varfd(dim, degree, direction, var,
 def tensorize(inp, dim=None, direction=None,
               sparse=False, index_set="triangle"):
 
-    if type(inp) is dict:
+    if isinstance(inp, dict):
 
         any_elem = list(inp.values())[0]
 
@@ -228,7 +228,7 @@ def tensorize(inp, dim=None, direction=None,
             cpp_arrays.append(arg)
         args = [cpp_arrays, cpp_dirs_mat, index_set]
 
-    elif type(inp) is list:
+    elif isinstance(inp, list):
         if __debug__:
             assert dim is None and direction is None
         is_scalar = isinstance(inp[0], (float, int))
@@ -260,7 +260,7 @@ def tensorize(inp, dim=None, direction=None,
 @debug()
 @log_stats()
 def project(inp, dim, directions, index_set="triangle"):
-    if type(directions) is int:
+    if isinstance(directions, int):
         directions = [directions]
     inp = to_cpp(inp)
     directions_cpp = hm.int_vec()

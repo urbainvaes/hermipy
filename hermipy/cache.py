@@ -138,7 +138,7 @@ def cache(hash_extend=None, error_extend=None, quiet=False):
                 try:
                     result_cache = load(savefile)
                     if use_cache:
-                        if type(result_cache) is float and \
+                        if isinstance(result_cache, float) and \
                                 result_cache.is_integer():
                             result_cache = int(result_cache)
                         return result_cache

@@ -41,11 +41,11 @@ class CompQuad():
 
     def __eq__(self, other):
 
-        if type(other) is quad.Quad:
+        if isinstance(other, quad.Quad):
             other = CompQuad([other], [1])
 
         if __debug__:
-            assert type(other) is CompQuad
+            assert isinstance(other, CompQuad)
 
         if len(self.quads) != len(other.quads):
             return False

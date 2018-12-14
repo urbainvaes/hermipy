@@ -159,7 +159,7 @@ class Quad:
 
     def __eq__(self, other):
         if __debug__:
-            assert type(other) is Quad
+            assert isinstance(other, Quad)
 
         return self.position == other.position \
             and self.factor == other.factor \
@@ -537,7 +537,7 @@ class Quad:
     def streamlines(self, fx, fy, factor=None, ax=None, **kwargs):
         if __debug__:
             assert self.position.is_diag
-            assert type(fx) is type(fy)
+            assert isinstance(fx, type(fy))
             assert self.position.dim is 2
 
         show_plt = ax is None
@@ -549,12 +549,12 @@ class Quad:
             fx = hm.Function(fx, dirs=self.position.dirs)
             fy = hm.Function(fy, dirs=self.position.dirs)
 
-        if type(fx) is hm.Function:
+        if isinstance(fx, hm.Function):
             if __debug__:
                 assert factor is None
             fx, fy = self.discretize(fx), self.discretize(fy)
 
-        elif type(fx) is hm.Series:
+        elif isinstance(fx, hm.Series):
 
             if factor is None:
                 sx, sy = self.eval(fx), self.eval(fy)

@@ -33,7 +33,7 @@ class Position:
         dirs = []
         for a in args:
             if __debug__:
-                assert type(a) is Position
+                assert isinstance(a, Position)
                 assert a.is_diag
             for d in a.dirs:
                 if __debug__:
@@ -123,7 +123,7 @@ class Position:
 
     def __mul__(self, other):
         if __debug__:
-            assert type(other) is Position
+            assert isinstance(other, Position)
         return Position.tensorize([self, other])
 
     def __repr__(self):
@@ -153,7 +153,7 @@ class Position:
     def project(self, directions):
         if __debug__:
             assert self.is_diag
-        if type(directions) is int:
+        if isinstance(directions, int):
             directions = [directions]
         if __debug__:
             assert directions == sorted(directions)

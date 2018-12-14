@@ -39,7 +39,7 @@ class Function():
         dirs, sym = set(), sympy.Integer(1)
         for a in args:
             if __debug__:
-                assert type(a) is Function
+                assert isinstance(a, Function)
                 assert dirs.intersection(a.dirs) == set()
             dirs, sym = dirs.union(a.dirs), sym*a.sym
         return Function(sym, dirs=sorted(dirs))
@@ -84,7 +84,7 @@ class Function():
         return str(variables) + " --> " + str(self.sym)
 
     def __mul__(self, other):
-        if type(other) is not Function:
+        if not isinstance(other, Function):
             other = Function(other, dirs=self.dirs)
         if __debug__:
             assert self.dirs == other.dirs
@@ -92,7 +92,7 @@ class Function():
         return Function(sym, dirs=self.dirs)
 
     def __truediv__(self, other):
-        if type(other) is not Function:
+        if not isinstance(other, Function):
             other = Function(other, dirs=self.dirs)
         if __debug__:
             assert self.dirs == other.dirs
@@ -100,7 +100,7 @@ class Function():
         return Function(sym, dirs=self.dirs)
 
     def __add__(self, other):
-        if type(other) is not Function:
+        if not isinstance(other, Function):
             other = Function(other, dirs=self.dirs)
         if __debug__:
             assert self.dirs == other.dirs
@@ -125,7 +125,7 @@ class Function():
         return function
 
     def project(self, dirs):
-        dirs = dirs if type(dirs) is list else [dirs]
+        dirs = dirs if isinstance(dirs, list) else [dirs]
         split_fun = self.split(legacy=False)
         if __debug__:
             assert len(split_fun) == 1
@@ -201,7 +201,7 @@ class Function():
             is_mul = isinstance(aterm, sympy.mul.Mul)
             mul_terms = aterm.args if is_mul else [aterm]
             for mterm in mul_terms:
-                if type(mterm) is sympy.numbers.Float:
+                if isinstance(mterm, sympy.numbers.Float):
                     if abs(mterm) < 1e-14:
                         mterm = 0
                     mterm = sympy.Rational(mterm).limit_denominator(max_denom)

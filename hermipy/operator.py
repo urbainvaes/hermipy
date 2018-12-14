@@ -61,21 +61,21 @@ class Operator():
         return str(self.f(*variables)) + " --> " + str(self.sym)
 
     def __mul__(self, other):
-        if type(other) is not func.Function:
+        if not isinstance(other, func.Function):
             other = func.Function(other, dirs=self.dirs)
         if __debug__:
             assert self.dirs == other.dirs
         return Operator(self.sym*other.sym, dirs=self.dirs)
 
     def __add__(self, other):
-        if type(other) is not Operator:
+        if not isinstance(other, Operator):
             other = Operator(other, dirs=self.dirs)
         if __debug__:
             assert self.dirs == other.dirs
         return Operator(self.sym + other.sym, dirs=self.dirs)
 
     def __sub__(self, other):
-        if type(other) is not Operator:
+        if not isinstance(other, Operator):
             other = Operator(other, dirs=self.dirs)
         if __debug__:
             assert self.dirs == other.dirs
@@ -97,7 +97,7 @@ class Operator():
                 arg = func.Function(arg, dirs=self.dirs)
         variables = [func.Function.x_sub[d] for d in self.dirs]
         sym = self.sym.subs(self.f(*variables), arg.sym).doit()
-        return Operator(sym, dirs=self.dirs) if type(arg) is Operator \
+        return Operator(sym, dirs=self.dirs) if isinstance(arg, Operator) \
             else func.Function(sym, dirs=self.dirs)
 
     def as_xyz(self):
@@ -105,7 +105,7 @@ class Operator():
         return self.sym.subs(((sub[i], xyz[i]) for i in range(len(sub))))
 
     def map(self, factor):
-        if type(factor) is not func.Function:
+        if not isinstance(factor, func.Function):
             factor = func.Function(factor, dirs=self.dirs)
         if __debug__:
             assert factor.dirs == self.dirs
