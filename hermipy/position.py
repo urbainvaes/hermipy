@@ -32,10 +32,12 @@ class Position:
         # Check that directions appear at most twice
         dirs = []
         for a in args:
-            assert type(a) is Position
-            assert a.is_diag
+            if __debug__:
+                assert type(a) is Position
+                assert a.is_diag
             for d in a.dirs:
-                assert dirs.count(d) <= 1
+                if __debug__:
+                    assert dirs.count(d) <= 1
                 dirs.append(d)
 
         def _tensorize(p1, p2):
@@ -47,8 +49,9 @@ class Position:
             # Check removed directions match
             for d in [d for d in p1.dirs if d in p2.dirs]:
                 i1, i2 = p1.dirs.index(d), p2.dirs.index(d)
-                assert p1.mean[i1] == p2.mean[i2]
-                assert p1.cov[i1][i1] == p2.cov[i2][i2]
+                if __debug__:
+                    assert p1.mean[i1] == p2.mean[i2]
+                    assert p1.cov[i1][i1] == p2.cov[i2][i2]
 
             # Tensorization
             for d in dirs_result:
@@ -80,16 +83,17 @@ class Position:
             raise ValueError("All args are None!")
 
         # Checks
-        if mean is not None:
-            assert self.dim == len(mean)
-        if cov is not None:
-            assert self.dim == len(cov)
-        if dirs is not None:
-            assert self.dim == len(dirs)
-        if dim is not None:
-            assert self.dim == dim
-        if types is not None:
-            assert self.dim == len(types)
+        if __debug__:
+            if mean is not None:
+                assert self.dim == len(mean)
+            if cov is not None:
+                assert self.dim == len(cov)
+            if dirs is not None:
+                assert self.dim == len(dirs)
+            if dim is not None:
+                assert self.dim == dim
+            if types is not None:
+                assert self.dim == len(types)
 
         # Defaults to first directions
         self.dirs = list(range(dim)) if dirs is None else dirs
@@ -118,7 +122,8 @@ class Position:
             and self.types == other.types
 
     def __mul__(self, other):
-        assert type(other) is Position
+        if __debug__:
+            assert type(other) is Position
         return Position.tensorize([self, other])
 
     def __repr__(self):
@@ -141,14 +146,17 @@ class Position:
         return normalization * sym.exp(-potential)
 
     def weights(self):
-        assert self.is_diag
+        if __debug__:
+            assert self.is_diag
         return [self.project(d).weight() for d in self.dirs]
 
     def project(self, directions):
-        assert self.is_diag
+        if __debug__:
+            assert self.is_diag
         if type(directions) is int:
             directions = [directions]
-        assert directions == sorted(directions)
+        if __debug__:
+            assert directions == sorted(directions)
         dirs, dim = directions, len(directions)
         mean, cov, types = np.zeros(dim), np.zeros((dim, dim)), [""]*dim
         rel_dirs = [self.dirs.index(d) for d in directions]

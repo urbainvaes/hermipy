@@ -37,7 +37,8 @@ class Operator():
         aux = func.Function(expr)
 
         if aux.sym == 0:
-            assert dirs is not None
+            if __debug__:
+                assert dirs is not None
             self.sym, self.dirs = aux.sym, dirs
             return
 
@@ -48,7 +49,8 @@ class Operator():
         self.sym = aux.sym.subs(functions[0].func, self.f)
         variables = list(self.sym.atoms(sympy.function.AppliedUndef))[0].args
         self.dirs = [func.Function.x_sub.index(v) for v in variables]
-        assert len(self.dirs) is len(functions[0].args)
+        if __debug__:
+            assert len(self.dirs) is len(functions[0].args)
 
     def __eq__(self, other):
         return self.dirs == other.dirs and \
@@ -61,19 +63,22 @@ class Operator():
     def __mul__(self, other):
         if type(other) is not func.Function:
             other = func.Function(other, dirs=self.dirs)
-        assert self.dirs == other.dirs
+        if __debug__:
+            assert self.dirs == other.dirs
         return Operator(self.sym*other.sym, dirs=self.dirs)
 
     def __add__(self, other):
         if type(other) is not Operator:
             other = Operator(other, dirs=self.dirs)
-        assert self.dirs == other.dirs
+        if __debug__:
+            assert self.dirs == other.dirs
         return Operator(self.sym + other.sym, dirs=self.dirs)
 
     def __sub__(self, other):
         if type(other) is not Operator:
             other = Operator(other, dirs=self.dirs)
-        assert self.dirs == other.dirs
+        if __debug__:
+            assert self.dirs == other.dirs
         return Operator(self.sym - other.sym, dirs=self.dirs)
 
     def __neg__(self):
@@ -102,7 +107,8 @@ class Operator():
     def map(self, factor):
         if type(factor) is not func.Function:
             factor = func.Function(factor, dirs=self.dirs)
-        assert factor.dirs == self.dirs
+        if __debug__:
+            assert factor.dirs == self.dirs
         variables = [func.Function.x_sub[d] for d in self.dirs]
         unknown = self.f(*variables)
         sym = self.sym.subs(unknown, (unknown*factor).sym)
@@ -135,5 +141,6 @@ class Operator():
                 term = sympy.simplify(term)
             if term != 0:
                 result[tuple(m)] = func.Function(term, dirs=self.dirs)
-        assert rem == 0
+        if __debug__:
+            assert rem == 0
         return result

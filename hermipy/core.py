@@ -68,7 +68,8 @@ def to_cpp_array(*args):
 
 @log_stats()
 def convert_to_cpp_sparse(mat):
-    assert type(mat) is ss.csr_matrix
+    if __debug__:
+        assert type(mat) is ss.csr_matrix
     data = hm.double_vec()
     indices = hm.int_vec()
     indptr = hm.int_vec()
@@ -81,7 +82,8 @@ def convert_to_cpp_sparse(mat):
 
 @log_stats()
 def to_csr(sp_matrix):
-    assert isinstance(sp_matrix, hm.sparse_matrix)
+    if __debug__:
+        assert isinstance(sp_matrix, hm.sparse_matrix)
     rcv = np.array(hm.row_col_val(sp_matrix))
     shape = (sp_matrix.size1(), sp_matrix.size2())
     return ss.csr_matrix((rcv[2], (rcv[0], rcv[1])), shape=shape)
@@ -206,9 +208,11 @@ def tensorize(inp, dim=None, direction=None,
         if isinstance(any_elem, (float, int)):
             return np.prod([inp[k] for k in inp])
 
-        assert isinstance(any_elem, (np.ndarray, ss.csr_matrix))
+        if __debug__:
+            assert isinstance(any_elem, (np.ndarray, ss.csr_matrix))
         dim = len(any_elem.shape)
-        assert dim is 1 or dim is 2
+        if __debug__:
+            assert dim is 1 or dim is 2
 
         cpp_arrays = hm.double_mat() if dim is 1 else hm.double_cube()
         cpp_dirs_mat = hm.int_mat()
@@ -225,7 +229,8 @@ def tensorize(inp, dim=None, direction=None,
         args = [cpp_arrays, cpp_dirs_mat, index_set]
 
     elif type(inp) is list:
-        assert dim is None and direction is None
+        if __debug__:
+            assert dim is None and direction is None
         is_scalar = isinstance(inp[0], (float, int))
         if is_scalar and dim is None and direction is None:
             return np.prod(inp)

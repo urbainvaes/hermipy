@@ -23,8 +23,9 @@ class CompQuad():
 
     def __init__(self, quads, qweights):
 
-        assert len(quads) >= 1
-        assert len(quads) == len(qweights)
+        if __debug__:
+            assert len(quads) >= 1
+            assert len(quads) == len(qweights)
 
         position0 = quads[0].position
 
@@ -43,7 +44,8 @@ class CompQuad():
         if type(other) is quad.Quad:
             other = CompQuad([other], [1])
 
-        assert type(other) is CompQuad
+        if __debug__:
+            assert type(other) is CompQuad
 
         if len(self.quads) != len(other.quads):
             return False

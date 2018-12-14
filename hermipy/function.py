@@ -38,8 +38,9 @@ class Function():
     def tensorize(args):
         dirs, sym = set(), sympy.Integer(1)
         for a in args:
-            assert type(a) is Function
-            assert dirs.intersection(a.dirs) == set()
+            if __debug__:
+                assert type(a) is Function
+                assert dirs.intersection(a.dirs) == set()
             dirs, sym = dirs.union(a.dirs), sym*a.sym
         return Function(sym, dirs=sorted(dirs))
 
@@ -61,8 +62,9 @@ class Function():
         variables = expr.free_symbols.intersection(self.x_sub)
         if dirs is not None:
             self.dirs = dirs
-            assert dim is None
-            assert self.dirs == sorted(self.dirs)
+            if __debug__:
+                assert dim is None
+                assert self.dirs == sorted(self.dirs)
         elif dim is not None:
             self.dirs = list(range(dim))
         else:
@@ -70,7 +72,8 @@ class Function():
             dim = 0 if variables == set() else \
                   max(self.x_sub.index(s) for s in variables) + 1
             self.dirs = list(range(dim))
-        assert variables.issubset({self.x_sub[d] for d in self.dirs})
+        if __debug__:
+            assert variables.issubset({self.x_sub[d] for d in self.dirs})
 
     def __eq__(self, other):
         return self.dirs == other.dirs and \
@@ -83,21 +86,24 @@ class Function():
     def __mul__(self, other):
         if type(other) is not Function:
             other = Function(other, dirs=self.dirs)
-        assert self.dirs == other.dirs
+        if __debug__:
+            assert self.dirs == other.dirs
         sym = self.sym * other.sym
         return Function(sym, dirs=self.dirs)
 
     def __truediv__(self, other):
         if type(other) is not Function:
             other = Function(other, dirs=self.dirs)
-        assert self.dirs == other.dirs
+        if __debug__:
+            assert self.dirs == other.dirs
         sym = self.sym / other.sym
         return Function(sym, dirs=self.dirs)
 
     def __add__(self, other):
         if type(other) is not Function:
             other = Function(other, dirs=self.dirs)
-        assert self.dirs == other.dirs
+        if __debug__:
+            assert self.dirs == other.dirs
         sym = self.sym + other.sym
         return Function(sym, dirs=self.dirs)
 
@@ -121,7 +127,8 @@ class Function():
     def project(self, dirs):
         dirs = dirs if type(dirs) is list else [dirs]
         split_fun = self.split(legacy=False)
-        assert len(split_fun) == 1
+        if __debug__:
+            assert len(split_fun) == 1
 
         # Absorb constant in projection on lowest index
         if self.dirs[0] in dirs:

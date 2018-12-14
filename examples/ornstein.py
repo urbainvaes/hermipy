@@ -481,7 +481,8 @@ def convergence_eig():
         ua = (u0 + ε*u1 + ε**2*u2)*rho_eta
         # ta = quad_num.transform(ua/factor, degree=degree)
         # quad_visu.plot(ua)
-        assert abs(quad_num.integrate(ua, flat=True) - 1) < 1e-6
+        if __debug__:
+            assert abs(quad_num.integrate(ua, flat=True) - 1) < 1e-6
         return quad_num.discretize(ua)
 
     asym_num = asymptotic()
@@ -499,7 +500,8 @@ def convergence_eig():
         solution = eq.solve_gaussian(forward, f, [x, y])
         solution_eval = quad_num.discretize(solution)
         norm_sol = quad_num.integrate(solution_eval, flat=True)
-        assert abs(norm_sol - 1) < 1e-6
+        if __debug__:
+            assert abs(norm_sol - 1) < 1e-6
     else:
         eig_vals, eig_vecs = r_mat.eigs(k=4, which='SM')
         argmin = np.argmin(np.abs(eig_vals))
@@ -686,7 +688,8 @@ def time_dependent():
     mx1 = qx.transform(wx * x, degree=degree, index_set=index_set)
     my1 = qy.transform(wy * y, degree=degree, index_set=index_set)
 
-    assert 'm0' in config.num
+    if __debug__:
+        assert 'm0' in config.num
     β, m, betas, ms = βmax, config.num['m0'], [], []
     for i in range(20):
         print("m = {}".format(m))

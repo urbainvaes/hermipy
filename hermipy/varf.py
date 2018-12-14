@@ -40,7 +40,8 @@ class Varf:
     def tensorize(args, sparse=None):
 
         for a in args:
-            assert type(a) is Varf
+            if __debug__:
+                assert type(a) is Varf
 
         if len(args) == 1:
             return args[0]
@@ -50,9 +51,10 @@ class Varf:
         mats = {}
         factor = 1
         for a in args:
-            assert type(a) is Varf
-            assert a.index_set == index_set
-            assert a.degree == degree
+            if __debug__:
+                assert type(a) is Varf
+                assert a.index_set == index_set
+                assert a.degree == degree
             key = frozenset(a.position.dirs)
             mats[key] = a.matrix
             factor *= a.factor.sym
@@ -71,11 +73,13 @@ class Varf:
         dim, npolys = self.position.dim, self.matrix.shape[0]
         self.degree = core.iterator_get_degree(dim, npolys,
                                                index_set=index_set)
-        assert len(self.multi_indices()) == self.matrix.shape[0]
+        if __debug__:
+            assert len(self.multi_indices()) == self.matrix.shape[0]
         self.factor = func.Function(factor, dirs=self.position.dirs)
 
     def __eq__(self, other):
-        assert type(other) is Varf
+        if __debug__:
+            assert type(other) is Varf
         norm_func = las.norm if self.is_sparse and other.is_sparse else la.norm
         return self.position == other.position \
             and norm_func(self.matrix - other.matrix) < very_small
@@ -86,9 +90,10 @@ class Varf:
             new_matrix = self.matrix + other
 
         elif type(other) is Varf:
-            assert self.position == other.position
-            assert self.index_set == other.index_set
-            assert self.factor == other.factor
+            if __debug__:
+                assert self.position == other.position
+                assert self.index_set == other.index_set
+                assert self.factor == other.factor
             new_matrix = self.matrix + other.matrix
 
         else:
@@ -105,7 +110,8 @@ class Varf:
                         factor=self.factor, index_set=self.index_set)
 
         elif type(other) is Varf:
-            assert self.index_set == other.index_set
+            if __debug__:
+                assert self.index_set == other.index_set
             return Varf.tensorize([self, other])
 
         else:
@@ -121,9 +127,10 @@ class Varf:
         return self * (-1)
 
     def __call__(self, series):
-        assert self.position == series.position
-        assert self.index_set == series.index_set
-        assert type(series) is hs.Series
+        if __debug__:
+            assert self.position == series.position
+            assert self.index_set == series.index_set
+            assert type(series) is hs.Series
         coeffs = self.matrix.dot(series.coeffs)
         return hs.Series(coeffs, self.position,
                          factor=self.factor, index_set=self.index_set)
@@ -140,7 +147,8 @@ class Varf:
                     factor=factor, index_set=self.index_set)
 
     def subdegree(self, degree):
-        assert degree <= self.degree
+        if __debug__:
+            assert degree <= self.degree
         n_polys = core.iterator_size(self.position.dim, degree,
                                      index_set=self.index_set)
         kwargs = {'order': 'C'} if not self.is_sparse else {}
@@ -153,8 +161,9 @@ class Varf:
                                           index_set=self.index_set)
 
     def to_cross(self, degree):
-        assert self.index_set == "triangle"
-        assert degree + self.position.dim - 1 <= self.degree
+        if __debug__:
+            assert self.index_set == "triangle"
+            assert degree + self.position.dim - 1 <= self.degree
         inds_triangle = lib.cross_in_triangle(self.position.dim, degree)
         matrix = self.matrix[np.ix_(inds_triangle, inds_triangle)]
         return Varf(matrix, self.position,
@@ -162,8 +171,9 @@ class Varf:
 
     def solve(self, series, use_gmres=False,\
               remove0=False, remove_vec=None, **kwargs):
-        assert self.position == series.position
-        assert self.index_set == series.index_set
+        if __debug__:
+            assert self.position == series.position
+            assert self.index_set == series.index_set
 
         if remove0 or remove_vec is not None:
             vstack, hstack = (np.vstack, np.hstack) if not self.is_sparse \

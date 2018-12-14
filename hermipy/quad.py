@@ -33,12 +33,14 @@ class Quad:
 
     @staticmethod
     def tensorize(args):
-        assert len(args) > 0 and type(args[0]) is Quad
+        if __debug__:
+            assert len(args) > 0 and type(args[0]) is Quad
         position = hm.Position.tensorize([a.position for a in args])
         nodes, weights = [0]*len(position.dirs), [0]*len(position.dirs)
         factor = sym.Integer(1)
         for a in args:
-            assert type(a) is Quad
+            if __debug__:
+                assert type(a) is Quad
             factor *= a.factor.sym
             for i, d in enumerate(a.position.dirs):
                 nodes[position.dirs.index(d)] = a.nodes[i]
@@ -116,8 +118,9 @@ class Quad:
             if dirs is None:
                 dirs = list(range(dim))
 
-            assert dim == len(bounds)
-            assert dim == len(dirs)
+            if __debug__:
+                assert dim == len(bounds)
+                assert dim == len(dirs)
 
             mean, cov = np.zeros(dim), np.zeros((dim, dim))
             for i in range(dim):
@@ -131,7 +134,8 @@ class Quad:
 
         if type(n_points) is int:
             n_points = [n_points]*dim
-        assert dim == len(n_points)
+        if __debug__:
+            assert dim == len(n_points)
         nodes, weights = [], []
         for i in range(dim):
             nodes.append(-np.pi + 2*np.pi*np.arange(n_points[i])/n_points[i])
@@ -154,7 +158,8 @@ class Quad:
         return Quad.tensorize([self, other])
 
     def __eq__(self, other):
-        assert type(other) is Quad
+        if __debug__:
+            assert type(other) is Quad
 
         return self.position == other.position \
             and self.factor == other.factor \
@@ -351,7 +356,8 @@ class Quad:
         if self.factor != hm.Function(1, dirs=self.position.dirs):
             op = op.map(self.factor)
 
-        assert op.dirs == self.position.dirs
+        if __debug__:
+            assert op.dirs == self.position.dirs
         splitop = op.split()
         sparse = hm.settings['sparse'] if sparse is None else sparse
 
@@ -404,7 +410,8 @@ class Quad:
 
     def plot_hf(self, multi_index, ax=None, bounds=True, **kwargs):
 
-        assert len(multi_index) == self.position.dim
+        if __debug__:
+            assert len(multi_index) == self.position.dim
         dim = len(multi_index)
 
         show_plt = ax is None
@@ -445,7 +452,8 @@ class Quad:
     def plot(self, arg, factor=None, ax=None,
              contours=0, bounds=False, title=None, **kwargs):
 
-        assert self.position.is_diag
+        if __debug__:
+            assert self.position.is_diag
 
         show_plt = ax is None
         if show_plt:
@@ -456,7 +464,8 @@ class Quad:
             arg = hm.Function(arg, dirs=self.position.dirs)
 
         if type(arg) is hm.Function:
-            assert factor is None
+            if __debug__:
+                assert factor is None
             solution = self.discretize(arg)
 
         elif type(arg) is np.ndarray:
@@ -529,9 +538,10 @@ class Quad:
             return plot
 
     def streamlines(self, fx, fy, factor=None, ax=None, **kwargs):
-        assert self.position.is_diag
-        assert type(fx) is type(fy)
-        assert self.position.dim is 2
+        if __debug__:
+            assert self.position.is_diag
+            assert type(fx) is type(fy)
+            assert self.position.dim is 2
 
         show_plt = ax is None
         if show_plt:
@@ -543,7 +553,8 @@ class Quad:
             fy = hm.Function(fy, dirs=self.position.dirs)
 
         if type(fx) is hm.Function:
-            assert factor is None
+            if __debug__:
+                assert factor is None
             fx, fy = self.discretize(fx), self.discretize(fy)
 
         elif type(fx) is hm.Series:

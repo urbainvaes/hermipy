@@ -37,8 +37,9 @@ class Series:
     def tensorize(args):
 
         def _tensorize(s1, s2):
-            assert type(s1) is Series
-            assert type(s2) is Series
+            if __debug__:
+                assert type(s1) is Series
+                assert type(s2) is Series
 
             if s1.position.dim == 0:
                 return Series(s1.coeffs[0]*s2.coeffs, s2.position,
@@ -53,10 +54,10 @@ class Series:
             common = set(s1.position.dirs).intersection(s2.position.dirs)
             f1 = s1.factor.project(list(common))
             f2 = s2.factor.project(list(common))
-            assert f1 == f2
-
-            assert s1.degree == s2.degree
-            assert s1.index_set == s2.index_set
+            if __debug__:
+                assert f1 == f2
+                assert s1.degree == s2.degree
+                assert s1.index_set == s2.index_set
             f1, f2 = s1.factor.sym/f1.sym, s2.factor.sym/f2.sym
             d1, d2 = s1.position.dirs, s2.position.dirs
             c1, c2 = s1.coeffs, s2.coeffs
@@ -87,7 +88,8 @@ class Series:
             self.degree = core.iterator_get_degree(dim, npolys,
                                                    index_set=index_set)
 
-            assert len(self.multi_indices()) == len(self.coeffs)
+            if __debug__:
+                assert len(self.multi_indices()) == len(self.coeffs)
 
         if significant is not 0:
             for i, c in enumerate(self.coeffs):
@@ -99,7 +101,8 @@ class Series:
             self.coeffs = self.coeffs.copy(order='C')
 
     def __eq__(self, other):
-        assert type(other) is Series
+        if __debug__:
+            assert type(other) is Series
         return self.position == other.position \
             and self.factor == other.factor \
             and la.norm(self.coeffs - other.coeffs) < very_small
@@ -110,9 +113,10 @@ class Series:
             new_coeffs = self.coeffs + other
 
         elif type(other) is Series:
-            assert self.position == other.position
-            assert self.index_set == other.index_set
-            assert self.factor == other.factor
+            if __debug__:
+                assert self.position == other.position
+                assert self.index_set == other.index_set
+                assert self.factor == other.factor
             new_coeffs = self.coeffs + other.coeffs
 
             #  TODO: Add support for addition of different degrees / index sets
@@ -131,7 +135,8 @@ class Series:
                           factor=self.factor, index_set=self.index_set)
 
         elif type(other) is Series:
-            assert self.index_set == other.index_set
+            if __debug__:
+                assert self.index_set == other.index_set
             return Series.tensorize([self, other])
 
         else:
@@ -146,21 +151,24 @@ class Series:
         return self * (-1)
 
     def __truediv__(self, other):
-        assert isinstance(other, (int, float, np.float64))
+        if __debug__:
+            assert isinstance(other, (int, float, np.float64))
         new_coeffs = self.coeffs / other
         return Series(new_coeffs, self.position,
                       factor=self.factor, index_set=self.index_set)
 
     def __repr__(self):
         m_list = self.multi_indices()
-        assert len(m_list) == len(self.coeffs)
+        if __debug__:
+            assert len(m_list) == len(self.coeffs)
         result = ""
         for m, c in zip(m_list, self.coeffs):
             result += str(m) + ": " + str(c) + "\n"
         return result
 
     def __float__(self):
-        assert self.position.dim is 0
+        if __debug__:
+            assert self.position.dim is 0
         return float(self.coeffs[0])
 
     def __getitem__(self, index):
@@ -180,7 +188,8 @@ class Series:
     def subdegree(self, degree):
 
         # At the moment, only works if index set is consistent
-        assert self.index_set is not "cross_nc"
+        if __debug__:
+            assert self.index_set is not "cross_nc"
         n_polys = core.iterator_size(self.position.dim, degree,
                                      index_set=self.index_set)
 
@@ -243,7 +252,8 @@ class Series:
             return pl
 
     def to_function(self):
-        assert self.position.is_diag
+        if __debug__:
+            assert self.position.is_diag
 
         def rec_a(i):
             return float(1/np.sqrt(i+1))
@@ -275,7 +285,8 @@ class Series:
         return result
 
     def to_cross(self, degree):
-        assert self.index_set == "triangle"
-        assert degree + self.position.dim - 1 <= self.degree
+        if __debug__:
+            assert self.index_set == "triangle"
+            assert degree + self.position.dim - 1 <= self.degree
         coeffs = self.coeffs[lib.cross_in_triangle(self.position.dim, degree)]
         return Series(coeffs, self.position, index_set="cross")
