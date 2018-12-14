@@ -34,13 +34,13 @@ class Quad:
     @staticmethod
     def tensorize(args):
         if __debug__:
-            assert len(args) > 0 and type(args[0]) is Quad
+            assert len(args) > 0 and isinstance(args[0], Quad)
         position = hm.Position.tensorize([a.position for a in args])
         nodes, weights = [0]*len(position.dirs), [0]*len(position.dirs)
         factor = sym.Integer(1)
         for a in args:
             if __debug__:
-                assert type(a) is Quad
+                assert isinstance(a, Quad)
             factor *= a.factor.sym
             for i, d in enumerate(a.position.dirs):
                 nodes[position.dirs.index(d)] = a.nodes[i]
@@ -104,7 +104,7 @@ class Quad:
             dim = len(dirs)
         elif bounds is not None:
             dim = len(bounds)
-        elif type(n_points) is not int:
+        elif not isinstance(n_points, int):
             dim = len(n_points)
         else:
             dim = 1
@@ -132,7 +132,7 @@ class Quad:
             position = hm.Position(dim=dim, dirs=dirs, mean=mean, cov=cov,
                                    types=["fourier"]*dim)
 
-        if type(n_points) is int:
+        if isinstance(n_points, int):
             n_points = [n_points]*dim
         if __debug__:
             assert dim == len(n_points)
@@ -145,9 +145,9 @@ class Quad:
     @classmethod
     def newton_cotes(cls, n_points, extrema, **kwargs):
         nodes, weights = [], []
-        for i in range(len(extrema)):
-            nodes.append(np.linspace(-extrema[i], extrema[i], n_points[i]))
-            mesh_size = 2*extrema[i]/(n_points[i] - 1)
+        for i, extremum in enumerate(extrema):
+            nodes.append(np.linspace(-extremum, extremum, n_points[i]))
+            mesh_size = 2*extremum/(n_points[i] - 1)
             weights_simpson = np.zeros(n_points[i]) + 1
             weights_simpson[0], weights_simpson[-1] = .5, .5
             gaussian_weight = 1/np.sqrt(2*np.pi) * np.exp(-nodes[-1]**2/2.)
@@ -174,7 +174,7 @@ class Quad:
     def __repr__(self):
         return self.__str__()
 
-    def tensorize_at(arg_num):
+    def tensorize_at(arg_num: int):
         def tensorize_arg(func):
             def wrapper(*args, tensorize=None, **kwargs):
                 do_tensorize = hm.settings['tensorize'] if \
@@ -259,7 +259,7 @@ class Quad:
     # Norm 1 or 2, in weighted or not
     def norm(self, function, n=2, flat=False):
 
-        if type(function) is hm.Series:
+        if isinstance(function, hm.Series):
             function = self.eval(function)
 
         if n is 2:
@@ -289,7 +289,7 @@ class Quad:
 
     def eval(self, series):
 
-        if type(series) is np.ndarray:
+        if isinstance(series, np.ndarray):
             series = hm.Series(series, self.position, factor=self.factor)
 
         degree, coeffs = series.degree, series.coeffs
@@ -306,9 +306,6 @@ class Quad:
         result = core.transform(degree, coeffs, mapped_nodes, self.weights,
                                 forward=False, do_fourier=self.do_fourier,
                                 index_set=series.index_set)
-
-        if series.factor != hm.Function(1, dirs=self.position.dirs):
-            result*self.discretize(series.factor)
 
         return result*self.discretize(series.factor)
 
@@ -350,7 +347,7 @@ class Quad:
     def discretize_op(self, op, degree,
                       sparse=None, index_set="triangle"):
 
-        if type(op) is not hm.Operator:
+        if isinstance(op, hm.Operator):
             op = hm.Operator(op, dirs=self.position.dirs)
 
         if self.factor != hm.Function(1, dirs=self.position.dirs):
@@ -388,7 +385,7 @@ class Quad:
         factor = self.factor.project(directions)
         position = self.position.project(directions)
         nodes, weights = [], []
-        for i, d in enumerate(position.dirs):
+        for d in position.dirs:
             nodes.append(self.nodes[self.position.dirs.index(d)])
             weights.append(self.weights[self.position.dirs.index(d)])
         return Quad(nodes, weights, position=position, factor=factor)
@@ -417,7 +414,7 @@ class Quad:
         show_plt = ax is None
         if show_plt:
             import matplotlib.pyplot as plt
-            fig, ax = plt.subplots(1)
+            ax = plt.subplots(1)[1]
 
         deg_max, index_set = sum(multi_index), "triangle"
         hf = np.zeros(core.iterator_size(dim, deg_max, index_set=index_set))
@@ -458,20 +455,20 @@ class Quad:
         show_plt = ax is None
         if show_plt:
             import matplotlib.pyplot as plt
-            fig, ax = plt.subplots(1)
+            ax = plt.subplots(1)[1]
 
         if isinstance(arg, tuple(sym.core.all_classes)):
             arg = hm.Function(arg, dirs=self.position.dirs)
 
-        if type(arg) is hm.Function:
+        if isinstance(arg, hm.Function):
             if __debug__:
                 assert factor is None
             solution = self.discretize(arg)
 
-        elif type(arg) is np.ndarray:
+        elif isinstance(arg, np.ndarray):
             solution = arg
 
-        elif type(arg) is hm.Series:
+        elif isinstance(arg, hm.Series):
 
             series = arg
 
@@ -524,10 +521,10 @@ class Quad:
             if contours > 0:
                 ax.contour(*r_nodes, solution, levels=contours, colors='k')
 
-        min, max = np.min(solution), np.max(solution)
+        _min, _max = np.min(solution), np.max(solution)
 
         if title is None:
-            title = "Min: {:.3f}, Max: {:.3f}".format(min, max)
+            title = "Min: {:.3f}, Max: {:.3f}".format(_min, _max)
         ax.set_title(title)
 
         if show_plt:
@@ -546,7 +543,7 @@ class Quad:
         show_plt = ax is None
         if show_plt:
             import matplotlib.pyplot as plt
-            fig, ax = plt.subplots(1)
+            ax = plt.subplots(1)[1]
 
         if isinstance(fx, tuple(sym.core.all_classes)):
             fx = hm.Function(fx, dirs=self.position.dirs)
@@ -592,12 +589,12 @@ class Quad:
             return psi
 
         psi = calc_psi2d(x, y, sx, sy)
-        min, max, thresh = np.min(psi), np.max(psi), .1
-        if abs(min) < thresh*(max - min):
-            min = thresh*(max - min)
-        if abs(max) < thresh*(max - min):
-            max = - thresh*(max - min)
-        levels = np.linspace(min, max, 10)
+        _min, _max, thresh = np.min(psi), np.max(psi), .1
+        if abs(_min) < thresh*(_max - _min):
+            _min = thresh*(_max - _min)
+        if abs(_max) < thresh*(_max - _min):
+            _max = - thresh*(_max - _min)
+        levels = np.linspace(_min, _max, 10)
         streams = ax.contour(x, y, psi, levels=levels, **kwargs)
 
         # ax.quiver(x, y, sx, sy)

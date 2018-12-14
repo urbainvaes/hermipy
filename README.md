@@ -14,7 +14,7 @@ are handed over to a C++ compiled component,
 and [Boost](https://en.wikipedia.org/wiki/Boost_(C%2B%2B_libraries)) is used for efficient exchange of data with Python.
 For more information, read the [documentation](https://hermipy.readthedocs.io/en/latest/).
 
-# Todo
+## Todo
 
 - Use third-party library to compute FFTs;
 
@@ -24,7 +24,7 @@ For more information, read the [documentation](https://hermipy.readthedocs.io/en
 
 - Inherit sympy.function / sympy.operator instead of custom classes.
 
-# License
+## License
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

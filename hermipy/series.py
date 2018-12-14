@@ -213,7 +213,7 @@ class Series:
         show_plt = ax is None
         if show_plt:
             import matplotlib.pyplot as plt
-            fig, ax = plt.subplots(1)
+            ax = plt.subplots(1)[1]
 
         m = self.multi_indices()
         if self.position.dim is 1:

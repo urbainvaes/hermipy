@@ -316,7 +316,7 @@ def convergence_degree():
 
     cond = np.asarray(degrees)*0 + 1
     xplot, yplot = np.extract(cond, degrees), np.extract(cond, errors)
-    np.save(dir + "degrees", xplot),
+    np.save(dir + "degrees", xplot)
     np.save(dir + "error_l1", yplot)
     fig, ax = plt.subplots()
     ax.semilogy(xplot, yplot, 'b.',

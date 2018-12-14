@@ -118,12 +118,10 @@ u_int pos_bissect(u_int image, std::function<u_int(u_int)> f, u_int max)
             }
 
             x1 = new_x;
-            img_1 = new_img;
         }
         else if (new_img > 0)
         {
             x2 = new_x;
-            img_2 = new_img;
         }
         else
         {

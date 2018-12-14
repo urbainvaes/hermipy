@@ -50,7 +50,7 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T> & data)
 template<typename T>
 std::ostream &  printMat(std::ostream & os,
         const std::vector< std::vector<T> > & a,
-        std::string begin = " ")
+        const std::string & begin = " ")
 {
     os << "[" << a[0];
     for (u_int i = 1; i < a.size(); i++)
@@ -71,7 +71,7 @@ std::ostream& operator<<(std::ostream& os, const std::vector< std::vector<T> > &
 template<typename T> 
 std::ostream &  printCube(std::ostream & os,
         const std::vector< std::vector< std::vector<T> > > & a,
-        std::string begin = "  ")
+        const std::string & begin = "  ")
 {
     os << "[" << a[0];
     for (u_int i = 1; i < a.size(); i++)
