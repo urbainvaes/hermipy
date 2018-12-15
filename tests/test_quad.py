@@ -114,7 +114,7 @@ class TestHermiteTransform(unittest.TestCase):
         degree = 30
         quad = hm.Quad.gauss_hermite(n_points=[degree, degree, degree])
         coeffs = quad.transform('1', degree).coeffs
-        for c in coeffs:
+        for i, c in enumerate(coeffs):
             target_value = 1. if i == 0 else 0.
             self.assertAlmostEqual(c, target_value)
 
