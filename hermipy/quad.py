@@ -347,7 +347,7 @@ class Quad:
     def discretize_op(self, op, degree,
                       sparse=None, index_set="triangle"):
 
-        if isinstance(op, hm.Operator):
+        if not isinstance(op, hm.Operator):
             op = hm.Operator(op, dirs=self.position.dirs)
 
         if self.factor != hm.Function(1, dirs=self.position.dirs):

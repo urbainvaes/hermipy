@@ -55,7 +55,7 @@ def to_cpp_array(*args):
         dim = 1
         if isinstance(array[0], (list, np.ndarray)):
             dim = 2
-            if isinstance(array[0][0], (list, np.ndarray):
+            if isinstance(array[0][0], (list, np.ndarray)):
                 dim = 3
     if dim is 1:
         array = convert_to_cpp_vec(array)
