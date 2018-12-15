@@ -158,8 +158,7 @@ def diffo():
     # quad.plot(diff(solution))  # THIS IS NOT CORRECT
     diffusion1 = (1/β) + float(solution*rhs) + (2/β)*float(Ix*diff(solution))
     diffusion2 = (1/β) + float(solution*rhs) + (2/β)*float(aux*solution)
-    if __debug__:
-        assert abs(diffusion1 - diffusion2) < 1e-8
+    assert abs(diffusion1 - diffusion2) < 1e-8
     print("Overdamped Langevin: {}".format(diffusion1))
     return diffusion1
 

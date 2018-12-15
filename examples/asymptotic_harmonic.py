@@ -115,8 +115,7 @@ print("Equation for u₀: ")
 sym.pprint(centered[2])
 Z = sym.symbols('Z', real=True)
 solution_0 = sym.exp(-β*Vp)/Z
-if __debug__:
-    assert centered[2].subs(unk[0], solution_0).doit().cancel() == 0
+assert centered[2].subs(unk[0], solution_0).doit().cancel() == 0
 
 # Centering condition for u₁
 for i in range(3, 6):
@@ -142,13 +141,11 @@ beta2 = ((remainder - beta3/β**3) * β**2).expand().subs(β, 0)
 beta1 = ((remainder - beta3/β**3 - beta2/β**2) * β).expand().subs(β, 0)
 beta0 = remainder - beta3/β**3 - beta2/β**2 - beta1/β
 
-if __debug__:
-    assert (unk[0].diff(x)*Vp.diff(x)).diff(x, x, x, x) \
-        + (unk[0].diff(x, x, x)*Vp.diff(x)).diff(x, x) == beta2
+assert (unk[0].diff(x)*Vp.diff(x)).diff(x, x, x, x) \
+    + (unk[0].diff(x, x, x)*Vp.diff(x)).diff(x, x) == beta2
 
-if __debug__:
-    assert (Vp.diff(x)*Vp.diff(x)*unk[0].diff(x)).diff(x, x, x) \
-        - (Vp.diff(x)*Vp.diff(x, x)*unk[0].diff(x)).diff(x, x) - beta1 == 0
+assert (Vp.diff(x)*Vp.diff(x)*unk[0].diff(x)).diff(x, x, x) \
+    - (Vp.diff(x)*Vp.diff(x, x)*unk[0].diff(x)).diff(x, x) - beta1 == 0
 
 int_fokker_planck = - (1/β)*sym.exp(-β*Vp)*(unk[4]*sym.exp(β*Vp)).diff(x)
 
@@ -163,8 +160,7 @@ int_beta3 = unk[0].diff(x, x, x, x, x)
 integral1 = int_fokker_planck + \
             int_beta1/β + int_beta2/β**2 + int_beta3/β**3 + C1
 
-if __debug__:
-    assert (integral1.diff(x) - centered[6]).expand() == 0
+assert (integral1.diff(x) - centered[6]).expand() == 0
 
 # C1 = 0
 integral1 = integral1.subs(C1, 0)
@@ -178,14 +174,12 @@ integral2 = 3*(Vp.diff(x, x))**2/(2*β) - Vp.diff(x, x, x, x)/β**2 \
             + 2/β*Vp.diff(x)*Vp.diff(x, x, x) - Vp.diff(x, x)**2/β \
             + (Vp.diff(x)*Vp.diff(x, x)**2).integrate(x) + C2
 
-if __debug__:
-    assert (integrand - integral2.diff(x)).expand() == 0
+assert (integrand - integral2.diff(x)).expand() == 0
 
 solution_4 = sym.solve(integral2, unk[4])[0] * solution_0
 
-if __debug__:
-    assert centered[6].subs(unk[0], solution_0)\
-                      .subs(unk[4], solution_4).doit().expand() == 0
+assert centered[6].subs(unk[0], solution_0)\
+                  .subs(unk[4], solution_4).doit().expand() == 0
 # }}}
 # Projection on x - z {{{
 quady = quad.Quad.gauss_hermite(nquad, dirs=[1], mean=[0], cov=[[σy]])
@@ -232,10 +226,9 @@ for i in range(nterms):
     u[i] = u[i].subs(unk[0], solution_0)\
                .subs(unk[4], solution_4)
 
-if __debug__:
-    assert (operator/epsilon**4).expand()\
-           .subs(f, solution + ε**5*u[5] + ε**6*u[6])\
-           .doit().expand().subs(epsilon, 0) == 0
+assert (operator/epsilon**4).expand()\
+       .subs(f, solution + ε**5*u[5] + ε**6*u[6])\
+       .doit().expand().subs(epsilon, 0) == 0
 
 
 # }}}
@@ -254,9 +247,8 @@ solution_4_n = solution_4.subs(Vp, potential).doit()
 solution_4_n = solution_4_n.factor().subs(((θ, θn), (m, mn), (β, βn), (ε, εn), (Z, Z_n)))
 C2_n = quadx.integrate(sym.solve(solution_4_n, C2)[0] * solution_0_n, flat=True)
 solution_4_n = solution_4_n.subs(C2, C2_n)
-if __debug__:
-    assert abs(quadx.integrate(solution_0_n, flat=True) - 1) < 1e-8
-    assert abs(quadx.integrate(solution_4_n, flat=True) - 0) < 1e-8
+assert abs(quadx.integrate(solution_0_n, flat=True) - 1) < 1e-8
+assert abs(quadx.integrate(solution_4_n, flat=True) - 0) < 1e-8
 
 rho_z = 1/sym.sqrt(2*sym.pi) * sym.exp(-z*z/2)
 
@@ -267,8 +259,7 @@ for i, p in enumerate(proj_xz):
     proj_xz_n[i] = proj_xz_n[i].subs(Vp, potential).doit()
     proj_xz_n[i] = proj_xz_n[i].factor().subs(((θ, θn), (m, mn), (β, βn),
                                                (ε, εn), (Z, Z_n), (C2, C2_n)))
-    if __debug__:
-        assert abs(quad_gauss.integrate(proj_xz_n[i], flat=True) - i == 0) < 1e-8
+    assert abs(quad_gauss.integrate(proj_xz_n[i], flat=True) - i == 0) < 1e-8
 
 import matplotlib
 import matplotlib.pyplot as plt

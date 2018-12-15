@@ -37,9 +37,8 @@ class Series:
     def tensorize(args):
 
         def _tensorize(s1, s2):
-            if __debug__:
-                assert isinstance(s1, Series)
-                assert isinstance(s2, Series)
+            if not isinstance(s1, Series) or not isinstance(s2, Series):
+                raise ValueError("s1 and s2 have to be Series")
 
             if s1.position.dim == 0:
                 return Series(s1.coeffs[0]*s2.coeffs, s2.position,
@@ -54,10 +53,16 @@ class Series:
             common = set(s1.position.dirs).intersection(s2.position.dirs)
             f1 = s1.factor.project(list(common))
             f2 = s2.factor.project(list(common))
-            if __debug__:
-                assert f1 == f2
-                assert s1.degree == s2.degree
-                assert s1.index_set == s2.index_set
+
+            if not f1 == f2:
+                raise ValueError("f1 == f2 should be True")
+
+            if not s1.degree == s2.degree:
+                raise ValueError("s1 and s2 should have the same degree")
+
+            if not s1.index_set == s2.index_set:
+                raise ValueError("s1 and s2 should have the same index_set")
+
             f1, f2 = s1.factor.sym/f1.sym, s2.factor.sym/f2.sym
             d1, d2 = s1.position.dirs, s2.position.dirs
             c1, c2 = s1.coeffs, s2.coeffs

@@ -115,8 +115,7 @@ print("Equation for u₀: ")
 sym.pprint(centered[2])
 Z = sym.symbols('Z', real=True)
 solution_0 = sym.exp(-β*Vp)/Z
-if __debug__:
-    assert centered[2].subs(unk[0], solution_0).doit().cancel() == 0
+assert centered[2].subs(unk[0], solution_0).doit().cancel() == 0
 
 # Centering condition for u₁
 print("Equation for u₁: ")
@@ -139,8 +138,7 @@ integral1 = (
         - (1/β**2) * unk[0].diff(x, x, x)
         + C1)
 
-if __debug__:
-    assert (integral1.diff(x) - centered[4]).doit().expand() == 0
+assert (integral1.diff(x) - centered[4]).doit().expand() == 0
 
 integral2 = ((integral1.subs(unk[0], solution_0).doit().expand()
                        .subs(unk[2], solution_0*unk[2]).doit().expand()
@@ -148,9 +146,8 @@ integral2 = ((integral1.subs(unk[0], solution_0).doit().expand()
 
 solution_2 = sym.solve(integral2, unk[2])[0] * solution_0
 
-if __debug__:
-    assert centered[4].subs(unk[0], solution_0)\
-                      .subs(unk[2], solution_2).doit().expand() == 0
+assert centered[4].subs(unk[0], solution_0)\
+                  .subs(unk[2], solution_2).doit().expand() == 0
 
 # C1 must be 0
 solution_2 = solution_2.subs(C1, 0)
@@ -194,9 +191,8 @@ solution_2_n = solution_2_n.factor().subs(((θ, θn), (m, mn), (β, βn),
                                            (ε, εn), (Z, Z_n)))
 C2_n = quadx.integrate(sym.solve(solution_2_n, C2)[0] * solution_0_n, flat=True)
 solution_4_n = solution_2_n.subs(C2, C2_n)
-if __debug__:
-    assert abs(quadx.integrate(solution_0_n, flat=True) - 1) < 1e-8
-    assert abs(quadx.integrate(solution_4_n, flat=True) - 0) < 1e-8
+assert abs(quadx.integrate(solution_0_n, flat=True) - 1) < 1e-8
+assert abs(quadx.integrate(solution_4_n, flat=True) - 0) < 1e-8
 
 rho_z = 1/sym.sqrt(2*sym.pi) * sym.exp(-y*y/2)
 
@@ -207,8 +203,7 @@ for i, p in enumerate(un):
     un[i] = un[i].subs(Vp, potential).doit()
     un[i] = un[i].factor().subs(((θ, θn), (m, mn), (β, βn),
                                  (ε, εn), (Z, Z_n), (C2, C2_n)))
-    if __debug__:
-        assert abs(quad_gauss.integrate(un[i], flat=True) - i == 0) < 1e-8
+    assert abs(quad_gauss.integrate(un[i], flat=True) - i == 0) < 1e-8
 
 
 if False:

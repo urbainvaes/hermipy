@@ -159,8 +159,7 @@ class TestHermiteTransform(unittest.TestCase):
         quad_2 = hm.Quad.newton_cotes([10000], [6.], mean=mean, cov=cov)
         series1 = quad_1.transform('x', degree)
         series2 = quad_2.transform('x', degree)
-        if __debug__:
-            assert(la.norm(series1.coeffs - series2.coeffs, 2) < 1e-3)
+        self.assertTrue(la.norm(series1.coeffs - series2.coeffs, 2) < 1e-3)
 
 
 class TestHermiteVarf(unittest.TestCase):

@@ -107,8 +107,8 @@ class Operator():
     def map(self, factor):
         if not isinstance(factor, func.Function):
             factor = func.Function(factor, dirs=self.dirs)
-        if __debug__:
-            assert factor.dirs == self.dirs
+        if not factor.dirs == self.dirs:
+            raise ValueError("Directions differ")
         variables = [func.Function.x_sub[d] for d in self.dirs]
         unknown = self.f(*variables)
         sym = self.sym.subs(unknown, (unknown*factor).sym)
@@ -141,6 +141,6 @@ class Operator():
                 term = sympy.simplify(term)
             if term != 0:
                 result[tuple(m)] = func.Function(term, dirs=self.dirs)
-        if __debug__:
-            assert rem == 0
+        if rem is not 0:
+            raise ValueError("Nonzero remainder")
         return result
