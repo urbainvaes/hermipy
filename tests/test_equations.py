@@ -291,8 +291,8 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
             npolys = core.iterator_size(2, d)
             if d is not degrees[0]:
                 v0 = np.zeros(npolys)
-                for i in range(len(eig_vec)):
-                    v0[i] = eig_vec[i]
+                for i, e in enumerate(eig_vec):
+                    v0[i] = e
             sub_mat = (mat[0:npolys, 0:npolys])
             if isinstance(sub_mat, np.ndarray):
                 sub_mat = sub_mat.copy(order='C')

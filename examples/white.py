@@ -165,7 +165,7 @@ def solve(method, subdegree=degree):
 
         for i, dt in enumerate(steps):
 
-            # print("i: {}, t: {}, m: {}".format(i, time[i], m))
+            print("i: {}, t: {}, m: {}".format(i, time[i], m))
 
             mat = sub_r_mat + m*sub_m_mat
             if scheme == 'backward':

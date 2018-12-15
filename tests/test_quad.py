@@ -64,8 +64,8 @@ class TestIntegrate(unittest.TestCase):
         rand_mat = np.random.random((dim, dim))
         cov = np.matmul(rand_mat.T, rand_mat)
         quad = hm.Quad.gauss_hermite(n_points=8, dim=dim, cov=cov)
-        for i in range(len(cov)):
-            for j in range(len(cov)):
+        for i in range(dim):
+            for j in range(dim):
                 fun = 'x{}*x{}'.format(i, j)
                 cov_ij = quad.integrate(fun)
                 self.assertAlmostEqual(cov_ij, cov[i][j])
@@ -76,10 +76,10 @@ class TestIntegrate(unittest.TestCase):
         mean = np.random.random(dim)
         cov = np.matmul(rand_mat.T, rand_mat)
         quad = hm.Quad.gauss_hermite(n_points=8, dim=dim, mean=mean, cov=cov)
-        for i in range(len(cov)):
+        for i in range(dim):
             mean_i = quad.integrate('x{}'.format(i))
             self.assertAlmostEqual(mean_i, mean[i])
-            for j in range(len(cov)):
+            for j in range(dim):
                 fun = '(x{}-{})*(x{}-{})'.format(i, mean[i], j, mean[j])
                 cov_ij = quad.integrate(fun)
                 self.assertAlmostEqual(cov_ij, cov[i][j])
@@ -114,9 +114,9 @@ class TestHermiteTransform(unittest.TestCase):
         degree = 30
         quad = hm.Quad.gauss_hermite(n_points=[degree, degree, degree])
         coeffs = quad.transform('1', degree).coeffs
-        for i in range(len(coeffs)):
+        for c in coeffs:
             target_value = 1. if i == 0 else 0.
-            self.assertAlmostEqual(coeffs[i], target_value)
+            self.assertAlmostEqual(c, target_value)
 
     def test_consistent_eval(self):
         degree = 10
@@ -247,8 +247,9 @@ class TestTensorizeDecorator(unittest.TestCase):
         hm.settings.update(settings)
 
     def test_integrate(self):
-        for i in range(len(self.cov)):
-            for j in range(len(self.cov)):
+        dim = len(self.cov)
+        for i in range(dim):
+            for j in range(dim):
                 fun = self.x[i]*self.x[j]
                 cov_ij = self.quad.integrate(fun)
                 self.assertAlmostEqual(cov_ij, self.cov[i][j])

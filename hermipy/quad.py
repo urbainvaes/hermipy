@@ -303,8 +303,8 @@ class Quad:
         if la.norm(factor - np.diag(np.diag(factor)), 2) > 1e-8:
             raise ValueError("Incompatible covariance matrices")
         mapped_nodes = self.nodes.copy()
-        for i in range(len(self.nodes)):
-            mapped_nodes[i] = self.nodes[i] * factor[i][i] + translation[i]
+        for i, n in enumerate(self.nodes):
+            mapped_nodes[i] = n * factor[i][i] + translation[i]
 
         result = core.transform(degree, coeffs, mapped_nodes, self.weights,
                                 forward=False, do_fourier=self.do_fourier,

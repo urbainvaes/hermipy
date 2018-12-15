@@ -521,8 +521,8 @@ def convergence_eig():
         # sub_mat = sub_mat
         if v0 is not None:
             actual_v0 = np.zeros(npolys)
-            for i in range(len(v0)):
-                actual_v0[i] = v0[i]
+            for i, v0i in enumerate(v0):
+                actual_v0[i] = v0i
             v0 = actual_v0
         eig_vals, eig_vecs = sub_varf.eigs(v0=v0, k=1, which='SM')
         if (la.norm(np.imag(eig_vecs[0].coeffs))) > 1e-12:

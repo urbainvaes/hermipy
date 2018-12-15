@@ -30,8 +30,8 @@ class Function():
              for i in range(len(xyz))]
 
     conv = {}
-    for i in range(len(xyz)):
-        conv[str(xyz[i])] = x_sub[i]
+    for i, var_xyz in enumerate(xyz):
+        conv[str(var_xyz)] = x_sub[i]
         conv[str(x_sub[i])] = x_sub[i]
 
     @staticmethod
@@ -113,14 +113,14 @@ class Function():
 
     def as_xyz(self):
         result = self.sym
-        for i in range(len(self.x_sub)):
-            result = result.subs(self.x_sub[i], self.xyz[i])
+        for i, sub_i in enumerate(self.x_sub):
+            result = result.subs(sub_i, self.xyz[i])
         return result
 
     def ccode(self):
         function = sympy.ccode(self.sym)
-        for i in range(len(self.dirs)):
-            function = re.sub(r'\bx{}'.format(self.dirs[i]),
+        for i, direction in enumerate(self.dirs):
+            function = re.sub(r'\bx{}'.format(direction),
                               'v[{}]'.format(i), function)
         return function
 
