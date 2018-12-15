@@ -202,7 +202,7 @@ def eq_params():
 def vy():
     r, symb = sym.Rational, sym.symbols
     if 'Vy' in config.eq:
-        r, symb, β = sym.Rational, sym.symbols, params['β']
+        r, symb = sym.Rational, sym.symbols
         μy = Parameter(symb('μy', real=True), config.num['μy'])
         σy = Parameter(symb('σy', real=True, positive=True), config.num['σy'])
         Vqy = Parameter(sym.Function('Vqy')(y), r(1, 2) *
@@ -214,7 +214,7 @@ def vy():
 
 
 def vq():
-    r, symb, β = sym.Rational, sym.symbols, params['β']
+    r, symb = sym.Rational, sym.symbols
     μx = Parameter(symb('μx', real=True), config.num['μx'])
     σx = Parameter(symb('σx', real=True, positive=True), config.num['σx'])
     Vq = Parameter(sym.Function('Vqx')(x), r(1, 2) *
@@ -575,7 +575,7 @@ def convergence_eig():
     # errors = errors[0:-10]
     # eig_ground = eig_ground[0:-10]
 
-    dir = config.misc['directory']
+    # dir = config.misc['directory']
     # plot_log(degrees, errors, dir + 'l1conv.eps')
     # plot_log(degrees, [max(0, -m) for m in mins], dir + 'min.eps')
     # plot_log(degrees, np.abs(eig_ground), dir + 'eig_val.eps', lin=False)

@@ -26,8 +26,6 @@ import matplotlib
 import hermipy as hm
 import hermipy.equations as eq
 import scipy.integrate as integrate
-import scipy.sparse as sparse
-# import scipy.sparse.linalg as las
 
 hm.settings['tensorize'] = True
 hm.settings['sparse'] = True

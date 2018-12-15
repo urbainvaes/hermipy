@@ -21,13 +21,11 @@ import sympy as sym
 import numpy as np
 import numpy.linalg as la
 import scipy.sparse.linalg as las
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 import hermipy as hm
 import hermipy.core as core
 import hermipy.equations as eq
-import hermipy.stats as stats
-import hermipy.cache as cache
 
 
 class TestConvergenceFokkerPlanck1d(unittest.TestCase):
@@ -94,7 +92,7 @@ class TestConvergenceFokkerPlanck1d(unittest.TestCase):
             sub_mat = (mat[0:d+1, 0:d+1])
             if isinstance(sub_mat, np.ndarray):
                 sub_mat = sub_mat.copy(order='C')
-            eig_vals, eig_vecs = las.eigs(sub_mat, k=1, which='LR')
+            _, eig_vecs = las.eigs(sub_mat, k=1, which='LR')
             ground_state = np.real(eig_vecs.T[0])
             ground_state = ground_state * np.sign(ground_state[0])
             ground_state_eval = quad.eval(quad.series(ground_state))*factor
@@ -297,7 +295,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
             if isinstance(sub_mat, np.ndarray):
                 sub_mat = sub_mat.copy(order='C')
             # import ipdb; ipdb.set_trace()
-            eig_vals, eig_vecs = las.eigs(sub_mat, k=1, v0=v0, which='LR')
+            _, eig_vecs = las.eigs(sub_mat, k=1, v0=v0, which='LR')
             eig_vec = np.real(eig_vecs.T[0])
             ground_state = eig_vec * np.sign(eig_vec[0])
             ground_state_eval = quad.eval(quad.series(ground_state))*factor
@@ -316,7 +314,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         r = sym.Rational
         params = {'β': r(3), 'ε': r(1), 'γ': 0, 'θ': 0, 'm': 0}
         Vp = self.x*self.x/4
-        quad, forward, _, factor, _, _ = self.sym_calc(Vp, params, 0, 1, 1)
+        quad, forward, _,  _, _, _ = self.sym_calc(Vp, params, 0, 1, 1)
         solution = eq.solve_gaussian(forward, self.f, [self.x, self.y])
         norm_sol = quad.norm(solution, n=1, flat=True)
         self.assertTrue(abs(norm_sol - 1) < 1e-6)
@@ -368,7 +366,7 @@ class TestConvergenceFokkerPlanck2d(unittest.TestCase):
         m, s2x, s2y = r(1, 10), r(1, 20), 1
         params = {'β': r(10), 'ε': r(.5), 'γ': 0, 'θ': 0, 'm': 0}
         args = [Vp, params, m, s2x, s2y, degree]
-        quad, forward, backward, factor, _, _ = self.sym_calc(*args)
+        quad, _, backward, factor, _, _ = self.sym_calc(*args)
 
         # Numerical solutions
         degrees = list(range(5, degree))

@@ -29,7 +29,6 @@ import numpy as np
 import numpy.linalg as la
 import scipy.sparse.linalg as las
 import matplotlib
-import scipy.sparse as sparse
 
 very_small = 1e-10
 
@@ -177,7 +176,7 @@ class Varf:
 
         if remove0 or remove_vec is not None:
             vstack, hstack = (np.vstack, np.hstack) if not self.is_sparse \
-                    else (sparse.vstack, sparse.hstack)
+                    else (ss.vstack, ss.hstack)
 
             if remove0:
                 [e], [s] = self.eigs(k=1, which='SM')
@@ -249,7 +248,9 @@ class Varf:
                 for j in range(self.matrix.shape[1]):
                     ij = self.matrix[i][j]
                     if abs(ij) > 1e-9:
-                        rows.append(i), cols.append(j), data.append(abs(ij))
+                        rows.append(i)
+                        cols.append(j) 
+                        data.append(abs(ij))
 
         pl = ax.scatter(rows, cols, c=data, cmap='ocean_r',
                         norm=matplotlib.colors.LogNorm())
