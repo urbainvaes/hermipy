@@ -144,7 +144,6 @@ def cache(hash_extend=None, error_extend=None, quiet=False):
                         return result_cache
                 except ValueError:
                     cached_exists = False
-                    pass
 
             result = function(*args, **kwargs)
             is_sparse_result = isinstance(result, sparse.csr_matrix)

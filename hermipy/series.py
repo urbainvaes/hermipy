@@ -20,7 +20,6 @@ import hermipy.core as core
 import hermipy.lib as lib
 import hermipy.position as pos
 import hermipy.function as func
-import hermipy.quad as quad
 
 import numpy as np
 import numpy.linalg as la
@@ -98,7 +97,7 @@ class Series:
 
         if significant is not 0:
             for i, c in enumerate(self.coeffs):
-                self.coeffs[i] = round(self.coeffs[i], significant)
+                self.coeffs[i] = round(c, significant)
 
         self.factor = func.Function(factor, dirs=self.position.dirs)
 

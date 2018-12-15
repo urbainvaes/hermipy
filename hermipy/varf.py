@@ -238,7 +238,7 @@ class Varf:
 
         if show_plt:
             import matplotlib.pyplot as plt
-            fig, ax = plt.subplots(1)
+            ax = plt.subplots(1)[1]
 
         rows, cols, data = [], [], []
         if self.is_sparse:

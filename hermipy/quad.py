@@ -176,9 +176,11 @@ class Quad:
 
     def tensorize_at(arg_num: int):
         def tensorize_arg(func):
-            def wrapper(*args, tensorize=None, **kwargs):
+            def wrapper(*args, **kwargs):
+                tensorize = kwargs['tensorize'] if 'tensorize' in kwargs \
+                        else None
                 do_tensorize = hm.settings['tensorize'] if \
-                               tensorize is None else tensorize
+                    tensorize is None else tensorize
 
                 # <- Fix bug with integrate(series)
                 if isinstance(args[arg_num], hm.Series):
@@ -237,7 +239,7 @@ class Quad:
         return function
 
     @tensorize_at(1)
-    def integrate(self, function, flat=False):
+    def integrate(self, function, flat=False, tensorize=None):
 
         if isinstance(function, hm.Series):
             function = self.eval(function)
@@ -270,7 +272,8 @@ class Quad:
     @tensorize_at(1)
     @stats.debug()
     @stats.log_stats()
-    def transform(self, function, degree, index_set="triangle", significant=0):
+    def transform(self, function, degree, index_set="triangle",
+                  significant=0, tensorize=None):
 
         if not isinstance(function, np.ndarray):
             function = hm.Function(function, dirs=self.position.dirs)
@@ -312,7 +315,8 @@ class Quad:
     @tensorize_at(1)
     @stats.debug()
     @stats.log_stats()
-    def varf(self, f_grid, degree, sparse=None, index_set="triangle"):
+    def varf(self, f_grid, degree, sparse=None,
+             index_set="triangle", tensorize=None):
         sparse = hm.settings['sparse'] if sparse is None else sparse
         if not isinstance(f_grid, np.ndarray):
             f_grid = self.discretize(f_grid)
@@ -326,7 +330,7 @@ class Quad:
     @stats.debug()
     @stats.log_stats()
     def varfd(self, function, degree, directions,
-              sparse=None, index_set="triangle"):
+              sparse=None, index_set="triangle", tensorize=None):
         directions = filter(lambda d: d in self.position.dirs, directions)
         sparse = hm.settings['sparse'] if sparse is None else sparse
         var = self.varf(function, degree, sparse=sparse,
