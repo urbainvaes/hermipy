@@ -37,7 +37,7 @@ class Series:
 
         def _tensorize(s1, s2):
             if not isinstance(s1, Series) or not isinstance(s2, Series):
-                raise ValueError("s1 and s2 have to be Series")
+                raise ValueError("Arguments must be Series!")
 
             if s1.position.dim == 0:
                 return Series(s1.coeffs[0]*s2.coeffs, s2.position,
@@ -54,7 +54,7 @@ class Series:
             f2 = s2.factor.project(list(common))
 
             if not f1 == f2:
-                raise ValueError("f1 == f2 should be True")
+                raise ValueError("Factors should be match!")
 
             if not s1.degree == s2.degree:
                 raise ValueError("s1 and s2 should have the same degree")
@@ -92,7 +92,9 @@ class Series:
             self.degree = core.iterator_get_degree(dim, npolys,
                                                    index_set=index_set)
 
-            assert len(self.multi_indices()) == len(self.coeffs)
+            if not len(self.multi_indices()) == len(self.coeffs):
+                raise ValueError("Invalid arguments: length of self.coeffs \
+does not match number of multi-indices!")
 
         if significant is not 0:
             for i, c in enumerate(self.coeffs):
@@ -105,7 +107,7 @@ class Series:
 
     def __eq__(self, other):
         if not isinstance(other, Series):
-            raise ValueError("Invalid argument")
+            raise ValueError("Invalid argument!")
         return self.position == other.position \
             and self.factor == other.factor \
             and la.norm(self.coeffs - other.coeffs) < very_small
@@ -119,7 +121,7 @@ class Series:
             if not self.position == other.position or \
                not self.index_set == other.index_set or \
                not self.factor == other.factor:
-                raise ValueError("Invalid arguments")
+                raise ValueError("Invalid argument!")
             new_coeffs = self.coeffs + other.coeffs
 
             #  TODO: Add support for addition of different degrees / index sets
@@ -139,7 +141,7 @@ class Series:
 
         elif isinstance(other, Series):
             if not self.index_set == other.index_set:
-                raise ValueError("Index sets must match")
+                raise ValueError("Index sets must match!")
             return Series.tensorize([self, other])
 
         else:
@@ -155,14 +157,16 @@ class Series:
 
     def __truediv__(self, other):
         if not isinstance(other, (int, float, np.float64)):
-            raise ValueError("Invalid argument")
+            raise ValueError("Invalid argument!")
         new_coeffs = self.coeffs / other
         return Series(new_coeffs, self.position,
                       factor=self.factor, index_set=self.index_set)
 
     def __repr__(self):
         m_list = self.multi_indices()
-        assert len(m_list) == len(self.coeffs)
+        if not len(m_list) == len(self.coeffs):
+            raise ValueError("Internal error: length of self.coeffs \
+does not match number of multi-indices!")
         result = ""
         for m, c in zip(m_list, self.coeffs):
             result += str(m) + ": " + str(c) + "\n"
@@ -170,7 +174,7 @@ class Series:
 
     def __float__(self):
         if self.position.dim is not 0:
-            raise ValueError("Dimension must be 0")
+            raise ValueError("Dimension must be 0!")
         return float(self.coeffs[0])
 
     def __getitem__(self, index):
@@ -191,7 +195,7 @@ class Series:
 
         # At the moment, only works if index set is consistent
         if self.index_set == "cross_nc":
-            raise ValueError("cross_nc not supported")
+            raise ValueError("cross_nc not supported!")
         n_polys = core.iterator_size(self.position.dim, degree,
                                      index_set=self.index_set)
 
@@ -255,7 +259,7 @@ class Series:
 
     def to_function(self):
         if not self.position.is_diag:
-            raise ValueError("Position must be diagonal")
+            raise ValueError("Position must be diagonal!")
 
         def rec_a(i):
             return float(1/np.sqrt(i+1))
@@ -289,6 +293,6 @@ class Series:
     def to_cross(self, degree):
         if not self.index_set == "triangle" or \
            not degree + self.position.dim - 1 <= self.degree:
-            raise ValueError("Invalid argument")
+            raise ValueError("Invalid argument!")
         coeffs = self.coeffs[lib.cross_in_triangle(self.position.dim, degree)]
         return Series(coeffs, self.position, index_set="cross")

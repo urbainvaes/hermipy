@@ -77,7 +77,7 @@ class Varf:
 
     def __eq__(self, other):
         if not isinstance(other, Varf):
-            raise ValueError("Invalid argument")
+            raise ValueError("Invalid argument!")
         norm_func = las.norm if self.is_sparse and other.is_sparse else la.norm
         return self.position == other.position \
             and norm_func(self.matrix - other.matrix) < very_small
@@ -91,7 +91,7 @@ class Varf:
             if not self.position == other.position or \
                not self.index_set == other.index_set or \
                not self.factor == other.factor:
-                raise ValueError("Invalid argument")
+                raise ValueError("Invalid argument!")
             new_matrix = self.matrix + other.matrix
 
         else:

@@ -28,6 +28,7 @@ import numpy.linalg as la
 import sympy as sym
 
 # Declare variables, operators and parameters {{{
+
 sym.init_printing()
 equation = eq.McKean_Vlasov
 x, y, f = equation.x, equation.y, equation.f

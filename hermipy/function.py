@@ -40,7 +40,7 @@ class Function():
         for a in args:
             if not isinstance(a, Function) or \
                not dirs.intersection(a.dirs) == set():
-                raise ValueError("Invalid arguments")
+                raise ValueError("Invalid arguments!")
             dirs, sym = dirs.union(a.dirs), sym*a.sym
         return Function(sym, dirs=sorted(dirs))
 
@@ -63,7 +63,7 @@ class Function():
         if dirs is not None:
             self.dirs = dirs
             if dim is not None or not self.dirs == sorted(self.dirs):
-                raise ValueError("Invalid arguments")
+                raise ValueError("Invalid arguments!")
         elif dim is not None:
             self.dirs = list(range(dim))
         else:
@@ -85,7 +85,7 @@ class Function():
         if not isinstance(other, Function):
             other = Function(other, dirs=self.dirs)
         if not self.dirs == other.dirs:
-            raise ValueError("Invalid argument")
+            raise ValueError("Invalid argument!")
         sym = self.sym * other.sym
         return Function(sym, dirs=self.dirs)
 
@@ -93,7 +93,7 @@ class Function():
         if not isinstance(other, Function):
             other = Function(other, dirs=self.dirs)
         if not self.dirs == other.dirs:
-            raise ValueError("Invalid argument")
+            raise ValueError("Invalid argument!")
         sym = self.sym / other.sym
         return Function(sym, dirs=self.dirs)
 
@@ -101,7 +101,7 @@ class Function():
         if not isinstance(other, Function):
             other = Function(other, dirs=self.dirs)
         if not self.dirs == other.dirs:
-            raise ValueError("Invalid argument")
+            raise ValueError("Invalid argument!")
         sym = self.sym + other.sym
         return Function(sym, dirs=self.dirs)
 
@@ -125,7 +125,10 @@ class Function():
     def project(self, dirs):
         dirs = dirs if isinstance(dirs, list) else [dirs]
         split_fun = self.split(legacy=False)
-        assert len(split_fun) == 1
+
+        if not len(split_fun) == 1:
+            raise ValueError("Invalid argument: \
+function can't be split")
 
         # Absorb constant in projection on lowest index
         if self.dirs[0] in dirs:

@@ -119,8 +119,9 @@ class Quad:
             if dirs is None:
                 dirs = list(range(dim))
 
-            assert dim == len(bounds)
-            assert dim == len(dirs)
+            if not dim == len(bounds) or \
+               not dim == len(dirs):
+                raise ValueError("Incompatible arguments!")
 
             mean, cov = np.zeros(dim), np.zeros((dim, dim))
             for i in range(dim):

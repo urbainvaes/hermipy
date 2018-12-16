@@ -73,7 +73,8 @@ def solve_gaussian(operator, f, variables):
         sol_s2 = sym.solve(coeffs_list, s2)[s2]
         solution = ansatz.subs(s2, sol_s2)
 
-    assert operator.subs(f, solution).doit().expand().cancel() == 0
+    if not operator.subs(f, solution).doit().expand().cancel() == 0:
+        print("Solution found is not correct!")
     return solution
 
 
@@ -435,7 +436,8 @@ class Generalized_Langevin:
 
         # Usual Langevin equation
         else:
-            assert 'γ' in params
+            if 'γ' not in params:
+                raise ValueError("Invalid argument, γ must be specified!")
             f, γ = cls.fL, params['γ']
 
             # Backward Kolmogorov operator

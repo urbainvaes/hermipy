@@ -33,7 +33,7 @@ class Position:
         dirs = []
         for a in args:
             if not isinstance(a, Position) or not a.is_diag:
-                raise ValueError("Invalid arguments")
+                raise ValueError("Invalid arguments!")
             for d in a.dirs:
                 if not dirs.count(d) <= 1:
                     raise ValueError("Direction appears more than once")
@@ -48,8 +48,9 @@ class Position:
             # Check removed directions match
             for d in [d for d in p1.dirs if d in p2.dirs]:
                 i1, i2 = p1.dirs.index(d), p2.dirs.index(d)
-                assert p1.mean[i1] == p2.mean[i2]
-                assert p1.cov[i1][i1] == p2.cov[i2][i2]
+                if not p1.mean[i1] == p2.mean[i2] or \
+                   not p1.cov[i1][i1] == p2.cov[i2][i2]:
+                    raise ValueError("Mean or Cov do not match!")
 
             # Tensorization
             for d in dirs_result:
@@ -116,7 +117,7 @@ class Position:
 
     def __mul__(self, other):
         if not isinstance(other, Position):
-            raise ValueError("Invalid argument")
+            raise ValueError("Invalid argument!")
         return Position.tensorize([self, other])
 
     def __repr__(self):
@@ -147,7 +148,7 @@ class Position:
         if isinstance(directions, int):
             directions = [directions]
         if not self.is_diag or not directions == sorted(directions):
-            raise ValueError("Invalid arguments")
+            raise ValueError("Invalid argument!")
         dirs, dim = directions, len(directions)
         mean, cov, types = np.zeros(dim), np.zeros((dim, dim)), [""]*dim
         rel_dirs = [self.dirs.index(d) for d in directions]
