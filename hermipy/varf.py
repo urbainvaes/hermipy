@@ -27,7 +27,7 @@ import hermipy.stats as stats
 import scipy.sparse as ss
 import numpy as np
 import numpy.linalg as la
-import scipy.sparse.linalg as las
+import scipy.sparse.linalg as spla
 import matplotlib
 
 very_small = 1e-10
@@ -78,7 +78,7 @@ class Varf:
     def __eq__(self, other):
         if not isinstance(other, Varf):
             raise ValueError("Invalid argument!")
-        norm_func = las.norm if self.is_sparse and other.is_sparse else la.norm
+        norm_func = spla.norm if self.is_sparse and other.is_sparse else la.norm
         return self.position == other.position \
             and norm_func(self.matrix - other.matrix) < very_small
 
@@ -168,7 +168,9 @@ class Varf:
                     factor=self.factor, index_set="cross")
 
     def solve(self, series, use_gmres=False,
-              remove0=False, remove_vec=None, **kwargs):
+              remove0=False, remove_vec=None,
+              preconditioner=None, **kwargs):
+
         if not self.position == series.position or \
            not self.index_set == series.index_set:
             raise ValueError("Invalid argument: \
@@ -205,9 +207,12 @@ class Varf:
             # Extend hash function to ignore callback
             from scipy.sparse.linalg import gmres
             cachefun = cache.cache(quiet=True, hash_extend=lambda arg: '0')
-            solution = cachefun(gmres)(matrix, vector, **kwargs)[0]
+            if preconditioner == 'ilu':
+                ilu, n = spla.spilu(matrix), matrix.shape[0]
+                M = spla.LinearOperator((n, n), ilu.solve)
+            solution = cachefun(gmres)(matrix, vector, M=M, **kwargs)[0]
         else:
-            solve = cache.cache(quiet=True)(las.spsolve if self.is_sparse
+            solve = cache.cache(quiet=True)(spla.spsolve if self.is_sparse
                                             else la.solve)
             solution = solve(matrix, vector, **kwargs)
 
@@ -219,7 +224,7 @@ class Varf:
 
     @stats.log_stats()
     def eigs(self, **kwargs):
-        eigs = cache.cache(quiet=True)(las.eigs)
+        eigs = cache.cache(quiet=True)(spla.eigs)
         eig_vals, eig_vecs = eigs(self.matrix, **kwargs)
         result = []
         for v in eig_vecs.T:

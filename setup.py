@@ -18,12 +18,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-from setuptools import setup
+# from setuptools import setup
+from distutils.core import setup
 from distutils.core import Extension
 from distutils.command.build_ext import build_ext as build_ext_orig
 import os
 import shutil
-
 
 
 class build_ext(build_ext_orig):
