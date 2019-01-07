@@ -2,6 +2,7 @@
 hermite_cpp.so
 /docs/build/*
 /build/*
+/backup
 
 # Test and output files
 /test.*
