@@ -19,10 +19,11 @@ endif (CMAKE_BUILD_TYPE STREQUAL "")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 # Default library output directory
-if (CMAKE_LIBRARY_OUTPUT_DIRECTORY STREQUAL "")
+if (NOT DEFINED CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+    message(STATUS "Setting default library output directory...")
     set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/..)
-endif (CMAKE_LIBRARY_OUTPUT_DIRECTORY STREQUAL "")
-message(STATUS "Library output directory: ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+endif (NOT DEFINED CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+message(STATUS "Library output directory: '${CMAKE_LIBRARY_OUTPUT_DIRECTORY}'")
 
 # Alternative to target only a specific library
 # set_target_properties(hermite_cpp PROPERTIES PREFIX ""
