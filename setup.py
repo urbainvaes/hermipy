@@ -46,12 +46,14 @@ class build_ext(build_ext_orig):
 
 
 setup(name='Hermipy',
-      version='v0.3.1',
+      version='0.3.1',
+      license='GPLv3+',
       description='Library for the Hermite spectral method',
       author='Urbain Vaes',
       author_email='urbain@vaes.uk',
       url='https://github.com/urbainvaes/hermite',
       packages=['hermipy'],
+      # package_data = {'hermipy': ['hermite_cpp.so']},
       ext_modules=[Extension('hermite_cpp', sources=[])],
       cmdclass={'build_ext': build_ext},
       test_suite='tests',
