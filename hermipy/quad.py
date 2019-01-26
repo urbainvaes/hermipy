@@ -201,8 +201,22 @@ class Quad:
                 for add in function.split(legacy=False):
                     multiplicator = add[frozenset()]
                     del add[frozenset()]
-                    func_dirs = {}
+
+                    factor_split = quad.factor.split(legacy=False)
+                    if len(factor_split) is not 1:
+                        raise ValueError("Tensorization not possible!")
+                    finest_division = lib.finest_common(set(add),
+                                                        set(factor_split[0]))
+                    new_add = {sub: hm.Function('1')
+                               for sub in finest_division}
                     for dirs, term in add.items():
+                        for s in new_add:
+                            if dirs.issubset(s):
+                                f = hm.Function(new_add[s].sym * term.sym,
+                                                dirs=list(s))
+                                new_add[s] = f
+                    func_dirs = {}
+                    for dirs, term in new_add.items():
                         new_args = list(args).copy()
                         new_args[0] = quad.project(list(dirs))
                         new_args[arg_num] = term

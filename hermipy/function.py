@@ -139,7 +139,7 @@ function can't be split")
         for v, term in split_fun[0].items():
             if v.issubset(dirs) and v != frozenset():
                 result *= term.sym
-            elif set(dirs).issubset(v):
+            elif set(dirs) != set() and set(dirs).issubset(v):
                 raise ValueError("Can't project factor!")
         return Function(result, dirs=dirs)
 

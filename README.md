@@ -24,6 +24,8 @@ For more information, read the [documentation](https://hermipy.readthedocs.io/en
 
 - Inherit sympy.function / sympy.operator instead of custom classes.
 
+- Correct awkward handling of multiplier in Function.project
+
 ## License
 
 This program is free software: you can redistribute it and/or modify

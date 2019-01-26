@@ -36,3 +36,33 @@ def hermegauss_nd(n_points):
 def cross_in_triangle(dim, degree):
         list_cross = core.iterator_list_indices(dim, degree, index_set="cross")
         return [core.iterator_index(m) for m in list_cross]
+
+
+def finest_common(set1, set2):
+
+    set1, set2 = set1.copy(), set2.copy()
+
+    difference = set1 - set2
+    if difference == set():
+        return set1
+
+    s = list(difference)[0]
+    set1.remove(s)
+
+    while (any(s1.intersection(s) != set() for s1 in set1) or
+           any(s2.intersection(s) != set() for s2 in set2)):
+
+        for s2 in list(set2):
+            if s.intersection(s2) != set():
+                s = s.union(s2)
+                set2.remove(s2)
+
+        for s1 in list(set1):
+            if s.intersection(s1) != set():
+                s = s.union(s1)
+                set1.remove(s1)
+
+    set1.add(s)
+    set2.add(s)
+
+    return finest_common(set1, set2)
