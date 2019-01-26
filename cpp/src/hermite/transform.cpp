@@ -42,7 +42,7 @@ using namespace std;
 namespace hermite {
 
 template<typename Iterator>
-vec transform(
+vec _transform(
         u_int degree,
         vec const & input,
         mat const & nodes,
@@ -157,12 +157,12 @@ vec transform(
         bool forward,
         std::string const & index_set)
 {
-    auto function = transform<Triangle_iterator>;
+    auto function = _transform<Triangle_iterator>;
     if (index_set == "triangle");
-    else if (index_set == "cross") function = transform<Cross_iterator>;
-    else if (index_set == "cross_nc") function = transform<Cross_iterator_nc>;
-    else if (index_set == "cube") function = transform<Cube_iterator>;
-    else if (index_set == "rectangle") function = transform<Rectangle_iterator>;
+    else if (index_set == "cross") function = _transform<Cross_iterator>;
+    else if (index_set == "cross_nc") function = _transform<Cross_iterator_nc>;
+    else if (index_set == "cube") function = _transform<Cube_iterator>;
+    else if (index_set == "rectangle") function = _transform<Rectangle_iterator>;
     else { std::cerr << "Invalid index set!" << std::endl; exit(1); }
     return function(degree, input, nodes, weights, do_fourier, forward);
 }

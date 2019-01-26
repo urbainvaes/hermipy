@@ -26,6 +26,15 @@
 
 namespace hermite {
 
+template<typename Iterator>
+vec _transform(
+        u_int degree,
+        vec const & f_grid,
+        mat const & nodes,
+        mat const & weights,
+        ivec const & do_fourier,
+        bool forward);
+
 vec transform(
         u_int degree,
         vec const & f_grid,

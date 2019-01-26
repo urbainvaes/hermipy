@@ -178,7 +178,7 @@ T varf(
     #endif
 
     // Hermite transform of input function
-    vec Hf = transform(2*degree, input, nodes, weights, do_fourier, true);
+    vec Hf = _transform<Iterator>(2*degree, input, nodes, weights, do_fourier, true);
 
     #ifdef DEBUG
     cout << "--> Determining whether to use sparse matrices." << endl;
