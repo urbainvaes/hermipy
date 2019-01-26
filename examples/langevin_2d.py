@@ -14,20 +14,20 @@ hm.settings['cache'] = True
 # Variables, corresponding to (q, p, z1, z2), and unknown function
 x, y, z, w = sym.symbols('x y z w')
 f = sym.Function('f')(x, y, z, w)
+fxy = sym.Function('f')(x, y)
 
 # Vector containing auxiliary variables
 z_vec = sym.Matrix([z, w])
 
 # Physical parameters
 b = 1
-g = 1
-d = .1
+g = 100
+d = .2
 
 # Periodic potential
 delta = sym.symbols('δ')
-V0 = (1/2)*(1 - sym.cos((x+y)/sym.sqrt(2))) + (1/2)*(1 - sym.cos((x-y)/sym.sqrt(2)))
 V0 = (1/2)*(1 - sym.cos(x)) + (1/2)*(1 - sym.cos(y))
-V1 = (1/2)*sym.sin(x)*sym.sin(y)
+V1 = (1/2)*sym.cos(x)*sym.cos(y)
 V = V0 + delta*V1
 
 # Normalization
@@ -57,7 +57,6 @@ qz = hm.Quad.gauss_hermite(npoints, dirs=[2], cov=[[1]], factor=1)
 qw = hm.Quad.gauss_hermite(npoints, dirs=[3], cov=[[1]], factor=1)
 
 # Calculate the tensor product of the quadratures
-# quad = qx*qy*qz*qw
 quad = qxy*qz*qw
 
 # Calculate the matrix discretizing 'backward'
@@ -83,5 +82,24 @@ diffusion_21 = float(solution2*rhs1)
 diffusion_22 = float(solution2*rhs2)
 diffusion_matrix = np.matrix([[diffusion_11, diffusion_12],
                               [diffusion_21, diffusion_22]])
+
 print(diffusion_matrix)
+
+backward_overdamped = \
+    - V.diff(x)*fxy.diff(x) - V.diff(y)*fxy.diff(y) \
+    + (1/b)*fxy.diff(x, x) + (1/b)*fxy.diff(y, y)
+
+Mo = qxy.discretize_op(backward_overdamped.subs(delta, d), **kwargs)
+rhs1 = qxy.transform(-V.subs(delta, d).diff(x), **kwargs)
+rhs2 = qxy.transform(-V.subs(delta, d).diff(y), **kwargs)
+remove = qxy.transform(1, **kwargs)
+solution1 = (-Mo).solve(rhs1, remove_vec=remove)
+solution2 = (-Mo).solve(rhs2, remove_vec=remove)
+Iop = qxy.transform(1, **kwargs)
+dx = qxy.discretize_op(fxy.diff(x), **kwargs)
+dy = qxy.discretize_op(fxy.diff(y), **kwargs)
+diffusion1 = (1/b) + float(solution1*rhs1) + (2/b)*float(Iop*dx(solution1))
+diffusion2 = (1/b) + float(solution2*rhs2) + (2/b)*float(Iop*dy(solution2))
+print(diffusion1, diffusion2)
+
 time.sleep(1)
