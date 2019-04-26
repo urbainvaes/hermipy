@@ -4,12 +4,11 @@ import os
 import argparse
 import sympy as sym
 import numpy as np
-import matplotlib
 import hermipy as hm
 import hermipy.equations as eq
-import matplotlib.pyplot as plt
 import scipy.io
 import scipy.integrate
+import matplotlib
 
 hm.settings['tensorize'] = True
 hm.settings['sparse'] = True
@@ -24,11 +23,18 @@ parser.add_argument('-m0', '--mass0', type=str)
 parser.add_argument('-m', '--mass', type=str)
 parser.add_argument('-t', '--theta', type=str)
 parser.add_argument('-d', '--degree', type=int)
+parser.add_argument('-i', '--interactive', action='store_true')
+parser.add_argument('-ta', '--test_animate', action='store_true')
 parser.add_argument('-tp', '--test_plots', action='store_true')
 parser.add_argument('-te', '--test_eigs', action='store_true')
 parser.add_argument('-tc', '--test_convergence', action='store_true')
 parser.add_argument('--method', type=str)
 args = parser.parse_args()
+
+if not args.interactive:
+    matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 # Directory for output files
 dir = ""
@@ -40,6 +46,7 @@ if args.directory:
 matplotlib.rc('font', size=20)
 matplotlib.rc('font', family='serif')
 matplotlib.rc('text', usetex=True)
+matplotlib.rc('figure', figsize=(14, 8))
 
 # Dimension of the problem
 dim = 1
@@ -216,7 +223,7 @@ if args.test_convergence:
     np.save("comparison_carrillo_degrees_{}".format(method), degrees)
     np.save("comparison_carrillo_errors_{}".format(method), errors)
 
-# Plots {{{
+# Plots {{{1
 if args.test_plots:
 
     result = solve('ode45')
@@ -264,4 +271,37 @@ if args.test_plots:
         if i % 10 == 0:
             plot(i, t)
 
-# }}}
+# Test animations {{{1
+if args.test_animate:
+    result = solve('ode45')
+    writer = animation.writers['ffmpeg'](fps=15, bitrate=1800)
+    fig, ax = plt.subplots()
+    l1, = ax.plot([], [], label='Spectral method')
+    l2, = ax.plot([], [], label='Finite volume method')
+    time_text = ax.text(.08, .05, "Time: 0.00", fontsize=18,
+                        horizontalalignment='center',
+                        verticalalignment='center',
+                        transform=ax.transAxes)
+    legend = ax.legend()
+
+    def init():
+        ax.set_xlim(-4, 4)
+        ax.set_ylim(-.1, .6)
+        return time_text, legend, l1, l2
+
+    fig_tmp, ax_tmp = plt.subplots()
+    factor = 10
+
+    def update(i):
+        index = i*factor
+        ax.set_prop_cycle(None)
+        newl1, = quad_comparison.plot(result[index], ax=ax_tmp)
+        newl2, = quad_comparison.plot(rho[index], ax=ax_tmp)
+        l1.set_data(*newl1.get_data())
+        l2.set_data(*newl2.get_data())
+        time_text.set_text('Time: {0:.2f}'.format(time[index]))
+        return time_text, legend, l1, l2
+
+    im_ani = animation.FuncAnimation(fig, update, len(result) // factor,
+                                     init_func=init, repeat=False, blit=True)
+    im_ani.save('white-noise-d={}.avi'.format(degree), writer=writer)
