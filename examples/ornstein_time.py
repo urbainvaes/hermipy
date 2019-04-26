@@ -26,12 +26,14 @@ import numpy as np
 import hermipy as hm
 import hermipy.equations as eq
 import matplotlib
+import matplotlib.animation as animation
 
 # }}}
 # Parse options {{{
 parser = argparse.ArgumentParser()
 parser.add_argument('-tp', '--test_plots', action='store_true')
 parser.add_argument('-tc', '--test_convergence', action='store_true')
+parser.add_argument('-a', '--animate', action='store_true')
 parser.add_argument('-i', '--interactive', action='store_true')
 parser.add_argument('-dir', '--directory', type=str)
 parser.add_argument('-m0', '--mass0', type=float)
@@ -40,6 +42,7 @@ parser.add_argument('-b', '--beta', type=float)
 parser.add_argument('-t', '--theta', type=str)
 parser.add_argument('-m', '--mass', type=float)
 parser.add_argument('-d', '--degree', type=int)
+parser.add_argument('-nv', '--nvisu', type=int)
 parser.add_argument('--method', type=str)
 args = parser.parse_args()
 
@@ -61,6 +64,7 @@ hm.settings['cache'] = True
 matplotlib.rc('font', size=18)
 matplotlib.rc('font', family='serif')
 matplotlib.rc('text', usetex=True)
+matplotlib.rc('figure', figsize=(14, 8))
 # }}}
 # Data and parameters for numerical simulation {{{
 
@@ -84,17 +88,18 @@ r, s = sym.Rational, sym.symbols
 θ = set_param(args.theta, 1, 'θ')
 m = set_param(args.mass, s('m'), 'm')
 m0x, m0y = set_param(args.mass0, 1, 'm0'), 1
-Vp, Vy = x*x/2, y*y/2
+# Vp, Vy = x*x/2, y*y/2
+Vp, Vy = x**4/4 - x**2/2, y*y/2
 
 params = {'β': β, 'ε': ε, 'γ': 0, 'θ': θ, 'm': m, 'Vp': Vp, 'Vy': Vy}
-s2x, s2y = r(1, 5), r(1, 5)
+s2x, s2y = r(1, 10), r(1, 10)
 Vqx, Vqy = r(1/2)*x*x/s2x, r(1/2)*y*y/s2y
 forward = eq.McKean_Vlasov.equation(params)
 
-factor_x = sym.exp(- 1/2 * (Vqx + β*Vp))
-factor_y = sym.exp(- 1/2 * (Vqy + Vy))
-# factor_x = sym.exp(- 1/2 * Vqx)
-# factor_y = sym.exp(- 1/2 * Vqy)
+# factor_x = sym.exp(- 1/2 * (Vqx + β*Vp))
+# factor_y = sym.exp(- 1/2 * (Vqy + Vy))
+factor_x = sym.exp(- 1/2 * Vqx)
+factor_y = sym.exp(- 1/2 * Vqy)
 # factor_x = sym.exp(- β*(Vp + θ*x*x/2))
 # factor_y = sym.exp(- Vy)
 # factor_x = sym.exp(- β*(Vp + θ*x*x/2))
@@ -108,7 +113,8 @@ n_points_num = 2*degree + 1
 new_gh, new_nc = hm.Quad.gauss_hermite, hm.Quad.newton_cotes
 cov = [[s2x, 0], [0, s2y]]
 quad = new_gh(n_points_num, dim=2, mean=[0]*2, cov=cov, factor=factor)
-quad_visu = new_nc([200, 200], [4, 4], factor=factor)
+nvisu = args.nvisu if args.nvisu else 200
+quad_visu = new_nc([nvisu, nvisu], [4, 4], factor=factor)
 
 # Operators
 m_operator = forward.diff(m)
@@ -128,7 +134,7 @@ mx1 = qx.transform(wx * x, degree=degree, index_set=index_set)
 my1 = qy.transform(wy * y, degree=degree, index_set=index_set)
 
 # Time
-time = np.linspace(0, 3, 301)
+time = np.linspace(0, 4, 401)
 # }}}
 # Exact solution {{{
 dimension = 2
@@ -157,7 +163,7 @@ def solve(method, subdegree=degree):
     sub_mx1 = mx1.subdegree(subdegree)
 
     # Initial condition
-    u = sym.exp(-(x-m0x)*(x-m0x)/2) * sym.exp(-(y - m0y)*(y - m0y)/2)
+    u = sym.exp(-(x-m0x)*(x-m0x)/2) * sym.exp(-(y - m0y)**2/2)
     u = u / quad.integrate(u, flat=True)
     t = quad.transform(u, degree=subdegree, index_set=index_set)
 
@@ -173,7 +179,7 @@ def solve(method, subdegree=degree):
 
         result = scipy.integrate.solve_ivp(dfdt, [time[0], time[-1]], t.coeffs,
                                            'RK45', t_eval=time, max_step=.01,
-                                            atol=1e-9, rtol=1e-9)
+                                            atol=1e-2, rtol=1e-2)
         result = [quad.series(y, index_set=index_set) for y in result.y.T]
 
     elif method == "semi_explicit":
@@ -250,10 +256,11 @@ if args.test_convergence:
     np.save("comp_exact_gaussian_time_errors_{}".format(method), errors)
 
 # }}}
-# Plots {{{
+# Plots {{{1
 if args.test_plots:
 
     result = solve('ode45')
+    np.save('ornstein_time_plots', result)
 
     plt.ion()
     fig, ax = plt.subplots(2)
@@ -292,4 +299,30 @@ if args.test_plots:
                     bbox_inches='tight')
         plt.show()
 
-# }}}
+# Animations {{{1
+if args.animate:
+
+    factor = 5
+    result = solve('semi_explicit')
+    plt.tight_layout(pad=.2)
+    fig, ax = plt.subplots()
+    ax.set_xlabel('$x$')
+    ax.set_ylabel('$\\eta$')
+    title0 = 'Time: {:.2f}'.format(time[0])
+    cont = quad_visu.plot(result[0], ax=ax, bounds=False, title=title0)
+
+    def update(i):
+        global cont
+        print("Iteration {}".format(i))
+        index = i*factor
+        title = 'Time: {:.2f}'.format(time[index])
+        for c in cont.collections:
+            c.remove()
+        cont = quad_visu.plot(result[index], ax=ax, bounds=False,
+                              title=title, vmin=0.01, extend='min')
+        return cont
+
+    fig.subplots_adjust(bottom=0.15)
+    anim = animation.FuncAnimation(fig, update, range(len(result) // factor), blit=False)
+    writer = animation.writers['ffmpeg'](fps=4, bitrate=1800)
+    anim.save('anim.avi', writer=writer)
