@@ -27,7 +27,6 @@ import hermipy as hm
 import hermipy.equations as eq
 import matplotlib
 
-
 # }}}
 # Parse options {{{
 parser = argparse.ArgumentParser()
@@ -173,7 +172,8 @@ def solve(method, subdegree=degree):
             return return_vector
 
         result = scipy.integrate.solve_ivp(dfdt, [time[0], time[-1]], t.coeffs,
-                                           'RK45', t_eval=time, max_step=.01)
+                                           'RK45', t_eval=time, max_step=.01,
+                                            atol=1e-9, rtol=1e-9)
         result = [quad.series(y, index_set=index_set) for y in result.y.T]
 
     elif method == "semi_explicit":
@@ -226,8 +226,8 @@ if args.test_convergence:
         errors_semi_explicit = np.load("data/comparison_exact/comp_exact_gaussian_time_errors_semi_explicit.npy")
 
         fig, ax = plt.subplots()
-        plt.semilogy(degrees, errors_ode45, '.', label='RK45')
-        plt.semilogy(degrees, errors_semi_explicit, '.', label='Semi-implicit')
+        plt.semilogy(degrees, errors_ode45, '.-', label='RK45')
+        plt.semilogy(degrees, errors_semi_explicit, '.--', label='Semi-implicit')
         ax.set_xlabel("Degree of Hermite functions")
         ax.set_title("Error (in the $L^\\infty(0, T; L^1(\\mathbf R))$ norm)")
         plt.legend()
