@@ -305,7 +305,9 @@ if args.test_animate:
         return time_text, legend, l1, l2
 
     anim = animation.FuncAnimation(fig, update, len(result) // factor,
-                                     init_func=init, repeat=False, blit=True)
+                                   init_func=init, repeat=False, blit=True)
+    with open("video.html", "w") as video_file:
+        print(anim.to_html5_video(), file=video_file)
     anim.save('white-noise-d={}.avi'.format(degree), writer=writer)
 
 # Test animation of Hermite coefficients {{{1
