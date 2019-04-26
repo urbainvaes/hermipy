@@ -25,6 +25,7 @@ parser.add_argument('-t', '--theta', type=str)
 parser.add_argument('-d', '--degree', type=int)
 parser.add_argument('-i', '--interactive', action='store_true')
 parser.add_argument('-ta', '--test_animate', action='store_true')
+parser.add_argument('-tac', '--test_animate_coefficients', action='store_true')
 parser.add_argument('-tp', '--test_plots', action='store_true')
 parser.add_argument('-te', '--test_eigs', action='store_true')
 parser.add_argument('-tc', '--test_convergence', action='store_true')
@@ -276,6 +277,7 @@ if args.test_animate:
     result = solve('ode45')
     writer = animation.writers['ffmpeg'](fps=15, bitrate=1800)
     fig, ax = plt.subplots()
+    ax.set_xlabel('$x$')
     l1, = ax.plot([], [], label='Spectral method')
     l2, = ax.plot([], [], label='Finite volume method')
     time_text = ax.text(.08, .05, "Time: 0.00", fontsize=18,
@@ -302,6 +304,36 @@ if args.test_animate:
         time_text.set_text('Time: {0:.2f}'.format(time[index]))
         return time_text, legend, l1, l2
 
-    im_ani = animation.FuncAnimation(fig, update, len(result) // factor,
+    anim = animation.FuncAnimation(fig, update, len(result) // factor,
                                      init_func=init, repeat=False, blit=True)
-    im_ani.save('white-noise-d={}.avi'.format(degree), writer=writer)
+    anim.save('white-noise-d={}.avi'.format(degree), writer=writer)
+
+# Test animation of Hermite coefficients {{{1
+if args.test_animate_coefficients:
+    result = solve('ode45')
+    writer = animation.writers['ffmpeg'](fps=15, bitrate=1800)
+    fig, ax = plt.subplots()
+    ax.set_yscale('log')
+    ax.set_xlabel('d')
+    ax.set_ylim(1e-3,1)
+    rects = ax.bar(range(degree + 1), abs(result[0].coeffs), bottom=0.001)
+    time_text = ax.text(.92, .95, "Time: 0.00", fontsize=18,
+                        horizontalalignment='center',
+                        verticalalignment='center',
+                        transform=ax.transAxes)
+    fig_tmp, ax_tmp = plt.subplots()
+    factor = 10
+
+    def init():
+        return rects, time_text
+    def update(i):
+        index = i*factor
+        new_rects = result[index].plot(ax=ax_tmp)
+        for r, newr in zip(rects, new_rects):
+            r.set_height(abs(newr.get_height()))
+        time_text.set_text('Time: {0:.2f}'.format(time[index]))
+        return rects, time_text
+
+    anim = animation.FuncAnimation(fig, update, len(result) // factor,
+                                   init_func=init, repeat=False, interval=5)
+    anim.save('white-noise-coeffs-d={}.avi'.format(degree), writer=writer)
