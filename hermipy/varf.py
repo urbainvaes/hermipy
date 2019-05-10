@@ -182,13 +182,15 @@ class Varf:
 
             if remove0:
                 [e], [s] = self.eigs(k=1, which='SM')
-                print("Removing eigenspace with eigenvalue {}.".format(abs(e)))
+                if 'quiet' not in kwargs or kwargs['quiet'] is False:
+                    print("Removing eigenspace with eigenvalue {}.".format(abs(e)))
                 remove_vec = s
 
             else:
                 remove_vec = remove_vec / np.sqrt(float(remove_vec*remove_vec))
                 e = float(remove_vec*self(remove_vec))
-                print("Removing vector with value {}.".format(abs(e)))
+                if 'quiet' not in kwargs or kwargs['quiet'] is False:
+                    print("Removing vector with value {}.".format(abs(e)))
 
             if abs(e) > 0.01:
                 print("[Hermipy:varf:solve warning] Value of e: {}".format(e))
