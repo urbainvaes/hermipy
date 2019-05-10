@@ -313,7 +313,6 @@ if args.test_animate:
 # Test animation of Hermite coefficients {{{1
 if args.test_animate_coefficients:
     result = solve('ode45')
-    writer = animation.writers['ffmpeg'](fps=15, bitrate=1800)
     fig, ax = plt.subplots()
     ax.set_yscale('log')
     ax.set_xlabel('d')
@@ -338,4 +337,5 @@ if args.test_animate_coefficients:
 
     anim = animation.FuncAnimation(fig, update, len(result) // factor,
                                    init_func=init, repeat=False, interval=5)
+    writer = animation.writers['ffmpeg'](fps=15, bitrate=1800)
     anim.save('white-noise-coeffs-d={}.avi'.format(degree), writer=writer)
