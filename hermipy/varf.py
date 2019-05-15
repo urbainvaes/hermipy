@@ -169,7 +169,7 @@ class Varf:
 
     def solve(self, series, use_gmres=False,
               remove0=False, remove_vec=None,
-              preconditioner=None, **kwargs):
+              preconditioner=None, quiet=False, **kwargs):
 
         if not self.position == series.position or \
            not self.index_set == series.index_set:
@@ -182,14 +182,14 @@ class Varf:
 
             if remove0:
                 [e], [s] = self.eigs(k=1, which='SM')
-                if 'quiet' not in kwargs or kwargs['quiet'] is False:
+                if not quiet:
                     print("Removing eigenspace with eigenvalue {}.".format(abs(e)))
                 remove_vec = s
 
             else:
                 remove_vec = remove_vec / np.sqrt(float(remove_vec*remove_vec))
                 e = float(remove_vec*self(remove_vec))
-                if 'quiet' not in kwargs or kwargs['quiet'] is False:
+                if not quiet:
                     print("Removing vector with value {}.".format(abs(e)))
 
             if abs(e) > 0.01:
