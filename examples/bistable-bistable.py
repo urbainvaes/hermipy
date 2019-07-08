@@ -24,7 +24,7 @@ r = sym.Rational
 # num['index_set'] = 'rectangle'
 
 # For convergence
-num['degree'] = 250  # Or 250
+num['degree'] = 150  # Or 250
 num['n_points_num'] = 350
 num['μx'] = r(0, 4)
 num['μy'] = r(0, 4)
