@@ -4,11 +4,11 @@ import os
 import argparse
 import sympy as sym
 import numpy as np
-import hermipy as hm
-import hermipy.equations as eq
 import scipy.io
 import scipy.integrate
 import matplotlib
+import hermipy as hm
+import hermipy.equations as eq
 
 hm.settings['tensorize'] = True
 hm.settings['sparse'] = True
@@ -47,7 +47,7 @@ if args.directory:
 matplotlib.rc('font', size=20)
 matplotlib.rc('font', family='serif')
 matplotlib.rc('text', usetex=True)
-# matplotlib.rc('figure', figsize=(14, 8))
+matplotlib.rc('figure', figsize=(14, 8))
 
 # Dimension of the problem
 dim = 1
@@ -150,7 +150,8 @@ rho = [rho[i] for i in range(0, len(rho) - 1, subsample)]
 quad_comparison = hm.Quad(nodes=[xs], weights=[xs*0], types=["visu"])
 
 
-def solve(method, subdegree=degree, limit=False):
+time = np.linspace(0, 5, 2000)
+def solve(method, subdegree=degree, limit=0):
 
     # Subdegree
     sub_r_mat = r_mat.subdegree(subdegree)
@@ -162,8 +163,8 @@ def solve(method, subdegree=degree, limit=False):
     u = sym.exp(-(x-m0)*(x-m0)/2)
     u = u / quad.integrate(u, flat=True)
 
-    if limit:
-        t = quad.transform(u, degree=25)
+    if limit != 0:
+        t = quad.transform(u, degree=limit)
         t = t.subdegree(degree=subdegree)
     else:
         t = quad.transform(u, degree=subdegree)
@@ -178,7 +179,7 @@ def solve(method, subdegree=degree, limit=False):
             return return_vector
         result = scipy.integrate.solve_ivp(dfdt, [0, 5], t.coeffs, 'RK45',
                                            t_eval=time, max_step=.01,
-                                           atol=1e-11, rtol=1e-11)
+                                           atol=1e-12, rtol=1e-12)
         result = [quad.series(y) for y in result.y.T]
 
     elif method == "semi_explicit":
@@ -215,10 +216,10 @@ def solve(method, subdegree=degree, limit=False):
 method = args.method if args.method else "ode45"
 exact = solve(method, subdegree=degree)
 exact_eval = [quad_comparison.eval(e) for e in exact]
-error_rho = [e - rho[i] for i, e in enumerate(exact_eval)]
-error_rho = [np.sum(np.abs(e)) * (xs[-1] - xs[0])/(len(e) - 1)
-             for e in error_rho]
-error_rho = np.max(error_rho)
+# error_rho = [e - rho[i] for i, e in enumerate(exact_eval)]
+# error_rho = [np.sum(np.abs(e)) * (xs[-1] - xs[0])/(len(e) - 1)
+#              for e in error_rho]
+# error_rho = np.max(error_rho)
 # exact_eval = rho
 
 
@@ -269,7 +270,7 @@ if args.test_plots:
     # result1 = solve('ode45')
     result_exact = solve('ode45')
     result_coarse = solve('ode45', subdegree=25)
-    result_limited = solve('ode45', limit=25)
+    result_limited = solve('ode45', subdegree=50, limit=25)
 
     error_coarse, error_limited, delta_initial = [], [], []
 
@@ -282,12 +283,15 @@ if args.test_plots:
         error_limited.append(L1(quad_comparison.eval(r) - quad_comparison.eval(result_limited[i])))
         delta_initial.append(L1(quad_comparison.eval(result_coarse[i]) - quad_comparison.eval(result_limited[i])))
 
-    plt.plot(time, error_coarse, label='Error coarse')
-    plt.plot(time, error_limited, label='Error limited')
-    plt.plot(time, delta_initial, label='Error initial')
+    plt.plot(time, error_coarse, label='$\\| \\rho_{{c}} - \\rho_{{e}}\\|_{{L^1(\\mathbf R)}}$')
+    plt.plot(time, error_limited, label='$\\| \\rho_{{i}} - \\rho_{{e}}\\|_{{L^1(\\mathbf R)}}$')
+    plt.plot(time, delta_initial, label='$\\| \\rho_{{c}} - \\rho_{{i}}\\|_{{L^1(\\mathbf R)}}$')
+    plt.title("Analysis of the error")
+    plt.xlabel("$t$")
     plt.legend()
+    plt.savefig('errors.pdf', bbox_inches='tight')
     plt.show()
-    import ipdb; ipdb.set_trace()
+    exit(0)
 
 
     times = [0, 1, 2, 5]
