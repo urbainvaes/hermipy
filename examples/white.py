@@ -234,11 +234,15 @@ if args.test_plots:
         i = np.argmin(np.abs(np.asarray(time) - t))
         fig, ax = plt.subplots()
         ax.set_xlim(-4, 4)
+        Δ = quad_comparison.eval(result[i]) - rho[i]
+        error_L1 = np.sum(np.abs(Δ))*(xs[-1] - xs[0])/(len(Δ) - 1)
+        print(error_L1)
         quad_comparison.plot(result[i], ax=ax, bounds=False,
                              label="Spectral")
         quad_comparison.plot(rho[i], ax=ax, bounds=False,
                              label="Finite-volume",
-                             title="Time: {0:.2f}".format(time[i]))
+                             title="Time: {:.2f}, Error: {:.2e}".
+                             format(time[i], error_L1))
         ax.set_xlabel('$x$')
         if t == 5:
             plt.legend(loc='lower left')
