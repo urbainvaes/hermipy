@@ -47,7 +47,7 @@ if args.directory:
 matplotlib.rc('font', size=20)
 matplotlib.rc('font', family='serif')
 matplotlib.rc('text', usetex=True)
-matplotlib.rc('figure', figsize=(14, 8))
+matplotlib.rc('figure', figsize=(14, 6))
 
 # Dimension of the problem
 dim = 1
