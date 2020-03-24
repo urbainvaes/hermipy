@@ -203,7 +203,7 @@ class Quad:
                     del add[frozenset()]
 
                     factor_split = quad.factor.split(legacy=False)
-                    if len(factor_split) is not 1:
+                    if len(factor_split) != 1:
                         raise ValueError("Tensorization not possible!")
                     finest_division = lib.finest_common(set(add),
                                                         set(factor_split[0]))
@@ -278,9 +278,9 @@ class Quad:
         if isinstance(function, hm.Series):
             function = self.eval(function)
 
-        if n is 2:
+        if n == 2:
             return np.sqrt(self.integrate(function**2, flat=flat))
-        elif n is 1:
+        elif n == 1:
             return self.integrate(abs(function), flat=flat)
 
     @tensorize_at(1)
@@ -555,7 +555,7 @@ class Quad:
     def streamlines(self, fx, fy, factor=None, ax=None, **kwargs):
         if not self.position.is_diag or \
            not isinstance(fx, type(fy)) or \
-           self.position.dim is not 2:
+           self.position.dim != 2:
             raise ValueError("Invalid argument(s)!")
 
         show_plt = ax is None

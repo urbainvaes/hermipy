@@ -57,11 +57,11 @@ def to_cpp_array(*args):
             dim = 2
             if isinstance(array[0][0], (list, np.ndarray)):
                 dim = 3
-    if dim is 1:
+    if dim == 1:
         array = convert_to_cpp_vec(array)
-    elif dim is 2:
+    elif dim == 2:
         array = convert_to_cpp_mat(array)
-    elif dim is 3:
+    elif dim == 3:
         array = convert_to_cpp_cube(array)
     return array
 
@@ -210,9 +210,9 @@ def tensorize(inp, dim=None, direction=None,
 
         assert isinstance(any_elem, (np.ndarray, ss.csr_matrix))
         dim = len(any_elem.shape)
-        assert dim is 1 or dim is 2
+        assert dim == 1 or dim == 2
 
-        cpp_arrays = hm_cpp.double_mat() if dim is 1 else hm_cpp.double_cube()
+        cpp_arrays = hm_cpp.double_mat() if dim == 1 else hm_cpp.double_cube()
         cpp_dirs_mat = hm_cpp.int_mat()
         for dirs, arg in inp.items():
             cpp_dirs = hm_cpp.int_vec()
