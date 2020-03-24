@@ -45,7 +45,7 @@ find_package(Boost COMPONENTS python3 numpy3)
 
 # Fix for archlinux
 if (NOT Boost_FOUND)
-    find_package(Boost COMPONENTS python37 numpy37 REQUIRED)
+    find_package(Boost COMPONENTS python38 numpy38 REQUIRED)
 endif (NOT Boost_FOUND)
 
 message(STATUS "Boost include directory: ${Boost_INCLUDE_DIRS}")
