@@ -29,7 +29,7 @@ def map_operator(operator, function, factor):
 
 def solve_gaussian(operator, f, variables):
 
-    if len(variables) is 3:
+    if len(variables) == 3:
         x, y, z = variables
         cx, cy, cz = sym.symbols('cx cy cz', real=True)
         cxy, cyz, cxz = sym.symbols('cxy cyz cxz', real=True)
@@ -50,7 +50,7 @@ def solve_gaussian(operator, f, variables):
         factor = sym.sqrt(determinant / (2*sym.pi)**3)
         solution = factor * solution
 
-    if len(variables) is 2:
+    if len(variables) == 2:
         x, y = variables
         cx, cxy, cy = sym.symbols('sol_cx sol_cxy sol_cy', real=True)
         ansatz = sym.exp(-sym.Rational(1, 2)*(cx*x*x + 2*cxy*x*y + cy*y*y))
@@ -63,7 +63,7 @@ def solve_gaussian(operator, f, variables):
         factor = sym.sqrt(determinant) / (2*sym.pi)
         solution = factor * solution
 
-    if len(variables) is 1:
+    if len(variables) == 1:
         x = variables[0]
         s2 = sym.symbols('s2', real=True, positive=True)
         ansatz = 1/sym.sqrt(2*sym.pi*s2)*sym.exp(-sym.Rational(1, 2)*(x*x/s2))
@@ -389,18 +389,18 @@ class Generalized_Langevin:
 
     @classmethod
     def params(cls, n_extra):
-        assert n_extra is 1 or n_extra is 2
+        assert n_extra == 1 or n_extra == 2
         params, functions = {}, {}
 
         # Real positive parameters
         options = {'real': True, 'positive': True}
         params['β'] = sym.symbols('β', **options)
 
-        if n_extra is 1:
+        if n_extra == 1:
             params['λ'] = sym.symbols('λ', **options)
             params['α'] = sym.symbols('α', **options)
 
-        elif n_extra is 2:
+        elif n_extra == 2:
             params['λ1'] = sym.symbols('λ1', **options)
             params['λ2'] = sym.symbols('λ2', **options)
             for param in ['A11', 'A12', 'A21', 'A22']:

@@ -98,7 +98,7 @@ def cache(hash_extend=None, error_extend=None, quiet=False):
 
     def extended_load(filename):
         result = np.load(filename)
-        if result.shape is ():
+        if result.shape == ():
             result = float(result)
         return result
 

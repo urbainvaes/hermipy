@@ -43,13 +43,13 @@ class Operator():
             return
 
         functions = list(aux.sym.atoms(sympy.function.AppliedUndef))
-        if len(functions) is not 1:
+        if len(functions) != 1:
             raise TypeError("There should be exactly 1 functional argument!")
 
         self.sym = aux.sym.subs(functions[0].func, self.f)
         variables = list(self.sym.atoms(sympy.function.AppliedUndef))[0].args
         self.dirs = [func.Function.x_sub.index(v) for v in variables]
-        assert len(self.dirs) is len(functions[0].args)
+        assert len(self.dirs) == len(functions[0].args)
 
     def __eq__(self, other):
         return self.dirs == other.dirs and \
@@ -140,6 +140,6 @@ class Operator():
                 term = sympy.simplify(term)
             if term != 0:
                 result[tuple(m)] = func.Function(term, dirs=self.dirs)
-        if rem is not 0:
+        if rem != 0:
             raise ValueError("Nonzero remainder")
         return result

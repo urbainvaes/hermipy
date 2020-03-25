@@ -96,7 +96,7 @@ class Series:
                 raise ValueError("Invalid arguments: length of self.coeffs \
 does not match number of multi-indices!")
 
-        if significant is not 0:
+        if significant != 0:
             for i, c in enumerate(self.coeffs):
                 self.coeffs[i] = round(c, significant)
 
@@ -173,7 +173,7 @@ does not match number of multi-indices!")
         return result
 
     def __float__(self):
-        if self.position.dim is not 0:
+        if self.position.dim != 0:
             raise ValueError("Dimension must be 0!")
         return float(self.coeffs[0])
 
@@ -222,10 +222,10 @@ does not match number of multi-indices!")
             ax = plt.subplots(1)[1]
 
         m = self.multi_indices()
-        if self.position.dim is 1:
+        if self.position.dim == 1:
             mx = m[:, 0]
             pl = ax.bar(mx, self.coeffs)
-        elif self.position.dim is 2:
+        elif self.position.dim == 2:
             coeffs = self.coeffs
             # coeffs = self.coeffs / max(abs(self.coeffs))
             # coeffs = (abs(coeffs) > 1e-10) * coeffs
@@ -251,7 +251,7 @@ does not match number of multi-indices!")
         ax.set_title(title)
 
         if show_plt:
-            if self.position.dim is 2:
+            if self.position.dim == 2:
                 plt.colorbar(pl, ax=ax)
             plt.show()
         else:
