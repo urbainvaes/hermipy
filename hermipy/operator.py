@@ -136,7 +136,7 @@ class Operator():
                     rem += arg
                 else:
                     term += termarg
-            if isinstance(term, tuple(sympy.core.all_classes)):
+            if isinstance(term, sympy.Basic):
                 term = sympy.simplify(term)
             if term != 0:
                 result[tuple(m)] = func.Function(term, dirs=self.dirs)

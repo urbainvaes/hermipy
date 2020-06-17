@@ -475,7 +475,7 @@ class Quad:
             import matplotlib.pyplot as plt
             ax = plt.subplots(1)[1]
 
-        if isinstance(arg, tuple(sym.core.all_classes)):
+        if isinstance(arg, sym.Basic):
             arg = hm.Function(arg, dirs=self.position.dirs)
 
         if isinstance(arg, hm.Function):
@@ -563,7 +563,7 @@ class Quad:
             import matplotlib.pyplot as plt
             ax = plt.subplots(1)[1]
 
-        if isinstance(fx, tuple(sym.core.all_classes)):
+        if isinstance(fx, sym.Basic):
             fx = hm.Function(fx, dirs=self.position.dirs)
             fy = hm.Function(fy, dirs=self.position.dirs)
 

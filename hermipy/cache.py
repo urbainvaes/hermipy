@@ -46,7 +46,7 @@ def gen_hash(extend=None):
             return the_hash(new_args)
         if isinstance(argument, np.ndarray):
             return hashlib.md5(argument).hexdigest()
-        if isinstance(argument, tuple(sym.core.all_classes)):
+        if isinstance(argument, sym.Basic):
             return the_hash(str(argument))
         if isinstance(argument, (list, tuple, frozenset)):
             hashes = [the_hash(e) for e in argument]

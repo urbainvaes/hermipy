@@ -51,7 +51,7 @@ class Function():
             self.dirs = expr.dirs
             return
 
-        if not isinstance(expr, tuple(sympy.core.all_classes)):
+        if not isinstance(expr, sympy.Basic):
             expr = sympy.sympify(expr, locals=self.conv)
 
         for s in expr.free_symbols:
