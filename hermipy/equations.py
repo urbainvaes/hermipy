@@ -204,7 +204,7 @@ class McKean_Vlasov:
         Vp, Vy = params['Vp'], params['Vy']
 
         # Effective diffusion
-        functions = Vy.atoms(sym.function.AppliedUndef)
+        functions = Vy.atoms(sym.core.function.AppliedUndef)
 
         if functions == set():
             degree, n_points, q = 100, 201, quad.Quad.gauss_hermite

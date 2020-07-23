@@ -145,12 +145,12 @@ function can't be split")
 
     def split(self, legacy=True):
         dim = len(self.dirs)
-        is_add = isinstance(self.sym, sympy.add.Add)
+        is_add = isinstance(self.sym, sympy.Add)
         add_terms = self.sym.args if is_add else [self.sym]
         to_return = []
 
         for term in add_terms:
-            is_mul = isinstance(term, sympy.mul.Mul)
+            is_mul = isinstance(term, sympy.Mul)
             mul_terms = term.args if is_mul else [term]
             result = {frozenset({d}): 1 for d in self.dirs}
 
@@ -196,14 +196,14 @@ function can't be split")
     @staticmethod
     def sanitize(expr, max_denom=1e8):
         result, expr = sympy.Integer(0), (sympy.Integer(0) + expr).expand()
-        is_add = isinstance(expr, sympy.add.Add)
+        is_add = isinstance(expr, sympy.Add)
         add_terms = expr.args if is_add else [expr]
         for aterm in add_terms:
             result_tmp = sympy.Integer(1)
-            is_mul = isinstance(aterm, sympy.mul.Mul)
+            is_mul = isinstance(aterm, sympy.Mul)
             mul_terms = aterm.args if is_mul else [aterm]
             for mterm in mul_terms:
-                if isinstance(mterm, sympy.numbers.Float):
+                if isinstance(mterm, sympy.Float):
                     if abs(mterm) < 1e-14:
                         mterm = 0
                     mterm = sympy.Rational(mterm).limit_denominator(max_denom)

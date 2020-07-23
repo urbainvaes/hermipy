@@ -42,12 +42,13 @@ class Operator():
             self.sym, self.dirs = aux.sym, dirs
             return
 
-        functions = list(aux.sym.atoms(sympy.function.AppliedUndef))
+        functions = list(aux.sym.atoms(sympy.core.function.AppliedUndef))
         if len(functions) != 1:
             raise TypeError("There should be exactly 1 functional argument!")
 
         self.sym = aux.sym.subs(functions[0].func, self.f)
-        variables = list(self.sym.atoms(sympy.function.AppliedUndef))[0].args
+        variables = list(self.sym.atoms(
+                         sympy.core.function.AppliedUndef))[0].args
         self.dirs = [func.Function.x_sub.index(v) for v in variables]
         assert len(self.dirs) == len(functions[0].args)
 
@@ -128,7 +129,7 @@ class Operator():
             for i, v in zip(m, variables):
                 test *= v**i/math.factorial(i)
                 der = sympy.diff(der, v, i)
-            remargs = rem.args if isinstance(rem, sympy.add.Add) else [rem]
+            remargs = rem.args if isinstance(rem, sympy.Add) else [rem]
             term, rem = 0, 0
             for arg in remargs:  # Convoluted to avoid rounding errors
                 termarg = arg.subs(unknown, test).doit()
