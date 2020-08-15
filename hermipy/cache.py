@@ -159,7 +159,8 @@ def cache(hash_extend=None, error_extend=None, quiet=False):
                 return result
 
             save = sparse.save_npz if is_sparse_result else np.save
-            save(savefile, result)
+            if settings['cache']:
+                save(savefile, result)
             return result
 
         return wrapper
