@@ -14,18 +14,6 @@ are handed over to a C++ compiled component,
 and [Boost](https://en.wikipedia.org/wiki/Boost_(C%2B%2B_libraries)) is used for efficient exchange of data with Python.
 For more information, read the [documentation](https://hermipy.readthedocs.io/en/latest/).
 
-## Todo
-
-- Use third-party library to compute FFTs;
-
-- Implement Smolyak composite quadrature;
-
-- Clean up data conversion between C++ and Python;
-
-- Inherit sympy.function / sympy.operator instead of custom classes.
-
-- Correct awkward handling of multiplier in Function.project
-
 ## License
 
 This program is free software: you can redistribute it and/or modify
